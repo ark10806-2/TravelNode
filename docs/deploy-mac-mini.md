@@ -71,6 +71,26 @@ curl http://localhost:8080/api/health
 
 브라우저에서는 `http://mac-mini.local:8080` 또는 `http://<맥미니_LAN_IP>:8080`로 접속합니다.
 
+`keychain cannot be accessed because the current session does not allow user interaction` 오류가 나면 Docker credential helper가 macOS 서비스 세션에서 Keychain을 열지 못한 것입니다. `deploy/deploy.sh`는 `~/.config/travel-node/docker/config.json`을 자동으로 만들어 Keychain helper 없이 public image를 pull하도록 구성되어 있습니다. 수동으로 확인하려면 아래처럼 실행할 수 있습니다.
+
+```bash
+mkdir -p ~/.config/travel-node/docker
+cat > ~/.config/travel-node/docker/config.json <<'JSON'
+{
+  "auths": {},
+  "cliPluginsExtraDirs": [
+    "/Applications/Docker.app/Contents/Resources/cli-plugins",
+    "/usr/local/lib/docker/cli-plugins",
+    "/usr/local/libexec/docker/cli-plugins",
+    "/usr/local/cli-plugins",
+    "/opt/homebrew/lib/docker/cli-plugins",
+    "/opt/homebrew/libexec/docker/cli-plugins"
+  ]
+}
+JSON
+DOCKER_CONFIG="$HOME/.config/travel-node/docker" docker compose --env-file ~/.config/travel-node/.env.production -f docker-compose.prod.yml ps
+```
+
 ## 4. GitHub Actions runner 연결
 
 GitHub 저장소에서 `Settings -> Actions -> Runners -> New self-hosted runner`로 들어가 macOS runner를 추가합니다. GitHub가 보여주는 다운로드/설정 명령을 맥 미니에서 그대로 실행합니다.
