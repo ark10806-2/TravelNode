@@ -1,0 +1,19 @@
+{
+  "name": "japan-trip-restaurant-map",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"docker compose up --build backend\" \"npm run dev --workspace frontend\"",
+    "dev:db": "docker compose up -d postgres",
+    "dev:backend": "docker compose up --build backend",
+    "dev:frontend": "npm run dev --workspace frontend",
+    "build": "npm run build --workspace frontend",
+    "start": "docker compose up --build backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

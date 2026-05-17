@@ -1,0 +1,58 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+!.env.production.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+*.pem
+*.key
+*.p12
+*.crt
+*.cert
+
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Frontend build/cache
+dist/
+frontend/dist/
+frontend/.vite/
+*.tsbuildinfo
+
+# Backend build/cache
+.gradle/
+backend/.gradle/
+backend/build/
+build/
+out/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local IDE/editor state
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local database dumps/backups
+*.dump
+*.backup
+*-backup.sql
+japan-trip-backup.sql
+
+# Docker/local runtime artifacts
+.docker/
+docker-compose.override.yml

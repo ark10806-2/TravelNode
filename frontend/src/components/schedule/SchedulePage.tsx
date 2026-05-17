@@ -1,0 +1,184 @@
+import { CalendarPlus } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { PlaceDetailDialog } from '@/components/dialogs/PlaceDetailDialog';
+import { PlacePhotoDialog } from '@/components/dialogs/PlacePhotoDialog';
+import { PageContainer } from '@/components/layout/PageContainer';
+import { Button } from '@/components/ui/button';
+import { useSchedule } from '@/hooks/useSchedule';
+import type { CategoryOption, PhotoState, Place } from '@/types/travel';
+import { DayScheduleCard } from './DayScheduleCard';
+
+type SchedulePageProps = {
+  categories: CategoryOption[];
+  places: Place[];
+  isEditing: boolean;
+  isDarkMode: boolean;
+  photoCache: Record<string, PhotoState>;
+  onLoadPhotos: (place: Place, force?: boolean) => Promise<void>;
+};
+
+const emptyPhotoState: PhotoState = {
+  status: 'idle',
+  photos: []
+};
+const routeRefreshCooldownMs = 10_000;
+
+export function SchedulePage({ categories, places, isEditing, isDarkMode, photoCache, onLoadPhotos }: SchedulePageProps) {
+  const [detailTarget, setDetailTarget] = useState<Place | null>(null);
+  const [photoTarget, setPhotoTarget] = useState<Place | null>(null);
+  const [refreshingDayId, setRefreshingDayId] = useState<string | null>(null);
+  const [optimizingDayId, setOptimizingDayId] = useState<string | null>(null);
+  const [routeRefreshAvailableAtByDay, setRouteRefreshAvailableAtByDay] = useState<Record<string, number>>({});
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
+  const {
+    days,
+    scheduleStatus,
+    scheduleError,
+    isSavingSchedule,
+    placesById,
+    routeLegs,
+    addDay,
+    removeDay,
+    addStops,
+    removeStop,
+    moveStop,
+    optimizeDayRoutes,
+    refreshDayRoutes
+  } = useSchedule(places, isEditing);
+  const currentDetailTarget = detailTarget ? placesById.get(detailTarget.id) ?? detailTarget : null;
+  const currentPhotoTarget = photoTarget ? placesById.get(photoTarget.id) ?? photoTarget : null;
+  const hasActiveRefreshCooldown = useMemo(
+    () => Object.values(routeRefreshAvailableAtByDay).some((availableAt) => availableAt > currentTime),
+    [routeRefreshAvailableAtByDay, currentTime]
+  );
+
+  useEffect(() => {
+    if (!hasActiveRefreshCooldown) return undefined;
+
+    const timer = window.setInterval(() => setCurrentTime(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [hasActiveRefreshCooldown]);
+
+  function openDetails(place: Place) {
+    setDetailTarget(place);
+    void onLoadPhotos(place);
+  }
+
+  function openPhotos(place: Place) {
+    setPhotoTarget(place);
+    void onLoadPhotos(place);
+  }
+
+  async function refreshRoutes(dayId: string) {
+    const now = Date.now();
+    const availableAt = routeRefreshAvailableAtByDay[dayId] ?? 0;
+    if (refreshingDayId || now < availableAt) return;
+
+    setCurrentTime(now);
+    setRouteRefreshAvailableAtByDay((current) => ({
+      ...current,
+      [dayId]: now + routeRefreshCooldownMs
+    }));
+    setRefreshingDayId(dayId);
+    try {
+      await refreshDayRoutes(dayId);
+    } finally {
+      setRefreshingDayId(null);
+    }
+  }
+
+  async function optimizeRoutes(dayId: string) {
+    if (optimizingDayId) return;
+
+    setOptimizingDayId(dayId);
+    try {
+      await optimizeDayRoutes(dayId);
+    } finally {
+      setOptimizingDayId(null);
+    }
+  }
+
+  return (
+    <PageContainer className="gap-4 px-3 py-4 sm:gap-6 sm:px-4 sm:py-5">
+      <header className="flex flex-col gap-3 border-b border-border/70 pb-4 sm:gap-4 sm:pb-5 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="mb-3 inline-flex rounded-full bg-accent px-3 py-1 text-xs font-bold uppercase text-primary">
+            Schedule
+          </p>
+          <h1 className="text-3xl font-bold tracking-normal sm:text-5xl">여행 일정</h1>
+          <p className="mt-2 text-sm text-muted-foreground sm:mt-3 sm:text-base">DAY별로 장소를 배치하고 이동 순서를 조정합니다.</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {scheduleStatus === 'loading'
+              ? '일정을 불러오는 중입니다.'
+              : isSavingSchedule
+                ? '일정을 저장하는 중입니다.'
+                : '일정은 서버 DB에 저장됩니다.'}
+          </p>
+        </div>
+        {isEditing ? (
+          <div className="grid gap-2 sm:flex sm:items-center">
+            <Button onClick={addDay} disabled={isSavingSchedule}>
+              <CalendarPlus className="h-4 w-4" />
+              DAY 추가
+            </Button>
+          </div>
+        ) : null}
+      </header>
+
+      {scheduleStatus === 'error' && scheduleError ? (
+        <div className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {scheduleError}
+        </div>
+      ) : null}
+
+      <div className="grid gap-4">
+        {days.map((day, index) => (
+          <DayScheduleCard
+            key={day.id}
+            day={day}
+            dayIndex={index}
+            categories={categories}
+            places={places}
+            placesById={placesById}
+            routeLegs={routeLegs}
+            isEditing={isEditing}
+            isDarkMode={isDarkMode}
+            onRemoveDay={removeDay}
+            onAddStops={addStops}
+            onRemoveStop={removeStop}
+            onMoveStop={moveStop}
+            isOptimizingRoutes={optimizingDayId === day.id}
+            onOptimizeRoutes={() => void optimizeRoutes(day.id)}
+            isRefreshingRoutes={refreshingDayId === day.id}
+            routeRefreshRemainingSeconds={Math.max(
+              0,
+              Math.ceil(((routeRefreshAvailableAtByDay[day.id] ?? 0) - currentTime) / 1000)
+            )}
+            onRefreshRoutes={() => void refreshRoutes(day.id)}
+            onOpenPlaceDetails={openDetails}
+          />
+        ))}
+      </div>
+
+      {currentDetailTarget ? (
+        <PlaceDetailDialog
+          place={currentDetailTarget}
+          categories={categories}
+          photoState={photoCache[currentDetailTarget.id] ?? emptyPhotoState}
+          onClose={() => setDetailTarget(null)}
+          onOpenPhotos={openPhotos}
+        />
+      ) : null}
+
+      {currentPhotoTarget ? (
+        <PlacePhotoDialog
+          place={currentPhotoTarget}
+          categories={categories}
+          photoState={photoCache[currentPhotoTarget.id] ?? emptyPhotoState}
+          onClose={() => setPhotoTarget(null)}
+          onRetry={() => void onLoadPhotos(currentPhotoTarget, true)}
+        />
+      ) : null}
+    </PageContainer>
+  );
+}

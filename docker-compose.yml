@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: japan-trip-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: japan_trip
+      POSTGRES_USER: japan
+      POSTGRES_PASSWORD: japan
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U japan -d japan_trip"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    container_name: japan-trip-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 4000
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/japan_trip
+      SPRING_DATASOURCE_USERNAME: japan
+      SPRING_DATASOURCE_PASSWORD: japan
+      APP_CORS_ORIGIN: ${APP_CORS_ORIGIN:-http://localhost:5173}
+      APP_PUBLIC_BASE_URL: ${APP_PUBLIC_BASE_URL:-}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
+      GOOGLE_API_MONTHLY_LIMITS: ${GOOGLE_API_MONTHLY_LIMITS:-}
+      GOOGLE_API_DAILY_LIMITS: ${GOOGLE_API_DAILY_LIMITS:-}
+    ports:
+      - "4000:4000"
+
+volumes:
+  postgres-data:

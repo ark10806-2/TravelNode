@@ -1,0 +1,287 @@
+import { useMemo, useState } from 'react';
+import { ArrowDown, ArrowUp, MapPinPlus, MapPinned, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { getCategoryBadgeClass, getCategoryOption } from '@/lib/place-utils';
+import { hotelSchedulePlace, maxStopsPerDay, routeLegKey } from '@/lib/schedule-utils';
+import type { RouteLeg, ScheduleDay } from '@/types/schedule';
+import type { CategoryOption, Place } from '@/types/travel';
+import { DayRouteMapDialog } from './DayRouteMapDialog';
+import { PlacePickerDialog } from './PlacePickerDialog';
+import { RouteLegRow } from './RouteLegRow';
+
+type DayScheduleCardProps = {
+  day: ScheduleDay;
+  dayIndex: number;
+  categories: CategoryOption[];
+  places: Place[];
+  placesById: Map<string, Place>;
+  routeLegs: Record<string, RouteLeg>;
+  isEditing: boolean;
+  isDarkMode: boolean;
+  onRemoveDay: (dayId: string) => void;
+  onAddStops: (dayId: string, placeIds: string[]) => void;
+  onRemoveStop: (dayId: string, stopId: string) => void;
+  onMoveStop: (dayId: string, stopId: string, direction: -1 | 1) => void;
+  isOptimizingRoutes: boolean;
+  onOptimizeRoutes: () => void;
+  isRefreshingRoutes: boolean;
+  routeRefreshRemainingSeconds: number;
+  onRefreshRoutes: () => void;
+  onOpenPlaceDetails: (place: Place) => void;
+};
+
+export function DayScheduleCard({
+  day,
+  dayIndex,
+  categories,
+  places,
+  placesById,
+  routeLegs,
+  isEditing,
+  isDarkMode,
+  onRemoveDay,
+  onAddStops,
+  onRemoveStop,
+  onMoveStop,
+  isOptimizingRoutes,
+  onOptimizeRoutes,
+  isRefreshingRoutes,
+  routeRefreshRemainingSeconds,
+  onRefreshRoutes,
+  onOpenPlaceDetails
+}: DayScheduleCardProps) {
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [isRouteMapOpen, setIsRouteMapOpen] = useState(false);
+  const scheduledPlaceIds = useMemo(() => new Set(day.stops.map((stop) => stop.placeId)), [day.stops]);
+  const scheduledPlaces = useMemo(
+    () => day.stops.map((stop) => placesById.get(stop.placeId)).filter((place): place is Place => Boolean(place)),
+    [day.stops, placesById]
+  );
+  const isFull = day.stops.length >= maxStopsPerDay;
+  const dayLabel = `DAY ${dayIndex + 1}`;
+  const lastScheduledPlace = scheduledPlaces[scheduledPlaces.length - 1] ?? null;
+  const returnLeg = lastScheduledPlace ? routeLegs[routeLegKey(lastScheduledPlace, hotelSchedulePlace)] : undefined;
+
+  function addPlaces(selectedPlaces: Place[]) {
+    onAddStops(
+      day.id,
+      selectedPlaces.map((place) => place.id)
+    );
+    setIsPickerOpen(false);
+  }
+
+  return (
+    <section className="soft-panel overflow-hidden rounded-lg">
+      <div className="flex flex-col gap-3 border-b bg-secondary px-3 py-3 sm:gap-4 sm:px-4 sm:py-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge className="rounded-full bg-primary text-primary-foreground">{dayLabel}</Badge>
+            <Badge variant="outline" className="rounded-full bg-background">
+              {day.stops.length}/{maxStopsPerDay}
+            </Badge>
+          </div>
+          <h2 className="mt-2 text-xl font-bold tracking-tight sm:text-2xl">{dayLabel}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">방문 순서를 정하고 장소 간 이동 시간을 비교합니다.</p>
+        </div>
+        {scheduledPlaces.length > 0 || isEditing ? (
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+            {scheduledPlaces.length ? (
+              <Button
+                className="min-w-0 flex-1 sm:flex-none"
+                variant="outline"
+                onClick={() => setIsRouteMapOpen(true)}
+              >
+                <MapPinned className="h-4 w-4" />
+                동선 지도
+              </Button>
+            ) : null}
+            {isEditing && scheduledPlaces.length > 0 ? (
+              <Button
+                className="min-w-0 flex-1 sm:flex-none"
+                variant="outline"
+                onClick={onOptimizeRoutes}
+                disabled={isOptimizingRoutes || isRefreshingRoutes}
+              >
+                <Sparkles className={`h-4 w-4 ${isOptimizingRoutes ? 'animate-pulse' : ''}`} />
+                {isOptimizingRoutes ? '최적화 중' : '동선 최적화'}
+              </Button>
+            ) : null}
+            {scheduledPlaces.length > 0 ? (
+              <Button
+                className="min-w-0 flex-1 sm:flex-none"
+                variant="outline"
+                onClick={onRefreshRoutes}
+                disabled={isRefreshingRoutes || routeRefreshRemainingSeconds > 0}
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshingRoutes ? 'animate-spin' : ''}`} />
+                {routeRefreshRemainingSeconds > 0 ? `${routeRefreshRemainingSeconds}초 후` : '경로 새로고침'}
+              </Button>
+            ) : null}
+            {isEditing ? (
+              <>
+                <Button
+                  className="min-w-0"
+                  onClick={() => setIsPickerOpen(true)}
+                  disabled={isFull || !places.length}
+                >
+                  <MapPinPlus className="h-4 w-4" />
+                  장소 추가
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="justify-self-end text-destructive hover:bg-destructive/10 hover:text-destructive sm:justify-self-auto"
+                  onClick={() => onRemoveDay(day.id)}
+                  aria-label={`${dayLabel} 삭제`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="grid gap-3 p-2 sm:gap-4 sm:p-4">
+        <div className="grid gap-0 bg-background">
+          {day.stops.length ? (
+            <>
+              {day.stops.map((stop, index) => {
+                const place = placesById.get(stop.placeId);
+                const previousPlace = index > 0 ? placesById.get(day.stops[index - 1].placeId) : null;
+                const edgeFrom = previousPlace ?? hotelSchedulePlace;
+                const leg = place ? routeLegs[routeLegKey(edgeFrom, place)] : undefined;
+
+                return (
+                  <div key={stop.id}>
+                    {place ? (
+                      <RouteLegRow from={edgeFrom} to={place} leg={leg} selectedMode={stop.selectedRouteMode} />
+                    ) : null}
+                    <div className="grid grid-cols-[1.8rem_minmax(0,1fr)] items-center gap-2 rounded-md px-1.5 py-3 transition hover:bg-muted/25 sm:grid-cols-[2.25rem_minmax(0,1fr)] sm:gap-3 sm:px-3">
+                      <div className="grid h-7 w-7 place-items-center rounded-full bg-foreground text-sm font-bold text-background sm:h-8 sm:w-8">
+                        {index + 1}
+                      </div>
+                      {place ? (
+                        <div className="grid min-w-0 gap-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-3">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge variant="outline" className={getCategoryBadgeClass(place.category)}>
+                                {getCategoryOption(categories, place.category).emoji}{' '}
+                                {getCategoryOption(categories, place.category).label}
+                              </Badge>
+                            </div>
+                            <button
+                              type="button"
+                              className="mt-1 block max-w-full truncate text-left text-base font-semibold underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              onClick={() => onOpenPlaceDetails(place)}
+                            >
+                              {place.name}
+                            </button>
+                            <div className="mt-1 line-clamp-1 text-sm leading-5 text-muted-foreground">{place.menu}</div>
+                            <div className="mt-1 line-clamp-2 text-sm leading-5 text-foreground/75">{place.description}</div>
+                          </div>
+                          <div className="flex flex-wrap items-center justify-start gap-1 md:justify-end">
+                            {isEditing ? (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 sm:h-9 sm:w-9"
+                                  onClick={() => onMoveStop(day.id, stop.id, -1)}
+                                  disabled={index === 0}
+                                  aria-label={`${place.name} 앞으로 이동`}
+                                >
+                                  <ArrowUp className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 sm:h-9 sm:w-9"
+                                  onClick={() => onMoveStop(day.id, stop.id, 1)}
+                                  disabled={index === day.stops.length - 1}
+                                  aria-label={`${place.name} 뒤로 이동`}
+                                >
+                                  <ArrowDown className="h-4 w-4" />
+                                </Button>
+                              </>
+                            ) : null}
+                            {isEditing ? (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive sm:h-9 sm:w-9"
+                                onClick={() => onRemoveStop(day.id, stop.id)}
+                                aria-label={`${place.name} 일정에서 제외`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            ) : null}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <div className="font-semibold">삭제된 장소</div>
+                            <div className="text-sm text-muted-foreground">장소 목록에서 찾을 수 없습니다.</div>
+                          </div>
+                          {isEditing ? (
+                            <Button variant="ghost" size="sm" onClick={() => onRemoveStop(day.id, stop.id)}>
+                              제외
+                            </Button>
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              {lastScheduledPlace ? (
+                <RouteLegRow
+                  from={lastScheduledPlace}
+                  to={hotelSchedulePlace}
+                  leg={returnLeg}
+                  selectedMode={day.selectedReturnRouteMode}
+                />
+              ) : null}
+            </>
+          ) : (
+            <div className="grid min-h-40 place-items-center px-4 py-8 text-center text-sm text-muted-foreground">
+              <div>
+                <MapPinPlus className="mx-auto h-8 w-8 text-muted-foreground" />
+                <p className="mt-3 font-semibold text-foreground">아직 장소가 없습니다.</p>
+                <p className="mt-1">{isEditing ? '장소 추가 버튼으로 후보를 골라보세요.' : '최상단 편집을 누르면 장소를 추가할 수 있습니다.'}</p>
+                {isEditing ? (
+                  <Button className="mt-4" onClick={() => setIsPickerOpen(true)} disabled={isFull || !places.length}>
+                    <MapPinPlus className="h-4 w-4" />
+                    장소 추가
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      {isPickerOpen ? (
+        <PlacePickerDialog
+          dayLabel={dayLabel}
+          categories={categories}
+          places={places}
+          excludedPlaceIds={scheduledPlaceIds}
+          maxSelectable={maxStopsPerDay - day.stops.length}
+          onClose={() => setIsPickerOpen(false)}
+          onSelect={addPlaces}
+        />
+      ) : null}
+      {isRouteMapOpen ? (
+        <DayRouteMapDialog
+          dayLabel={dayLabel}
+          places={scheduledPlaces}
+          anchorPlace={hotelSchedulePlace}
+          isDarkMode={isDarkMode}
+          onClose={() => setIsRouteMapOpen(false)}
+        />
+      ) : null}
+    </section>
+  );
+}
