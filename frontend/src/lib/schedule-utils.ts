@@ -29,9 +29,9 @@ export function createId(prefix: string) {
 }
 
 export function buildPlaceDirectionsUrl(from: Place, to: Place, mode: RouteMode = 'transit') {
-  const origin = encodeURIComponent(`${from.latitude},${from.longitude}`);
-  const destination = encodeURIComponent(`${to.latitude},${to.longitude}`);
-  return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=${mode}`;
+  const origin = encodeURIComponent(buildDirectionsQuery(from));
+  const destination = encodeURIComponent(buildDirectionsQuery(to));
+  return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=${mode}&hl=ko`;
 }
 
 export function routeLegKey(from: Place, to: Place) {
@@ -67,4 +67,13 @@ function estimateMinutes(distanceKm: number, mode: RouteMode) {
   if (mode === 'walking') return Math.ceil(distanceKm / 0.08).toString();
   if (mode === 'driving') return Math.ceil(distanceKm / 0.35 + 5).toString();
   return Math.ceil(distanceKm * 3 + 10).toString();
+}
+
+function buildDirectionsQuery(place: Place) {
+  const name = place.name.trim();
+  const address = place.address.trim();
+  const hasUsefulAddress = address && address !== name && address !== '주소 확인 필요';
+
+  if (hasUsefulAddress) return `${name} ${address}`;
+  return name || `${place.latitude},${place.longitude}`;
 }
