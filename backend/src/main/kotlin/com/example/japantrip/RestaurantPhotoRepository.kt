@@ -174,10 +174,14 @@ data class StoredRestaurantPhotoImage(
   val imageBytes: ByteArray
 )
 
+@Suppress("UNUSED_PARAMETER")
 fun StoredRestaurantPhoto.toResponse(publicBaseUrl: String) = RestaurantPhotoResponse(
-  url = "${publicBaseUrl.trimEnd('/')}/api/restaurants/$restaurantId/photos/$id/image",
+  url = buildRestaurantPhotoUrl(restaurantId, id),
   widthPx = widthPx,
   heightPx = heightPx,
   authorName = authorName,
   authorUri = authorUri
 )
+
+private fun buildRestaurantPhotoUrl(restaurantId: String, photoId: String) =
+  "/api/restaurants/$restaurantId/photos/$photoId/image"
