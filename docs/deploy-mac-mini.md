@@ -97,6 +97,17 @@ docker --config "$HOME/.config/travel-node/docker" compose --env-file ~/.config/
 
 GitHub 저장소에서 `Settings -> Actions -> Runners -> New self-hosted runner`로 들어가 macOS runner를 추가합니다. GitHub가 보여주는 다운로드/설정 명령을 맥 미니에서 그대로 실행합니다.
 
+Docker Desktop은 macOS 서비스 세션에서 public image를 pull할 때도 login keychain 접근을 요구할 수 있습니다. GitHub 저장소에 아래 repository secret을 추가하세요.
+
+```text
+Settings -> Secrets and variables -> Actions -> New repository secret
+```
+
+- Name: `MACOS_KEYCHAIN_PASSWORD`
+- Value: 맥 미니 `eigen` 계정 로그인 비밀번호
+
+workflow는 배포 전에 이 secret으로 `~/Library/Keychains/login.keychain-db`를 unlock합니다. secret 값은 로그에 출력되지 않습니다.
+
 runner 설정 단계에서 label에 아래 값을 포함하세요.
 
 ```text

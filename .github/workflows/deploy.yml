@@ -20,5 +20,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Unlock macOS keychain
+        env:
+          MACOS_KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
+        run: |
+          if [ -z "$MACOS_KEYCHAIN_PASSWORD" ]; then
+            echo "MACOS_KEYCHAIN_PASSWORD repository secret is required for Docker Desktop on macOS."
+            exit 1
+          fi
+          security unlock-keychain -p "$MACOS_KEYCHAIN_PASSWORD" "$HOME/Library/Keychains/login.keychain-db"
+          security set-keychain-settings -lut 21600 "$HOME/Library/Keychains/login.keychain-db"
+
       - name: Deploy
         run: TRAVEL_NODE_ENV_FILE="$HOME/.config/travel-node/.env.production" ./deploy/deploy.sh
