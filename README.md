@@ -1,6 +1,6 @@
 # Japan Trip Advisor
 
-숙소 주변 여행 장소를 Postgres에 저장하고, Ktor API로 불러와 React + shadcn 화면의 Google Maps 위에 표시하는 간단한 풀스택 앱입니다.
+숙소 주변 여행 장소를 Postgres에 저장하고, Ktor API로 불러와 React + shadcn 화면의 Google Map 위에 표시하는 간단한 풀스택 앱입니다.
 
 ## 구성
 
