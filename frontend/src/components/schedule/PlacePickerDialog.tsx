@@ -62,16 +62,16 @@ export function PlacePickerDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-stretch justify-center bg-foreground/40 p-2 sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-stretch justify-center bg-foreground/40 p-2 lg:items-center lg:p-4"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
       <div
-        className="flex max-h-[calc(100dvh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-md border bg-background shadow-xl sm:max-h-[90vh]"
+        className="flex h-[calc(100dvh-1rem)] min-h-0 w-full max-w-6xl flex-col overflow-hidden rounded-md border bg-background shadow-xl lg:h-auto lg:max-h-[90vh]"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b px-5 py-4">
+        <div className="shrink-0 flex items-start justify-between gap-4 border-b px-5 py-4">
           <div>
             <p className="text-sm font-semibold text-primary">{dayLabel}</p>
             <h2 className="mt-1 text-2xl font-bold">장소 추가</h2>
@@ -82,7 +82,7 @@ export function PlacePickerDialog({
           </Button>
         </div>
 
-        <div className="grid gap-3 border-b bg-muted/30 p-4">
+        <div className="shrink-0 grid gap-3 border-b bg-muted/30 p-4">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -110,8 +110,8 @@ export function PlacePickerDialog({
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_420px]">
-          <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:overflow-hidden">
+          <div className="min-h-0 p-3 sm:p-4 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
             {filteredPlaces.length ? (
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-1">
                 {filteredPlaces.map((place) => {
@@ -177,14 +177,14 @@ export function PlacePickerDialog({
               <div className="overflow-hidden rounded-md border bg-background">
                 {focusedPlace ? (
                   <iframe
-                    className="h-52 w-full border-0 lg:h-[420px]"
+                    className="pointer-events-none h-40 w-full border-0 sm:h-52 lg:pointer-events-auto lg:h-[420px]"
                     src={getEmbedMapUrl(focusedPlace)}
                     title={`${focusedPlace.name} 지도`}
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
                   />
                 ) : (
-                  <div className="grid h-52 place-items-center text-sm text-muted-foreground lg:h-[420px]">
+                  <div className="grid h-40 place-items-center text-sm text-muted-foreground sm:h-52 lg:h-[420px]">
                     지도에 표시할 장소가 없습니다.
                   </div>
                 )}
@@ -193,14 +193,14 @@ export function PlacePickerDialog({
                 <div className="rounded-md border bg-background p-3">
                   <div className="text-sm font-bold">{focusedPlace.name}</div>
                   <div className="mt-1 text-xs text-muted-foreground">{focusedPlace.address}</div>
-                  <div className="mt-2 line-clamp-4 text-sm leading-5 text-foreground/80">{focusedPlace.description}</div>
+                  <div className="mt-2 line-clamp-2 text-sm leading-5 text-foreground/80 lg:line-clamp-4">{focusedPlace.description}</div>
                 </div>
               ) : null}
             </div>
           </aside>
         </div>
 
-        <div className="flex flex-col gap-3 border-t bg-background px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="shrink-0 flex flex-col gap-3 border-t bg-background px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm text-muted-foreground">
             선택 {selectedPlaces.length}개 / 남은 자리 {maxSelectable}개
           </div>
