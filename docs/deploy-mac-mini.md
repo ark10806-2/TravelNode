@@ -71,7 +71,7 @@ curl http://localhost:8080/api/health
 
 브라우저에서는 `http://mac-mini.local:8080` 또는 `http://<맥미니_LAN_IP>:8080`로 접속합니다.
 
-`keychain cannot be accessed because the current session does not allow user interaction` 오류가 나면 Docker credential helper가 macOS 서비스 세션에서 Keychain을 열지 못한 것입니다. `deploy/deploy.sh`는 `~/.config/travel-node/docker/config.json`을 자동으로 만들어 Keychain helper 없이 public image를 pull하도록 구성되어 있습니다. 수동으로 확인하려면 아래처럼 실행할 수 있습니다.
+`keychain cannot be accessed because the current session does not allow user interaction` 오류가 나면 Docker credential helper가 macOS 서비스 세션에서 Keychain을 열지 못한 것입니다. `deploy/deploy.sh`는 `~/.config/travel-node/docker/config.json`을 자동으로 만들고 `docker --config ~/.config/travel-node/docker compose ...` 형태로 실행해 Keychain helper 없이 public image를 pull하도록 구성되어 있습니다. 수동으로 확인하려면 아래처럼 실행할 수 있습니다.
 
 ```bash
 mkdir -p ~/.config/travel-node/docker
@@ -88,7 +88,7 @@ cat > ~/.config/travel-node/docker/config.json <<'JSON'
   ]
 }
 JSON
-DOCKER_CONFIG="$HOME/.config/travel-node/docker" docker compose --env-file ~/.config/travel-node/.env.production -f docker-compose.prod.yml ps
+docker --config "$HOME/.config/travel-node/docker" compose --env-file ~/.config/travel-node/.env.production -f docker-compose.prod.yml ps
 ```
 
 ## 4. GitHub Actions runner 연결
