@@ -78,6 +78,8 @@ mkdir -p ~/.config/travel-node/docker
 cat > ~/.config/travel-node/docker/config.json <<'JSON'
 {
   "auths": {},
+  "credsStore": "",
+  "credHelpers": {},
   "cliPluginsExtraDirs": [
     "/Applications/Docker.app/Contents/Resources/cli-plugins",
     "/usr/local/lib/docker/cli-plugins",

@@ -15,6 +15,8 @@ mkdir -p "$DOCKER_CONFIG_DIR"
 cat > "$DOCKER_CONFIG_DIR/config.json" <<'JSON'
 {
   "auths": {},
+  "credsStore": "",
+  "credHelpers": {},
   "cliPluginsExtraDirs": [
     "/Applications/Docker.app/Contents/Resources/cli-plugins",
     "/usr/local/lib/docker/cli-plugins",
