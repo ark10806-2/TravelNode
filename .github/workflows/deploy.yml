@@ -18,7 +18,7 @@ jobs:
       - travel-node
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Deploy
         run: TRAVEL_NODE_ENV_FILE="$HOME/.config/travel-node/.env.production" ./deploy/deploy.sh
