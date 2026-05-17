@@ -4,7 +4,8 @@ import {
   deletePlace as deletePlaceRequest,
   fetchCategories,
   fetchPlacePhotos,
-  fetchPlaces
+  fetchPlaces,
+  updatePlace as updatePlaceRequest
 } from '@/api/travel';
 import { defaultCategoryOptions } from '@/constants/travel';
 import { getCategoryOption, haversineKm, mergeCategoryOptions, normalizeCategories } from '@/lib/place-utils';
@@ -14,8 +15,14 @@ import type {
   LoadStatus,
   PhotoState,
   Place,
+  PlaceDraft,
   TravelModeFilter
 } from '@/types/travel';
+
+function toPlaceDraft(place: Place, category: CategoryId): PlaceDraft {
+  const { id: _id, ...draft } = place;
+  return { ...draft, category };
+}
 
 export function useTravelPlaces() {
   const [categories, setCategories] = useState<CategoryOption[]>(defaultCategoryOptions);
@@ -26,6 +33,7 @@ export function useTravelPlaces() {
   const [status, setStatus] = useState<LoadStatus>('loading');
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [movingCategoryPlaceId, setMovingCategoryPlaceId] = useState<string | null>(null);
   const [photoCache, setPhotoCache] = useState<Record<string, PhotoState>>({});
   const photoCacheRef = useRef(photoCache);
 
@@ -138,6 +146,25 @@ export function useTravelPlaces() {
     setSelectedCategoryId(place.category);
   }, []);
 
+  const movePlaceToCategory = useCallback(
+    async (place: Place, categoryId: CategoryId) => {
+      if (place.category === categoryId) return;
+
+      setMovingCategoryPlaceId(place.id);
+      setError('');
+
+      try {
+        const updatedPlace = await updatePlaceRequest(place.id, toPlaceDraft(place, categoryId));
+        updatePlace(updatedPlace);
+      } catch (moveError) {
+        setError(moveError instanceof Error ? moveError.message : '장소의 카테고리를 옮기지 못했습니다.');
+      } finally {
+        setMovingCategoryPlaceId(null);
+      }
+    },
+    [updatePlace]
+  );
+
   const deletePlace = useCallback(async (place: Place) => {
     if (!window.confirm(`${place.name}을(를) 삭제할까요?`)) return;
 
@@ -202,10 +229,12 @@ export function useTravelPlaces() {
     status,
     error,
     deletingId,
+    movingCategoryPlaceId,
     photoCache,
     addCategory,
     addPlace,
     updatePlace,
+    movePlaceToCategory,
     deletePlace,
     deleteCategory,
     loadPhotos,

@@ -4,7 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { travelLabel } from '@/constants/travel';
-import type { NearbyPlace, PhotoState, Place } from '@/types/travel';
+import type { CategoryId, CategoryOption, NearbyPlace, PhotoState, Place } from '@/types/travel';
+import { CategoryMoveSelect } from './CategoryMoveSelect';
 import { PlaceGallery } from './PlaceGallery';
 
 export type PlaceListViewMode = 'table' | 'gallery';
@@ -15,12 +16,15 @@ type PlaceTableProps = {
   viewMode: PlaceListViewMode;
   onViewModeChange: (viewMode: PlaceListViewMode) => void;
   isEditing: boolean;
+  categories: CategoryOption[];
   photoCache: Record<string, PhotoState>;
   onLoadPhotos: (place: Place) => Promise<void>;
   onSelect: (place: Place) => void;
   onAdd: () => void;
   onDelete: (place: Place) => void;
+  onMoveCategory: (place: Place, categoryId: CategoryId) => void;
   deletingId: string | null;
+  movingCategoryPlaceId: string | null;
   onOpenPhotos: (place: Place) => void;
 };
 
@@ -30,12 +34,15 @@ export function PlaceTable({
   viewMode,
   onViewModeChange,
   isEditing,
+  categories,
   photoCache,
   onLoadPhotos,
   onSelect,
   onAdd,
   onDelete,
+  onMoveCategory,
   deletingId,
+  movingCategoryPlaceId,
   onOpenPhotos
 }: PlaceTableProps) {
   useEffect(() => {
@@ -86,6 +93,10 @@ export function PlaceTable({
           photoCache={photoCache}
           onLoadPhotos={onLoadPhotos}
           onOpenPhotos={onOpenPhotos}
+          isEditing={isEditing}
+          categories={categories}
+          movingCategoryPlaceId={movingCategoryPlaceId}
+          onMoveCategory={onMoveCategory}
         />
       ) : (
         <>
@@ -97,9 +108,12 @@ export function PlaceTable({
                 photoState={photoCache[place.id]}
                 isEditing={isEditing}
                 isDeleting={deletingId === place.id}
+                isMovingCategory={movingCategoryPlaceId === place.id}
+                categories={categories}
                 onSelect={onSelect}
                 onOpenPhotos={onOpenPhotos}
                 onDelete={onDelete}
+                onMoveCategory={onMoveCategory}
               />
             ))}
             {!places.length ? (
@@ -123,6 +137,8 @@ export function PlaceTable({
               <TableBody>
                 {places.map((place) => {
                   const isDeleting = deletingId === place.id;
+                  const isMovingCategory = movingCategoryPlaceId === place.id;
+                  const isBusy = isDeleting || isMovingCategory;
 
                   return (
                     <TableRow key={place.id}>
@@ -137,7 +153,7 @@ export function PlaceTable({
                       <TableCell className="hidden max-w-sm text-muted-foreground md:table-cell">{place.description}</TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => onSelect(place)} disabled={isDeleting}>
+                          <Button variant="ghost" size="sm" onClick={() => onSelect(place)} disabled={isBusy}>
                             선택
                           </Button>
                           <PlaceThumbnail
@@ -145,19 +161,27 @@ export function PlaceTable({
                             photoState={photoCache[place.id]}
                             sizeClassName="h-10 w-10"
                             onOpenPhotos={onOpenPhotos}
-                            disabled={isDeleting}
+                            disabled={isBusy}
                           />
                           {isEditing ? (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-9 w-9 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                              onClick={() => onDelete(place)}
-                              disabled={isDeleting}
-                              aria-label={`${place.name} 삭제`}
-                            >
-                              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                            </Button>
+                            <>
+                              <CategoryMoveSelect
+                                place={place}
+                                categories={categories}
+                                disabled={isBusy}
+                                onMove={onMoveCategory}
+                              />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                onClick={() => onDelete(place)}
+                                disabled={isBusy}
+                                aria-label={`${place.name} 삭제`}
+                              >
+                                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                              </Button>
+                            </>
                           ) : null}
                         </div>
                       </TableCell>
@@ -185,18 +209,26 @@ function MobilePlaceCard({
   photoState,
   isEditing,
   isDeleting,
+  isMovingCategory,
+  categories,
   onSelect,
   onOpenPhotos,
-  onDelete
+  onDelete,
+  onMoveCategory
 }: {
   place: NearbyPlace;
   photoState?: PhotoState;
   isEditing: boolean;
   isDeleting: boolean;
+  isMovingCategory: boolean;
+  categories: CategoryOption[];
   onSelect: (place: Place) => void;
   onOpenPhotos: (place: Place) => void;
   onDelete: (place: Place) => void;
+  onMoveCategory: (place: Place, categoryId: CategoryId) => void;
 }) {
+  const isBusy = isDeleting || isMovingCategory;
+
   return (
     <article className="soft-panel rounded-lg p-3">
       <div className="flex items-start justify-between gap-3">
@@ -216,7 +248,7 @@ function MobilePlaceCard({
           photoState={photoState}
           sizeClassName="h-12 w-12"
           onOpenPhotos={onOpenPhotos}
-          disabled={isDeleting}
+          disabled={isBusy}
         />
       </div>
 
@@ -228,20 +260,29 @@ function MobilePlaceCard({
       <p className="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">{place.description}</p>
 
       <div className="mt-3 flex items-center gap-2">
-        <Button className="flex-1" variant="outline" size="sm" onClick={() => onSelect(place)} disabled={isDeleting}>
+        <Button className="flex-1" variant="outline" size="sm" onClick={() => onSelect(place)} disabled={isBusy}>
           선택
         </Button>
         {isEditing ? (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
-            onClick={() => onDelete(place)}
-            disabled={isDeleting}
-            aria-label={`${place.name} 삭제`}
-          >
-            {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-          </Button>
+          <>
+            <CategoryMoveSelect
+              place={place}
+              categories={categories}
+              disabled={isBusy}
+              className="min-w-24 flex-1"
+              onMove={onMoveCategory}
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={() => onDelete(place)}
+              disabled={isBusy}
+              aria-label={`${place.name} 삭제`}
+            >
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            </Button>
+          </>
         ) : null}
       </div>
     </article>

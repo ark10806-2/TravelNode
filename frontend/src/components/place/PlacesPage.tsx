@@ -41,11 +41,13 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
     status,
     error,
     deletingId,
+    movingCategoryPlaceId,
     photoCache,
     addCategory,
     deleteCategory,
     addPlace,
     updatePlace,
+    movePlaceToCategory,
     deletePlace,
     loadPhotos,
     refreshPlaces
@@ -115,7 +117,9 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
             categories={categories}
             photoState={selectedPlace ? photoCache[selectedPlace.id] ?? emptyPhotoState : emptyPhotoState}
             isEditing={canModify}
+            movingCategoryPlaceId={movingCategoryPlaceId}
             onEditPlace={(place) => (canEdit ? setEditTarget(place) : onRequireAuth())}
+            onMoveCategory={(place, categoryId) => (canEdit ? void movePlaceToCategory(place, categoryId) : onRequireAuth())}
             onOpenPhotos={openPhotoDialog}
           />
         </section>
@@ -136,12 +140,15 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
             viewMode={placeListViewMode}
             onViewModeChange={setPlaceListViewMode}
             isEditing={canModify}
+            categories={categories}
             photoCache={photoCache}
             onLoadPhotos={loadPhotos}
             onSelect={selectPlace}
             onAdd={() => (canEdit ? setAddPlaceCategory(selectedCategoryId) : onRequireAuth())}
             onDelete={(place) => (canEdit ? void deletePlace(place) : onRequireAuth())}
+            onMoveCategory={(place, categoryId) => (canEdit ? void movePlaceToCategory(place, categoryId) : onRequireAuth())}
             deletingId={deletingId}
+            movingCategoryPlaceId={movingCategoryPlaceId}
             onOpenPhotos={openPhotoDialog}
           />
         </section>

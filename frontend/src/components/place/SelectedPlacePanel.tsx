@@ -3,7 +3,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { travelLabel } from '@/constants/travel';
 import { getCategoryBadgeClass, getCategoryOption, getPlaceInfoUrl } from '@/lib/place-utils';
-import type { CategoryOption, PhotoState, Place } from '@/types/travel';
+import type { CategoryId, CategoryOption, PhotoState, Place } from '@/types/travel';
+import { CategoryMoveSelect } from './CategoryMoveSelect';
 import { PhotoBundlePreview } from './PhotoBundlePreview';
 
 type SelectedPlacePanelProps = {
@@ -11,7 +12,9 @@ type SelectedPlacePanelProps = {
   categories: CategoryOption[];
   photoState: PhotoState;
   isEditing: boolean;
+  movingCategoryPlaceId: string | null;
   onEditPlace: (place: Place) => void;
+  onMoveCategory: (place: Place, categoryId: CategoryId) => void;
   onOpenPhotos: (place: Place) => void;
 };
 
@@ -20,7 +23,9 @@ export function SelectedPlacePanel({
   categories,
   photoState,
   isEditing,
+  movingCategoryPlaceId,
   onEditPlace,
+  onMoveCategory,
   onOpenPhotos
 }: SelectedPlacePanelProps) {
   if (!place) {
@@ -32,6 +37,7 @@ export function SelectedPlacePanel({
   }
 
   const category = getCategoryOption(categories, place.category);
+  const isMovingCategory = movingCategoryPlaceId === place.id;
 
   return (
     <aside className="soft-panel rounded-lg p-4 sm:p-5">
@@ -45,6 +51,15 @@ export function SelectedPlacePanel({
           </div>
           <div className="flex shrink-0 items-center gap-1">
             {isEditing ? (
+              <CategoryMoveSelect
+                place={place}
+                categories={categories}
+                disabled={isMovingCategory}
+                className="hidden min-w-28 sm:flex"
+                onMove={onMoveCategory}
+              />
+            ) : null}
+            {isEditing ? (
               <Button variant="ghost" size="sm" onClick={() => onEditPlace(place)}>
                 <Pencil className="h-4 w-4" />
                 수정
@@ -53,6 +68,15 @@ export function SelectedPlacePanel({
             <Utensils className="h-5 w-5 text-muted-foreground" />
           </div>
         </div>
+        {isEditing ? (
+          <CategoryMoveSelect
+            place={place}
+            categories={categories}
+            disabled={isMovingCategory}
+            className="sm:hidden"
+            onMove={onMoveCategory}
+          />
+        ) : null}
         <div className="grid gap-3 text-sm">
           <div className="rounded-md bg-secondary p-3">
             <div className="text-xs font-semibold text-muted-foreground">대표 항목</div>

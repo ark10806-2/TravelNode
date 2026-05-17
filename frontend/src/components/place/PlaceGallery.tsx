@@ -3,16 +3,30 @@ import { ChevronLeft, ChevronRight, Images, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { travelLabel } from '@/constants/travel';
-import type { NearbyPlace, PhotoState, Place } from '@/types/travel';
+import type { CategoryId, CategoryOption, NearbyPlace, PhotoState, Place } from '@/types/travel';
+import { CategoryMoveSelect } from './CategoryMoveSelect';
 
 type PlaceGalleryProps = {
   places: NearbyPlace[];
   photoCache: Record<string, PhotoState>;
   onLoadPhotos: (place: Place) => Promise<void>;
   onOpenPhotos: (place: Place) => void;
+  isEditing: boolean;
+  categories: CategoryOption[];
+  movingCategoryPlaceId: string | null;
+  onMoveCategory: (place: Place, categoryId: CategoryId) => void;
 };
 
-export function PlaceGallery({ places, photoCache, onLoadPhotos, onOpenPhotos }: PlaceGalleryProps) {
+export function PlaceGallery({
+  places,
+  photoCache,
+  onLoadPhotos,
+  onOpenPhotos,
+  isEditing,
+  categories,
+  movingCategoryPlaceId,
+  onMoveCategory
+}: PlaceGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const thumbnailRailRef = useRef<HTMLDivElement | null>(null);
@@ -54,6 +68,7 @@ export function PlaceGallery({ places, photoCache, onLoadPhotos, onOpenPhotos }:
 
   const hasMultiplePlaces = places.length > 1;
   const hasMultiplePhotos = activePhotos.length > 1;
+  const isMovingCategory = activePlace ? movingCategoryPlaceId === activePlace.id : false;
   const activePosition = useMemo(() => (activePlace ? `${activeIndex + 1} / ${places.length}` : '0 / 0'), [
     activeIndex,
     activePlace,
@@ -216,6 +231,15 @@ export function PlaceGallery({ places, photoCache, onLoadPhotos, onOpenPhotos }:
               <Images className="h-4 w-4" />
               전체 사진 보기
             </Button>
+            {isEditing ? (
+              <CategoryMoveSelect
+                place={activePlace}
+                categories={categories}
+                disabled={isMovingCategory}
+                className="min-w-32"
+                onMove={onMoveCategory}
+              />
+            ) : null}
           </div>
         </div>
       </div>
