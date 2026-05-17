@@ -24,19 +24,20 @@ sudo pmset -a sleep 0
 운영 비밀값은 git에 넣지 않고 맥 미니 로컬에만 둡니다.
 
 ```bash
-mkdir -p ~/.config/japan-trip
-cp .env.production.example ~/.config/japan-trip/.env.production
+mkdir -p ~/.config/travel-node
+cd /Users/eigen/Projs/TravelNode
+cp .env.production.example ~/.config/travel-node/.env.production
 ```
 
-`~/.config/japan-trip/.env.production`를 열어 값을 채웁니다.
+`~/.config/travel-node/.env.production`를 열어 값을 채웁니다.
 
 ```dotenv
 APP_HTTP_PORT=8080
 APP_CORS_ORIGIN=http://mac-mini.local:8080
 APP_PUBLIC_BASE_URL=http://mac-mini.local:8080
 
-POSTGRES_DB=japan_trip
-POSTGRES_USER=japan
+POSTGRES_DB=travel_node
+POSTGRES_USER=travel_node
 POSTGRES_PASSWORD=긴_랜덤_비밀번호
 
 GOOGLE_MAPS_API_KEY=Google_API_키
@@ -57,13 +58,14 @@ Google API 키의 웹사이트 제한에는 실제 접속 주소를 추가해야
 레포 루트에서 실행합니다.
 
 ```bash
+cd /Users/eigen/Projs/TravelNode
 ./deploy/deploy.sh
 ```
 
 정상 확인:
 
 ```bash
-docker compose --env-file ~/.config/japan-trip/.env.production -f docker-compose.prod.yml ps
+docker compose --env-file ~/.config/travel-node/.env.production -f docker-compose.prod.yml ps
 curl http://localhost:8080/api/health
 ```
 
@@ -76,7 +78,7 @@ GitHub 저장소에서 `Settings -> Actions -> Runners -> New self-hosted runner
 runner 설정 단계에서 label에 아래 값을 포함하세요.
 
 ```text
-self-hosted, macOS, japan-trip
+self-hosted, macOS, travel-node
 ```
 
 설정이 끝나면 서비스로 등록합니다.
@@ -93,25 +95,29 @@ self-hosted, macOS, japan-trip
 상태 확인:
 
 ```bash
-docker compose --env-file ~/.config/japan-trip/.env.production -f docker-compose.prod.yml ps
+cd /Users/eigen/Projs/TravelNode
+docker compose --env-file ~/.config/travel-node/.env.production -f docker-compose.prod.yml ps
 ```
 
 로그 확인:
 
 ```bash
-docker compose --env-file ~/.config/japan-trip/.env.production -f docker-compose.prod.yml logs -f
+cd /Users/eigen/Projs/TravelNode
+docker compose --env-file ~/.config/travel-node/.env.production -f docker-compose.prod.yml logs -f
 ```
 
 수동 재배포:
 
 ```bash
+cd /Users/eigen/Projs/TravelNode
 ./deploy/deploy.sh
 ```
 
 DB 백업:
 
 ```bash
-docker compose --env-file ~/.config/japan-trip/.env.production -f docker-compose.prod.yml exec -T postgres pg_dump -U japan japan_trip > japan-trip-backup.sql
+cd /Users/eigen/Projs/TravelNode
+docker compose --env-file ~/.config/travel-node/.env.production -f docker-compose.prod.yml exec -T postgres pg_dump -U travel_node travel_node > travel-node-backup.sql
 ```
 
 롤백은 이전 커밋으로 되돌리는 커밋을 만들고 `main`에 push하는 방식이 가장 단순합니다.

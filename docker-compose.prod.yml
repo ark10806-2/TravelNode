@@ -1,17 +1,19 @@
+name: travel-node
+
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: japan-trip-postgres
+    container_name: travel-node-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-japan_trip}
-      POSTGRES_USER: ${POSTGRES_USER:-japan}
+      POSTGRES_DB: ${POSTGRES_DB:-travel_node}
+      POSTGRES_USER: ${POSTGRES_USER:-travel_node}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-japan} -d ${POSTGRES_DB:-japan_trip}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-travel_node} -d ${POSTGRES_DB:-travel_node}"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -19,15 +21,15 @@ services:
   backend:
     build:
       context: ./backend
-    container_name: japan-trip-backend
+    container_name: travel-node-backend
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       SERVER_PORT: 4000
-      JDBC_DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-japan_trip}
-      JDBC_DATABASE_USERNAME: ${POSTGRES_USER:-japan}
+      JDBC_DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-travel_node}
+      JDBC_DATABASE_USERNAME: ${POSTGRES_USER:-travel_node}
       JDBC_DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       APP_CORS_ORIGIN: ${APP_CORS_ORIGIN:?APP_CORS_ORIGIN is required}
       APP_PUBLIC_BASE_URL: ${APP_PUBLIC_BASE_URL:-}
@@ -44,7 +46,7 @@ services:
       args:
         VITE_GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
-    container_name: japan-trip-frontend
+    container_name: travel-node-frontend
     restart: unless-stopped
     depends_on:
       - backend

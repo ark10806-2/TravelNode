@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENV_FILE="${JAPAN_TRIP_ENV_FILE:-$HOME/.config/japan-trip/.env.production}"
+ENV_FILE="${TRAVEL_NODE_ENV_FILE:-${JAPAN_TRIP_ENV_FILE:-$HOME/.config/travel-node/.env.production}}"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Missing production env file: $ENV_FILE" >&2
