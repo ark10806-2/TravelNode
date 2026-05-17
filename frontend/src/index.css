@@ -89,3 +89,12 @@
     linear-gradient(rgba(77, 195, 199, 0.08) 1px, transparent 1px),
     #111a19;
 }
+
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select,
+  [role="combobox"] {
+    font-size: 16px !important;
+  }
+}
