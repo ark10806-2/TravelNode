@@ -36,18 +36,31 @@ export function AppTabs({
   onChangePasswordClick
 }: AppTabsProps) {
   const introRef = useRef<HTMLDivElement | null>(null);
+  const isCompactRef = useRef(false);
   const [isCompact, setIsCompact] = useState(false);
 
   useEffect(() => {
+    let frameId = 0;
+
     function updateCompactState() {
-      const threshold = Math.max(24, (introRef.current?.offsetHeight ?? 72) - 12);
-      setIsCompact(window.scrollY >= threshold);
+      if (frameId) return;
+
+      frameId = window.requestAnimationFrame(() => {
+        frameId = 0;
+        const threshold = Math.max(24, (introRef.current?.offsetHeight ?? 72) - 12);
+        const nextIsCompact = window.scrollY >= threshold;
+        if (isCompactRef.current === nextIsCompact) return;
+
+        isCompactRef.current = nextIsCompact;
+        setIsCompact(nextIsCompact);
+      });
     }
 
     updateCompactState();
     window.addEventListener('scroll', updateCompactState, { passive: true });
     window.addEventListener('resize', updateCompactState);
     return () => {
+      if (frameId) window.cancelAnimationFrame(frameId);
       window.removeEventListener('scroll', updateCompactState);
       window.removeEventListener('resize', updateCompactState);
     };
@@ -98,7 +111,7 @@ export function AppTabs({
         </div>
       </div>
 
-      <div className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur-xl">
+      <div className="sticky top-0 z-40 transform-gpu border-b bg-background/95 backdrop-blur-xl will-change-transform">
         <div
           className={cn(
             'mx-auto flex w-full max-w-none justify-center px-3 transition-all duration-200 sm:px-4 sm:py-2 lg:px-5',

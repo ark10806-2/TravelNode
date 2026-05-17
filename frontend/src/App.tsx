@@ -63,7 +63,7 @@ function App() {
   }
 
   return (
-    <main className="app-background min-h-screen">
+    <main className="app-background min-h-[100dvh] overflow-x-hidden">
       <AppTabs
         activeTab={activeTab}
         isAuthenticated={auth.isAuthenticated}
