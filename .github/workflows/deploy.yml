@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: japan-trip-production
+  group: travel-node-production
   cancel-in-progress: true
 
 jobs:
@@ -15,10 +15,10 @@ jobs:
     runs-on:
       - self-hosted
       - macOS
-      - japan-trip
+      - travel-node
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Deploy
-        run: JAPAN_TRIP_ENV_FILE="$HOME/.config/japan-trip/.env.production" ./deploy/deploy.sh
+        run: TRAVEL_NODE_ENV_FILE="$HOME/.config/travel-node/.env.production" ./deploy/deploy.sh
