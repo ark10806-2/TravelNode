@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getAuthToken } from '@/api/auth';
 import { fetchTodos, saveTodos } from '@/api/todos';
-import type { TodoItem, TodoList, TodoSectionId } from '@/types/todo';
+import type { TodoCustomChecklist, TodoItem, TodoList, TodoSectionId } from '@/types/todo';
 
 type TodoStatus = 'loading' | 'ready' | 'error';
 
@@ -97,6 +97,58 @@ export function useTodos(dayCount: number, canPersist = false) {
     }));
   }
 
+  function addDay() {
+    updateTodos((current) => {
+      const nextDayIndex = Math.max(-1, ...current.days.map((day) => day.dayIndex)) + 1;
+      return {
+        ...current,
+        days: [
+          ...current.days,
+          {
+            dayIndex: nextDayIndex,
+            items: []
+          }
+        ]
+      };
+    });
+  }
+
+  function addCustomChecklist(title: string) {
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) return;
+    updateTodos((current) => ({
+      ...current,
+      custom: [
+        ...current.custom,
+        {
+          id: createId('checklist'),
+          title: trimmedTitle,
+          items: []
+        }
+      ]
+    }));
+  }
+
+  function removeCustomChecklist(checklistId: string) {
+    updateTodos((current) => ({
+      ...current,
+      custom: current.custom.filter((checklist) => checklist.id !== checklistId)
+    }));
+  }
+
+  function addCustomItem(checklistId: string, text: string) {
+    const trimmedText = text.trim();
+    if (!trimmedText) return;
+    updateTodos((current) => ({
+      ...current,
+      custom: current.custom.map((checklist) =>
+        checklist.id === checklistId
+          ? { ...checklist, items: [...checklist.items, createTodoItem(trimmedText)] }
+          : checklist
+      )
+    }));
+  }
+
   function toggleItem(section: TodoSectionId, itemId: string) {
     updateTodos((current) => ({
       ...current,
@@ -111,6 +163,20 @@ export function useTodos(dayCount: number, canPersist = false) {
         day.dayIndex === dayIndex
           ? { ...day, items: day.items.map((item) => (item.id === itemId ? { ...item, done: !item.done } : item)) }
           : day
+      )
+    }));
+  }
+
+  function toggleCustomItem(checklistId: string, itemId: string) {
+    updateTodos((current) => ({
+      ...current,
+      custom: current.custom.map((checklist) =>
+        checklist.id === checklistId
+          ? {
+              ...checklist,
+              items: checklist.items.map((item) => (item.id === itemId ? { ...item, done: !item.done } : item))
+            }
+          : checklist
       )
     }));
   }
@@ -133,6 +199,17 @@ export function useTodos(dayCount: number, canPersist = false) {
     }));
   }
 
+  function removeCustomItem(checklistId: string, itemId: string) {
+    updateTodos((current) => ({
+      ...current,
+      custom: current.custom.map((checklist) =>
+        checklist.id === checklistId
+          ? { ...checklist, items: checklist.items.filter((item) => item.id !== itemId) }
+          : checklist
+      )
+    }));
+  }
+
   return {
     todos,
     status,
@@ -140,10 +217,16 @@ export function useTodos(dayCount: number, canPersist = false) {
     isSaving,
     addSectionItem,
     addDayItem,
+    addDay,
+    addCustomChecklist,
+    removeCustomChecklist,
+    addCustomItem,
     toggleItem,
     toggleDayItem,
+    toggleCustomItem,
     removeSectionItem,
-    removeDayItem
+    removeDayItem,
+    removeCustomItem
   };
 }
 
@@ -161,12 +244,23 @@ function normalizeTodos(todos: TodoList, minimumDayCount: number): TodoList {
       dayIndex,
       items: normalizeItems(daysByIndex.get(dayIndex) ?? [])
     })),
-    after: normalizeItems(todos.after)
+    after: normalizeItems(todos.after),
+    custom: normalizeCustomChecklists(todos.custom ?? [])
   };
 }
 
 function createEmptyTodos(dayCount: number): TodoList {
-  return normalizeTodos({ before: [], days: [], after: [] }, dayCount);
+  return normalizeTodos({ before: [], days: [], after: [], custom: [] }, dayCount);
+}
+
+function normalizeCustomChecklists(checklists: TodoCustomChecklist[]) {
+  return checklists
+    .filter((checklist) => checklist.id && checklist.title.trim())
+    .map((checklist) => ({
+      id: checklist.id,
+      title: checklist.title.trim(),
+      items: normalizeItems(checklist.items)
+    }));
 }
 
 function normalizeItems(items: TodoItem[]) {

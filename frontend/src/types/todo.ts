@@ -9,10 +9,17 @@ export type TodoDay = {
   items: TodoItem[];
 };
 
+export type TodoCustomChecklist = {
+  id: string;
+  title: string;
+  items: TodoItem[];
+};
+
 export type TodoList = {
   before: TodoItem[];
   days: TodoDay[];
   after: TodoItem[];
+  custom: TodoCustomChecklist[];
 };
 
 export type TodoSectionId = 'before' | 'after';

@@ -194,6 +194,24 @@ CREATE TABLE IF NOT EXISTS todo_items (
   )
 );
 
+CREATE TABLE IF NOT EXISTS custom_todo_lists (
+  id text PRIMARY KEY,
+  title text NOT NULL,
+  sort_order integer NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS custom_todo_items (
+  id text PRIMARY KEY,
+  list_id text NOT NULL REFERENCES custom_todo_lists(id) ON DELETE CASCADE,
+  text text NOT NULL,
+  is_done boolean NOT NULL DEFAULT false,
+  sort_order integer NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS api_usage_daily (
   usage_date date NOT NULL,
   service_id text NOT NULL,
@@ -268,6 +286,8 @@ CREATE INDEX IF NOT EXISTS categories_sort_order_idx ON categories (sort_order, 
 CREATE INDEX IF NOT EXISTS schedule_days_sort_order_idx ON schedule_days (sort_order);
 CREATE INDEX IF NOT EXISTS schedule_stops_day_sort_order_idx ON schedule_stops (day_id, sort_order);
 CREATE INDEX IF NOT EXISTS todo_items_section_sort_order_idx ON todo_items (section, day_index, sort_order);
+CREATE INDEX IF NOT EXISTS custom_todo_lists_sort_order_idx ON custom_todo_lists (sort_order);
+CREATE INDEX IF NOT EXISTS custom_todo_items_list_sort_order_idx ON custom_todo_items (list_id, sort_order);
 CREATE INDEX IF NOT EXISTS route_cache_to_place_idx ON route_cache (to_place_id);
 CREATE INDEX IF NOT EXISTS route_cache_updated_at_idx ON route_cache (updated_at);
 CREATE INDEX IF NOT EXISTS route_cache_entries_updated_at_idx ON route_cache_entries (updated_at);

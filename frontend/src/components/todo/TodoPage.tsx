@@ -1,12 +1,12 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { CalendarCheck2, CheckCircle2, Home, PlaneTakeoff, Plus, Trash2, type LucideIcon } from 'lucide-react';
+import { FormEvent, useEffect, useState } from 'react';
+import { CalendarCheck2, ClipboardList, Home, PlaneTakeoff, Plus, Trash2, type LucideIcon } from 'lucide-react';
 import { fetchSchedule } from '@/api/schedule';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useTodos } from '@/hooks/useTodos';
 import { cn } from '@/lib/utils';
-import type { TodoItem } from '@/types/todo';
+import type { TodoCustomChecklist, TodoItem } from '@/types/todo';
 
 type TodoPageProps = {
   isEditing: boolean;
@@ -14,14 +14,24 @@ type TodoPageProps = {
 
 export function TodoPage({ isEditing }: TodoPageProps) {
   const [scheduleDayCount, setScheduleDayCount] = useState(1);
-  const { todos, status, error, isSaving, addSectionItem, addDayItem, toggleItem, toggleDayItem, removeSectionItem, removeDayItem } =
-    useTodos(scheduleDayCount, isEditing);
-
-  const totalSummary = useMemo(() => {
-    const allItems = [...todos.before, ...todos.after, ...todos.days.flatMap((day) => day.items)];
-    const doneCount = allItems.filter((item) => item.done).length;
-    return { doneCount, totalCount: allItems.length };
-  }, [todos]);
+  const {
+    todos,
+    status,
+    error,
+    isSaving,
+    addSectionItem,
+    addDayItem,
+    addDay,
+    addCustomChecklist,
+    removeCustomChecklist,
+    addCustomItem,
+    toggleItem,
+    toggleDayItem,
+    toggleCustomItem,
+    removeSectionItem,
+    removeDayItem,
+    removeCustomItem
+  } = useTodos(scheduleDayCount, isEditing);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,18 +68,7 @@ export function TodoPage({ isEditing }: TodoPageProps) {
                 : '할 일은 서버 DB에 저장됩니다.'}
           </p>
         </div>
-
-        <div className="soft-panel flex items-center gap-3 rounded-xl px-4 py-3">
-          <div className="grid h-10 w-10 place-items-center rounded-md bg-primary/10 text-primary">
-            <CheckCircle2 className="h-5 w-5" />
-          </div>
-          <div>
-            <div className="text-sm text-muted-foreground">완료</div>
-            <div className="text-xl font-bold">
-              {totalSummary.doneCount}/{totalSummary.totalCount}
-            </div>
-          </div>
-        </div>
+        {isEditing ? <CreateChecklistForm disabled={isSaving} onCreate={addCustomChecklist} /> : null}
       </header>
 
       {status === 'error' && error ? (
@@ -106,9 +105,17 @@ export function TodoPage({ isEditing }: TodoPageProps) {
                   </div>
                 </div>
               </div>
-              <Badge variant="outline" className="rounded-full bg-background">
-                {todos.days.length}일
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="rounded-full bg-background">
+                  {todos.days.length}일
+                </Badge>
+                {isEditing ? (
+                  <Button className="rounded-full" size="sm" variant="outline" onClick={addDay} disabled={isSaving}>
+                    <Plus className="h-4 w-4" />
+                    DAY 추가
+                  </Button>
+                ) : null}
+              </div>
             </div>
           </div>
 
@@ -141,6 +148,31 @@ export function TodoPage({ isEditing }: TodoPageProps) {
           onRemove={(itemId) => removeSectionItem('after', itemId)}
         />
       </div>
+
+      {todos.custom.length ? (
+        <section className="grid gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-bold">커스텀 체크리스트</h2>
+            <Badge variant="outline" className="rounded-full">
+              {todos.custom.length}개
+            </Badge>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {todos.custom.map((checklist) => (
+              <CustomChecklistCard
+                key={checklist.id}
+                checklist={checklist}
+                isEditing={isEditing}
+                isSaving={isSaving}
+                onAdd={(text) => addCustomItem(checklist.id, text)}
+                onToggle={(itemId) => toggleCustomItem(checklist.id, itemId)}
+                onRemoveItem={(itemId) => removeCustomItem(checklist.id, itemId)}
+                onRemoveChecklist={() => removeCustomChecklist(checklist.id)}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
     </PageContainer>
   );
 }
@@ -153,6 +185,7 @@ function TodoSectionCard({
   isEditing,
   isSaving,
   accentClassName,
+  onRemoveList,
   onAdd,
   onToggle,
   onRemove
@@ -164,20 +197,42 @@ function TodoSectionCard({
   isEditing: boolean;
   isSaving: boolean;
   accentClassName: string;
+  onRemoveList?: () => void;
   onAdd: (text: string) => void;
   onToggle: (itemId: string) => void;
   onRemove: (itemId: string) => void;
 }) {
+  const doneCount = items.filter((item) => item.done).length;
+
   return (
     <section className="soft-panel overflow-hidden rounded-xl">
       <div className="border-b bg-secondary/80 px-4 py-4">
-        <div className="flex items-start gap-3">
-          <span className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-md', accentClassName)}>
-            <Icon className="h-5 w-5" />
-          </span>
-          <div className="min-w-0">
-            <h2 className="text-lg font-bold">{title}</h2>
-            <p className="mt-1 text-sm leading-5 text-muted-foreground">{description}</p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-3">
+            <span className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-md', accentClassName)}>
+              <Icon className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold">{title}</h2>
+              <p className="mt-1 text-sm leading-5 text-muted-foreground">{description}</p>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            <Badge variant="outline" className="rounded-full bg-background">
+              {doneCount}/{items.length}
+            </Badge>
+            {onRemoveList ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={onRemoveList}
+                disabled={isSaving}
+                aria-label={`${title} 삭제`}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -194,6 +249,78 @@ function TodoSectionCard({
         {isEditing ? <AddTodoForm disabled={isSaving} onAdd={onAdd} /> : null}
       </div>
     </section>
+  );
+}
+
+function CustomChecklistCard({
+  checklist,
+  isEditing,
+  isSaving,
+  onAdd,
+  onToggle,
+  onRemoveItem,
+  onRemoveChecklist
+}: {
+  checklist: TodoCustomChecklist;
+  isEditing: boolean;
+  isSaving: boolean;
+  onAdd: (text: string) => void;
+  onToggle: (itemId: string) => void;
+  onRemoveItem: (itemId: string) => void;
+  onRemoveChecklist: () => void;
+}) {
+  return (
+    <TodoSectionCard
+      title={checklist.title}
+      description="사용자가 추가한 체크리스트입니다."
+      icon={ClipboardList}
+      items={checklist.items}
+      isEditing={isEditing}
+      isSaving={isSaving}
+      accentClassName="bg-violet-500/10 text-violet-700 dark:text-violet-300"
+      onRemoveList={isEditing ? onRemoveChecklist : undefined}
+      onAdd={onAdd}
+      onToggle={onToggle}
+      onRemove={onRemoveItem}
+    />
+  );
+}
+
+function CreateChecklistForm({
+  disabled,
+  onCreate
+}: {
+  disabled: boolean;
+  onCreate: (title: string) => void;
+}) {
+  const [title, setTitle] = useState('');
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) return;
+    onCreate(trimmedTitle);
+    setTitle('');
+  }
+
+  return (
+    <form className="soft-panel grid gap-2 rounded-xl p-3 sm:min-w-[24rem]" onSubmit={submit}>
+      <label className="grid gap-1">
+        <span className="text-xs font-semibold text-muted-foreground">커스텀 체크리스트</span>
+        <input
+          className="h-10 min-w-0 rounded-md border bg-background px-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
+          value={title}
+          maxLength={80}
+          disabled={disabled}
+          placeholder="체크리스트 이름"
+          onChange={(event) => setTitle(event.target.value)}
+        />
+      </label>
+      <Button type="submit" className="rounded-full" disabled={disabled || !title.trim()}>
+        <Plus className="h-4 w-4" />
+        생성
+      </Button>
+    </form>
   );
 }
 
