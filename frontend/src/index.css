@@ -117,12 +117,6 @@
     touch-action: manipulation;
   }
 
-  html,
-  body,
-  #root {
-    overscroll-behavior-y: none;
-  }
-
   input:not([type="checkbox"]):not([type="radio"]),
   textarea,
   select,
