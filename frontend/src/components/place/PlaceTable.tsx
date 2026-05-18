@@ -14,11 +14,11 @@ type PlaceTableProps = {
   places: NearbyPlace[];
   viewMode: PlaceListViewMode;
   onViewModeChange: (viewMode: PlaceListViewMode) => void;
+  showViewModeToggle?: boolean;
   isEditing: boolean;
   categories: CategoryOption[];
   photoCache: Record<string, PhotoState>;
   onLoadPhotos: (place: Place) => Promise<void>;
-  onSelect: (place: Place) => void;
   onAdd: () => void;
   onDelete: (place: Place) => void;
   onMoveCategory: (place: Place, categoryId: CategoryId) => void;
@@ -37,11 +37,11 @@ export function PlaceTable({
   places,
   viewMode,
   onViewModeChange,
+  showViewModeToggle = true,
   isEditing,
   categories,
   photoCache,
   onLoadPhotos,
-  onSelect,
   onAdd,
   onDelete,
   onMoveCategory,
@@ -63,7 +63,6 @@ export function PlaceTable({
   }, [expandedPlaceId, places]);
 
   function togglePlace(place: NearbyPlace) {
-    onSelect(place);
     setExpandedPlaceId((current) => (current === place.id ? null : place.id));
   }
 
@@ -74,34 +73,38 @@ export function PlaceTable({
           <h2 className="min-w-0 text-base font-bold tracking-tight sm:text-xl">{title}</h2>
           <Badge variant="outline" className="rounded-full">{places.length}곳</Badge>
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
-          <div className="grid flex-1 grid-cols-2 overflow-hidden rounded-full border bg-secondary p-1 sm:flex-none">
-            <Button
-              variant={viewMode === 'table' ? 'default' : 'ghost'}
-              size="sm"
-              className="rounded-full"
-              onClick={() => onViewModeChange('table')}
-            >
-              <Table2 className="h-4 w-4" />
-              테이블
-            </Button>
-            <Button
-              variant={viewMode === 'gallery' ? 'default' : 'ghost'}
-              size="sm"
-              className="rounded-full"
-              onClick={() => onViewModeChange('gallery')}
-            >
-              <LayoutGrid className="h-4 w-4" />
-              갤러리
-            </Button>
+        {showViewModeToggle || isEditing ? (
+          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+            {showViewModeToggle ? (
+              <div className="grid flex-1 grid-cols-2 overflow-hidden rounded-full border bg-secondary p-1 sm:flex-none">
+                <Button
+                  variant={viewMode === 'table' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="rounded-full"
+                  onClick={() => onViewModeChange('table')}
+                >
+                  <Table2 className="h-4 w-4" />
+                  테이블
+                </Button>
+                <Button
+                  variant={viewMode === 'gallery' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="rounded-full"
+                  onClick={() => onViewModeChange('gallery')}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                  갤러리
+                </Button>
+              </div>
+            ) : null}
+            {isEditing ? (
+              <Button className="flex-1 rounded-full sm:flex-none" variant="outline" size="sm" onClick={onAdd}>
+                <Plus className="h-4 w-4" />
+                추가
+              </Button>
+            ) : null}
           </div>
-          {isEditing ? (
-            <Button className="flex-1 rounded-full sm:flex-none" variant="outline" size="sm" onClick={onAdd}>
-              <Plus className="h-4 w-4" />
-              추가
-            </Button>
           ) : null}
-        </div>
       </div>
       {viewMode === 'gallery' ? (
         <PlaceGallery

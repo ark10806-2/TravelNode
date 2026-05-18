@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AddCategoryDialog } from '@/components/dialogs/AddCategoryDialog';
 import { AddPlaceDialog } from '@/components/dialogs/AddPlaceDialog';
 import { EditPlaceDialog } from '@/components/dialogs/EditPlaceDialog';
@@ -10,8 +10,10 @@ import { CategoryFilterBar } from '@/components/place/CategoryFilterBar';
 import { PlaceTable, type PlaceListViewMode } from '@/components/place/PlaceTable';
 import { SelectedPlacePanel } from '@/components/place/SelectedPlacePanel';
 import { TravelMap } from '@/components/place/TravelMap';
+import { hotel } from '@/constants/travel';
 import type { TravelPlacesState } from '@/hooks/useTravelPlaces';
-import type { CategoryId, PhotoState, Place } from '@/types/travel';
+import { haversineKm } from '@/lib/place-utils';
+import type { CategoryId, NearbyPlace, PhotoState, Place } from '@/types/travel';
 
 const emptyPhotoState: PhotoState = {
   status: 'idle',
@@ -59,6 +61,16 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
   const [isGoogleSyncDialogOpen, setIsGoogleSyncDialogOpen] = useState(false);
   const [placeListViewMode, setPlaceListViewMode] = useState<PlaceListViewMode>('table');
   const canModify = isEditing && canEdit;
+  const mobilePlaces = useMemo<NearbyPlace[]>(
+    () =>
+      visiblePlaces
+        .map((place) => ({
+          ...place,
+          distanceFromSelectedKm: haversineKm(hotel, place)
+        }))
+        .sort((a, b) => a.distanceFromSelectedKm - b.distanceFromSelectedKm),
+    [visiblePlaces]
+  );
 
   const selectPlace = useCallback(
     (place: Place) => {
@@ -104,7 +116,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
           </div>
         ) : null}
 
-        <section className="grid gap-3 sm:gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="hidden gap-3 sm:gap-4 md:grid lg:grid-cols-[minmax(0,1fr)_360px]">
           <TravelMap
             places={visiblePlaces}
             selectedPlace={selectedPlace}
@@ -134,23 +146,44 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
             onDeleteCategory={(category) => (canEdit ? void deleteCategory(category) : onRequireAuth())}
           />
 
-          <PlaceTable
-            title={`선택한 장소 근처 ${selectedCategory.emoji} ${selectedCategory.label}`}
-            places={nearbyPlaces}
-            viewMode={placeListViewMode}
-            onViewModeChange={setPlaceListViewMode}
-            isEditing={canModify}
-            categories={categories}
-            photoCache={photoCache}
-            onLoadPhotos={loadPhotos}
-            onSelect={selectPlace}
-            onAdd={() => (canEdit ? setAddPlaceCategory(selectedCategoryId) : onRequireAuth())}
-            onDelete={(place) => (canEdit ? void deletePlace(place) : onRequireAuth())}
-            onMoveCategory={(place, categoryId) => (canEdit ? void movePlaceToCategory(place, categoryId) : onRequireAuth())}
-            deletingId={deletingId}
-            movingCategoryPlaceId={movingCategoryPlaceId}
-            onOpenPhotos={openPhotoDialog}
-          />
+          <div className="md:hidden">
+            <PlaceTable
+              title={`${selectedCategory.emoji} ${selectedCategory.label} 전체 장소`}
+              places={mobilePlaces}
+              viewMode="table"
+              onViewModeChange={() => undefined}
+              showViewModeToggle={false}
+              isEditing={canModify}
+              categories={categories}
+              photoCache={photoCache}
+              onLoadPhotos={loadPhotos}
+              onAdd={() => (canEdit ? setAddPlaceCategory(selectedCategoryId) : onRequireAuth())}
+              onDelete={(place) => (canEdit ? void deletePlace(place) : onRequireAuth())}
+              onMoveCategory={(place, categoryId) => (canEdit ? void movePlaceToCategory(place, categoryId) : onRequireAuth())}
+              deletingId={deletingId}
+              movingCategoryPlaceId={movingCategoryPlaceId}
+              onOpenPhotos={openPhotoDialog}
+            />
+          </div>
+
+          <div className="hidden md:block">
+            <PlaceTable
+              title={`선택한 장소 근처 ${selectedCategory.emoji} ${selectedCategory.label}`}
+              places={nearbyPlaces}
+              viewMode={placeListViewMode}
+              onViewModeChange={setPlaceListViewMode}
+              isEditing={canModify}
+              categories={categories}
+              photoCache={photoCache}
+              onLoadPhotos={loadPhotos}
+              onAdd={() => (canEdit ? setAddPlaceCategory(selectedCategoryId) : onRequireAuth())}
+              onDelete={(place) => (canEdit ? void deletePlace(place) : onRequireAuth())}
+              onMoveCategory={(place, categoryId) => (canEdit ? void movePlaceToCategory(place, categoryId) : onRequireAuth())}
+              deletingId={deletingId}
+              movingCategoryPlaceId={movingCategoryPlaceId}
+              onOpenPhotos={openPhotoDialog}
+            />
+          </div>
         </section>
       </PageContainer>
 
