@@ -340,17 +340,92 @@ function GoogleReservationImportDialog({
   onImport: (drafts: ReservationDraft[]) => void;
 }) {
   const [rawText, setRawText] = useState('');
-  const parsedDrafts = useMemo(() => parseGoogleReservationText(rawText, places, dayCount), [dayCount, places, rawText]);
+  const [csvText, setCsvText] = useState('');
+  const [csvFileName, setCsvFileName] = useState('');
+  const [csvError, setCsvError] = useState('');
+  const parsedTextDrafts = useMemo(() => parseGoogleReservationText(rawText, places, dayCount), [dayCount, places, rawText]);
+  const parsedCsvDrafts = useMemo(() => parseGoogleBookingsCsv(csvText, places, dayCount), [csvText, dayCount, places]);
+  const parsedDrafts = useMemo(() => [...parsedCsvDrafts, ...parsedTextDrafts], [parsedCsvDrafts, parsedTextDrafts]);
+
+  async function importCsvFile(file: File | null) {
+    if (!file) return;
+
+    const normalizedFileName = file.name.toLowerCase();
+    const isCsv =
+      normalizedFileName.endsWith('.csv') ||
+      file.type === 'text/csv' ||
+      file.type === 'application/vnd.ms-excel';
+
+    setCsvError('');
+    if (!isCsv) {
+      setCsvFileName('');
+      setCsvText('');
+      setCsvError('CSV 파일만 업로드할 수 있습니다.');
+      return;
+    }
+
+    try {
+      const nextCsvText = await file.text();
+      const csvRows = parseCsv(nextCsvText);
+
+      setCsvFileName(file.name);
+      setCsvText(nextCsvText);
+      if (!csvRows.length) {
+        setCsvError('CSV에 예약 데이터 행이 없습니다.');
+      } else if (!csvRows.some((row) => row['Booking Name'] || row['Merchant Name'])) {
+        setCsvError('Google 예약 내보내기 CSV 형식이 아닙니다.');
+      }
+    } catch {
+      setCsvFileName('');
+      setCsvText('');
+      setCsvError('CSV 파일을 읽지 못했습니다.');
+    }
+  }
 
   return (
     <ModalFrame title="Google 예약 가져오기" maxWidth="max-w-4xl" scroll onClose={onClose}>
       <div className="grid gap-5 p-5">
         <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm leading-6 text-muted-foreground">
-          Google Maps 또는 Reserve with Google 예약 상세 화면, 예약 확인 메일의 내용을 복사해 붙여넣으면 예약 후보로 변환합니다.
+          Google 예약 내보내기 CSV를 업로드하거나, Google Maps 또는 Reserve with Google 예약 상세 화면과 예약 확인 메일의 내용을
+          복사해 붙여넣으면 예약 후보로 변환합니다.
           Google 개인 예약 목록을 직접 읽는 공개 API는 없어, 계정 화면의 내용을 사용자가 가져오는 방식으로 동작합니다.
         </div>
 
-        <Field label="예약 내용">
+        <Field label="예약내역 CSV 업로드">
+          <div className="grid gap-2">
+            <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed bg-muted/20 px-3 py-4 text-center text-sm text-muted-foreground transition hover:border-primary hover:bg-primary/5">
+              <UploadCloud className="h-5 w-5" />
+              <span className="font-semibold text-foreground">Google 예약 내보내기 CSV 선택</span>
+              <span className="text-xs">Bookings.csv 파일을 업로드하면 예약 후보를 자동으로 구성합니다.</span>
+              <input
+                className="sr-only"
+                type="file"
+                accept=".csv,text/csv"
+                disabled={disabled}
+                onChange={(event) => {
+                  void importCsvFile(event.target.files?.[0] ?? null);
+                  event.target.value = '';
+                }}
+              />
+            </label>
+            {csvFileName ? (
+              <div className="flex flex-wrap items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <span className="font-semibold">{csvFileName}</span>
+                <Badge variant="outline" className="rounded-full">
+                  CSV 후보 {parsedCsvDrafts.length}개
+                </Badge>
+              </div>
+            ) : null}
+            {csvError ? (
+              <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {csvError}
+              </div>
+            ) : null}
+          </div>
+        </Field>
+
+        <Field label="예약 내용 직접 붙여넣기">
           <textarea
             className="min-h-56 rounded-md border bg-background px-3 py-2 text-sm leading-6 outline-none ring-offset-background focus:ring-2 focus:ring-ring"
             value={rawText}
@@ -388,7 +463,7 @@ function GoogleReservationImportDialog({
             </div>
           ) : (
             <div className="grid min-h-28 place-items-center rounded-lg border border-dashed bg-muted/20 p-4 text-center text-sm text-muted-foreground">
-              붙여넣은 내용에서 예약 후보를 찾으면 여기에 표시됩니다.
+              CSV 또는 붙여넣은 내용에서 예약 후보를 찾으면 여기에 표시됩니다.
             </div>
           )}
         </section>
@@ -745,6 +820,108 @@ function parseGoogleReservationBlock(block: string, places: Place[], dayCount: n
     timeLabel,
     referenceNumber,
     linkUrl,
+    notes,
+    attachments: []
+  };
+}
+
+type GoogleBookingCsvRow = Record<string, string>;
+
+function parseGoogleBookingsCsv(csvText: string, places: Place[], dayCount: number): ReservationDraft[] {
+  return parseCsv(csvText)
+    .map((row) => googleBookingRowToDraft(row, places, dayCount))
+    .filter((draft): draft is ReservationDraft => Boolean(draft));
+}
+
+function parseCsv(csvText: string): GoogleBookingCsvRow[] {
+  const rows = parseCsvRows(csvText.replace(/^\uFEFF/, ''));
+  if (rows.length < 2) return [];
+
+  const headers = rows[0].map((header) => header.trim());
+  return rows.slice(1).map((values) =>
+    Object.fromEntries(headers.map((header, index) => [header, values[index]?.trim() ?? '']))
+  );
+}
+
+function parseCsvRows(csvText: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let value = '';
+  let inQuotes = false;
+
+  for (let index = 0; index < csvText.length; index += 1) {
+    const char = csvText[index];
+    const nextChar = csvText[index + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        value += '"';
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === ',' && !inQuotes) {
+      row.push(value);
+      value = '';
+      continue;
+    }
+
+    if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (char === '\r' && nextChar === '\n') index += 1;
+      row.push(value);
+      if (row.some((cell) => cell.trim())) rows.push(row);
+      row = [];
+      value = '';
+      continue;
+    }
+
+    value += char;
+  }
+
+  row.push(value);
+  if (row.some((cell) => cell.trim())) rows.push(row);
+  return rows;
+}
+
+function googleBookingRowToDraft(row: GoogleBookingCsvRow, places: Place[], dayCount: number): ReservationDraft | null {
+  const bookingName = row['Booking Name'] ?? '';
+  const merchantName = row['Merchant Name'] ?? '';
+  const startTime = row['Start Time'] ?? '';
+  const endTime = row['End Time'] ?? '';
+  const price = row.Price ?? '';
+  const address = row.Address ?? '';
+  const canceled = row.Canceled ?? '';
+  const specialRequest = row['Special Request'] ?? '';
+  const title = (bookingName || merchantName).trim().slice(0, 120);
+
+  if (!title) return null;
+
+  const searchableText = [bookingName, merchantName, address].filter(Boolean).join('\n');
+  const matchedPlace = findMatchingPlace(searchableText, places);
+  const notes = [
+    merchantName && merchantName !== title ? `상점명: ${merchantName}` : '',
+    price ? `가격: ${price}` : '',
+    address ? `주소: ${address}` : '',
+    canceled ? `취소 여부: ${canceled}` : '',
+    specialRequest ? `요청사항: ${specialRequest}` : ''
+  ]
+    .filter(Boolean)
+    .join('\n')
+    .slice(0, 1000);
+  const timeLabel = [startTime, endTime].filter(Boolean).join(' ~ ').slice(0, 80);
+
+  return {
+    ...emptyDraft,
+    reservationType: inferReservationType(searchableText, matchedPlace),
+    title,
+    dayIndex: parseDayIndex(startTime, dayCount),
+    placeId: matchedPlace?.id ?? null,
+    timeLabel,
+    referenceNumber: '',
+    linkUrl: '',
     notes,
     attachments: []
   };
