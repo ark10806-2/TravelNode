@@ -57,6 +57,15 @@ export function PlaceFormFields({
         />
       </label>
       <label className="grid gap-2 text-sm font-semibold sm:col-span-2">
+        메모
+        <textarea
+          className={textareaClass}
+          value={draft.googleMapsNote ?? ''}
+          placeholder="Google Maps 즐겨찾기 메모 또는 직접 남긴 참고사항"
+          onChange={(event) => onChange('googleMapsNote', event.target.value)}
+        />
+      </label>
+      <label className="grid gap-2 text-sm font-semibold sm:col-span-2">
         주소
         <input className={inputClass} value={draft.address} onChange={(event) => onChange('address', event.target.value)} />
       </label>
