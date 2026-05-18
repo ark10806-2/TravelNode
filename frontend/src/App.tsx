@@ -101,7 +101,13 @@ function App() {
         />
       ) : null}
       {activeTab === 'reservations' ? (
-        <ReservationPage places={travelPlaces.places} isEditing={isEditing} />
+        <ReservationPage
+          categories={travelPlaces.categories}
+          places={travelPlaces.places}
+          isEditing={isEditing}
+          photoCache={travelPlaces.photoCache}
+          onLoadPhotos={travelPlaces.loadPhotos}
+        />
       ) : null}
       {activeTab === 'todo' ? <TodoPage isEditing={isEditing} /> : null}
       {activeTab === 'usage' ? <UsagePage isEditing={isEditing} /> : null}

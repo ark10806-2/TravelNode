@@ -19,17 +19,22 @@ import {
 } from 'lucide-react';
 import { fetchSchedule } from '@/api/schedule';
 import { ModalFrame } from '@/components/dialogs/ModalFrame';
+import { PlaceDetailDialog } from '@/components/dialogs/PlaceDetailDialog';
+import { PlacePhotoDialog } from '@/components/dialogs/PlacePhotoDialog';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useReservations } from '@/hooks/useReservations';
 import { cn } from '@/lib/utils';
 import type { Reservation, ReservationAttachment, ReservationDraft, ReservationType } from '@/types/reservation';
-import type { Place } from '@/types/travel';
+import type { CategoryOption, PhotoState, Place } from '@/types/travel';
 
 type ReservationPageProps = {
+  categories: CategoryOption[];
   places: Place[];
   isEditing: boolean;
+  photoCache: Record<string, PhotoState>;
+  onLoadPhotos: (place: Place, force?: boolean) => Promise<void>;
 };
 
 const reservationTypeMeta = {
@@ -53,6 +58,10 @@ const emptyDraft: ReservationDraft = {
 };
 
 const maxReservationAttachmentBytes = 5 * 1024 * 1024;
+const emptyPhotoState: PhotoState = {
+  status: 'idle',
+  photos: []
+};
 const googleReservationImportSample = `예시)
 Toriton Tokyo Skytree Town Solamachi
 2026. 5. 22. 18:30
@@ -69,13 +78,17 @@ https://example.com/booking
 몬자야키 전문점
 3-chōme-16-9 Tsukishima, Chuo City, Tokyo 104-0052 일본`;
 
-export function ReservationPage({ places, isEditing }: ReservationPageProps) {
+export function ReservationPage({ categories, places, isEditing, photoCache, onLoadPhotos }: ReservationPageProps) {
   const [scheduleDayCount, setScheduleDayCount] = useState(1);
   const [editingReservationId, setEditingReservationId] = useState<string | null>(null);
   const [isGoogleImportOpen, setIsGoogleImportOpen] = useState(false);
+  const [detailTarget, setDetailTarget] = useState<Place | null>(null);
+  const [photoTarget, setPhotoTarget] = useState<Place | null>(null);
   const { reservations, status, error, isSaving, addReservation, addReservations, updateReservation, removeReservation } =
     useReservations(isEditing);
   const placesById = useMemo(() => new Map(places.map((place) => [place.id, place])), [places]);
+  const currentDetailTarget = detailTarget ? placesById.get(detailTarget.id) ?? detailTarget : null;
+  const currentPhotoTarget = photoTarget ? placesById.get(photoTarget.id) ?? photoTarget : null;
   const dayCount = Math.max(
     scheduleDayCount,
     ...reservations.map((reservation) => (reservation.dayIndex == null ? 0 : reservation.dayIndex + 1)),
@@ -99,6 +112,16 @@ export function ReservationPage({ places, isEditing }: ReservationPageProps) {
       cancelled = true;
     };
   }, []);
+
+  function openDetails(place: Place) {
+    setDetailTarget(place);
+    void onLoadPhotos(place);
+  }
+
+  function openPhotos(place: Place) {
+    setPhotoTarget(place);
+    void onLoadPhotos(place);
+  }
 
   return (
     <PageContainer className="grid gap-5 px-3 py-4 sm:gap-6 sm:px-4 sm:py-5">
@@ -186,6 +209,7 @@ export function ReservationPage({ places, isEditing }: ReservationPageProps) {
                   isSaving={isSaving}
                   isEditingThis={isEditingThis}
                   onEdit={() => setEditingReservationId(reservation.id)}
+                  onOpenPlaceDetails={openDetails}
                   onCancelEdit={() => setEditingReservationId(null)}
                   onSave={(draft) => {
                     updateReservation(reservation.id, draft);
@@ -215,6 +239,26 @@ export function ReservationPage({ places, isEditing }: ReservationPageProps) {
           }}
         />
       ) : null}
+
+      {currentDetailTarget ? (
+        <PlaceDetailDialog
+          place={currentDetailTarget}
+          categories={categories}
+          photoState={photoCache[currentDetailTarget.id] ?? emptyPhotoState}
+          onClose={() => setDetailTarget(null)}
+          onOpenPhotos={openPhotos}
+        />
+      ) : null}
+
+      {currentPhotoTarget ? (
+        <PlacePhotoDialog
+          place={currentPhotoTarget}
+          categories={categories}
+          photoState={photoCache[currentPhotoTarget.id] ?? emptyPhotoState}
+          onClose={() => setPhotoTarget(null)}
+          onRetry={() => void onLoadPhotos(currentPhotoTarget, true)}
+        />
+      ) : null}
     </PageContainer>
   );
 }
@@ -228,6 +272,7 @@ function ReservationCard({
   isSaving,
   isEditingThis,
   onEdit,
+  onOpenPlaceDetails,
   onCancelEdit,
   onSave,
   onRemove
@@ -240,6 +285,7 @@ function ReservationCard({
   isSaving: boolean;
   isEditingThis: boolean;
   onEdit: () => void;
+  onOpenPlaceDetails: (place: Place) => void;
   onCancelEdit: () => void;
   onSave: (draft: ReservationDraft) => void;
   onRemove: () => void;
@@ -307,10 +353,17 @@ function ReservationCard({
           {reservation.timeLabel ? <span>· {reservation.timeLabel}</span> : null}
         </div>
         {place ? (
-          <div className="rounded-lg bg-muted/25 p-3">
+          <button
+            type="button"
+            className="rounded-lg bg-muted/25 p-3 text-left transition hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-ring"
+            onClick={() => onOpenPlaceDetails(place)}
+          >
             <div className="text-xs font-semibold text-muted-foreground">연결 장소</div>
-            <div className="mt-1 font-semibold">{place.name}</div>
-          </div>
+            <div className="mt-1 flex items-center justify-between gap-3 font-semibold">
+              <span className="min-w-0 truncate">{place.name}</span>
+              <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </div>
+          </button>
         ) : null}
         {reservation.referenceNumber ? (
           <div>
