@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, MapPinned } from 'lucide-react';
 import { ModalFrame } from '@/components/dialogs/ModalFrame';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +20,8 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const pathRef = useRef<google.maps.Polyline | null>(null);
+  const listScrollRef = useRef<HTMLElement | null>(null);
+  const listItemRefs = useRef<Record<string, HTMLLIElement | null>>({});
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(googleMapsApiKey ? 'loading' : 'error');
   const [error, setError] = useState(googleMapsApiKey ? '' : 'Google Maps API 키가 필요합니다.');
   const orderedPlaces = useMemo(() => places.filter(Boolean), [places]);
@@ -39,6 +41,12 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
     [anchorPlace, orderedPlaces]
   );
   const [selectedPlaceId, setSelectedPlaceId] = useState(orderedPlaces[0]?.id ?? '');
+  const [selectionFocusVersion, setSelectionFocusVersion] = useState(0);
+
+  const selectRoutePlace = useCallback((placeId: string) => {
+    setSelectedPlaceId(placeId);
+    setSelectionFocusVersion((current) => current + 1);
+  }, []);
 
   useEffect(() => {
     if (!markerPlaces.length) {
@@ -103,12 +111,7 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
     pathRef.current?.setMap(null);
     pathRef.current = null;
 
-    const bounds = new maps.LatLngBounds();
-    const path = pathPlaces.map((place) => {
-      const position = { lat: place.latitude, lng: place.longitude };
-      bounds.extend(position);
-      return position;
-    });
+    const path = pathPlaces.map((place) => ({ lat: place.latitude, lng: place.longitude }));
 
     markerPlaces.forEach((place, index) => {
       const isSelected = place.id === selectedPlaceId;
@@ -127,7 +130,7 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
         icon: createPlaceMarkerIcon(maps, place.category, isSelected),
         zIndex: isSelected ? 2000 : 1000 + index
       });
-      marker.addListener('click', () => setSelectedPlaceId(place.id));
+      marker.addListener('click', () => selectRoutePlace(place.id));
       markersRef.current.push(marker);
     });
 
@@ -154,13 +157,54 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
       });
     }
 
+  }, [anchorIsScheduled, anchorPlace, isDarkMode, markerPlaces, orderedPlaces, pathPlaces, selectRoutePlace, selectedPlaceId, status]);
+
+  useEffect(() => {
+    if (status !== 'ready' || !window.google?.maps || !mapInstanceRef.current) return;
+
+    const maps = window.google.maps;
+    const bounds = new maps.LatLngBounds();
+    const path = pathPlaces.map((place) => {
+      const position = { lat: place.latitude, lng: place.longitude };
+      bounds.extend(position);
+      return position;
+    });
+
     if (path.length > 1) {
       mapInstanceRef.current.fitBounds(bounds, routeMapBoundsPadding());
     } else if (path.length === 1) {
       mapInstanceRef.current.setCenter(path[0]);
-      mapInstanceRef.current.setZoom(16);
+      mapInstanceRef.current.setZoom(selectedRouteZoom());
     }
-  }, [anchorIsScheduled, anchorPlace, isDarkMode, markerPlaces, orderedPlaces, pathPlaces, selectedPlaceId, status]);
+  }, [pathPlaces, status]);
+
+  useEffect(() => {
+    if (selectionFocusVersion === 0) return;
+
+    const selectedPlace = markerPlaces.find((place) => place.id === selectedPlaceId);
+    if (status === 'ready' && selectedPlace && mapInstanceRef.current) {
+      mapInstanceRef.current.panTo({ lat: selectedPlace.latitude, lng: selectedPlace.longitude });
+      mapInstanceRef.current.setZoom(selectedRouteZoom());
+    }
+
+    const selectedIndex = orderedPlaces.findIndex((place) => place.id === selectedPlaceId);
+    const listScrollElement = listScrollRef.current;
+    if (!listScrollElement || selectedIndex < 0) return;
+
+    if (selectedIndex <= 1) {
+      listScrollElement.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    const previousPlace = orderedPlaces[selectedIndex - 1];
+    const previousItemElement = listItemRefs.current[previousPlace.id];
+    if (!previousItemElement) return;
+
+    const scrollRect = listScrollElement.getBoundingClientRect();
+    const itemRect = previousItemElement.getBoundingClientRect();
+    const nextScrollTop = listScrollElement.scrollTop + itemRect.top - scrollRect.top;
+    listScrollElement.scrollTo({ top: Math.max(0, nextScrollTop), behavior: 'smooth' });
+  }, [markerPlaces, orderedPlaces, selectedPlaceId, selectionFocusVersion, status]);
 
   return (
     <ModalFrame
@@ -188,7 +232,10 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
           ) : null}
         </div>
 
-        <aside className="max-h-[52vh] overflow-y-auto border-t bg-background p-4 sm:p-5 lg:max-h-[540px] lg:border-l lg:border-t-0">
+        <aside
+          ref={listScrollRef}
+          className="max-h-[52vh] overflow-y-auto scroll-smooth border-t bg-background p-4 sm:p-5 lg:max-h-[540px] lg:border-l lg:border-t-0"
+        >
           <div className="mb-4 text-base font-semibold text-foreground">방문 순서</div>
           {orderedPlaces.length ? (
             <ol className="grid gap-3.5">
@@ -196,15 +243,20 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
                 const isSelected = place.id === selectedPlaceId;
 
                 return (
-                  <li key={`${place.id}-${index}`}>
+                  <li
+                    key={`${place.id}-${index}`}
+                    ref={(element) => {
+                      listItemRefs.current[place.id] = element;
+                    }}
+                  >
                     <button
                       type="button"
-                      className={`flex w-full gap-3 rounded-md border p-4 text-left transition ${
+                      className={`flex w-full gap-3 rounded-md border p-4 text-left transition-all duration-300 ${
                         isSelected
                           ? 'border-primary/40 bg-primary/10 shadow-sm'
                           : 'border-border bg-muted/20 hover:bg-muted/35'
                       }`}
-                      onClick={() => setSelectedPlaceId(place.id)}
+                      onClick={() => selectRoutePlace(place.id)}
                     >
                       <span
                         className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold ${
@@ -239,4 +291,9 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
 function routeMapBoundsPadding() {
   const isMobile = window.matchMedia('(max-width: 767px)').matches;
   return isMobile ? 20 : 28;
+}
+
+function selectedRouteZoom() {
+  const isMobile = window.matchMedia('(max-width: 767px)').matches;
+  return isMobile ? 17 : 18;
 }
