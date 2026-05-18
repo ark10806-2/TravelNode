@@ -20,8 +20,8 @@ export function CategoryFilterBar({
   onDeleteCategory
 }: CategoryFilterBarProps) {
   return (
-    <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between">
-      <div className="flex gap-1 overflow-x-auto rounded-xl border bg-background p-1 shadow-sm shadow-slate-900/5 [-ms-overflow-style:none] [scrollbar-width:none] dark:shadow-black/20 md:flex-wrap md:gap-2 md:rounded-full [&::-webkit-scrollbar]:hidden">
+    <div className="flex min-w-0 w-[calc(100vw-1.5rem)] max-w-full flex-col gap-2.5 sm:w-full md:flex-row md:items-center md:justify-between">
+      <div className="flex w-full min-w-0 max-w-full gap-1 overflow-x-auto overscroll-x-contain rounded-xl border bg-background p-1 shadow-sm shadow-slate-900/5 [-ms-overflow-style:none] [scrollbar-width:none] dark:shadow-black/20 md:flex-wrap md:gap-2 md:rounded-full [&::-webkit-scrollbar]:hidden">
         {categories.map((category) => {
           const isSelected = category.id === selectedCategoryId;
 

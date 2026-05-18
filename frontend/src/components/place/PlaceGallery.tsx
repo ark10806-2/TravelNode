@@ -135,7 +135,7 @@ export function PlaceGallery({
   }
 
   return (
-    <section className="soft-panel min-w-0 max-w-full overflow-hidden rounded-xl">
+    <section className="soft-panel min-w-0 w-full max-w-full overflow-hidden rounded-xl">
       <div
         ref={galleryViewportRef}
         className="min-w-0 max-w-full overflow-hidden touch-pan-y"

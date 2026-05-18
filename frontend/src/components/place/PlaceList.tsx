@@ -67,7 +67,7 @@ export function PlaceList({
   }
 
   return (
-    <section className="min-w-0 max-w-full overflow-hidden">
+    <section className="min-w-0 w-[calc(100vw-1.5rem)] max-w-full overflow-hidden sm:w-full">
       <PlaceListHeader
         title={title}
         count={places.length}
@@ -151,7 +151,7 @@ function PlaceListHeader({
   const showActions = showViewModeToggle || isEditing;
 
   return (
-    <div className="mb-3 flex min-w-0 flex-col gap-2.5 md:flex-row md:items-center md:justify-between">
+    <div className="mb-3 flex min-w-0 w-full flex-col gap-2.5 md:flex-row md:items-center md:justify-between">
       <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
         <h2 className="min-w-0 truncate text-base font-bold tracking-tight sm:text-xl">{title}</h2>
         <Badge variant="outline" className="rounded-full">
@@ -162,25 +162,27 @@ function PlaceListHeader({
       {showActions ? (
         <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:flex-nowrap">
           {showViewModeToggle ? (
-            <div className="grid w-full min-w-0 grid-cols-2 overflow-hidden rounded-full border bg-secondary p-1 sm:w-auto sm:min-w-56">
-              <Button
-                variant={viewMode === 'table' ? 'default' : 'ghost'}
-                size="sm"
-                className="min-w-0 rounded-full px-2 text-xs sm:px-3 sm:text-sm"
+            <div className="grid w-full min-w-0 grid-cols-2 overflow-hidden rounded-full border bg-secondary p-1 sm:w-56">
+              <button
+                type="button"
+                className={`flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-full px-2 text-xs font-semibold transition-colors sm:h-9 sm:px-3 sm:text-sm ${
+                  viewMode === 'table' ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20' : 'text-foreground hover:bg-background/60'
+                }`}
                 onClick={() => onViewModeChange('table')}
               >
                 <Table2 className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
                 <span className="truncate">테이블</span>
-              </Button>
-              <Button
-                variant={viewMode === 'gallery' ? 'default' : 'ghost'}
-                size="sm"
-                className="min-w-0 rounded-full px-2 text-xs sm:px-3 sm:text-sm"
+              </button>
+              <button
+                type="button"
+                className={`flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-full px-2 text-xs font-semibold transition-colors sm:h-9 sm:px-3 sm:text-sm ${
+                  viewMode === 'gallery' ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20' : 'text-foreground hover:bg-background/60'
+                }`}
                 onClick={() => onViewModeChange('gallery')}
               >
                 <LayoutGrid className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
                 <span className="truncate">갤러리</span>
-              </Button>
+              </button>
             </div>
           ) : null}
 
