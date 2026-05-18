@@ -13,7 +13,7 @@ import {
   withFallbackDay
 } from '@/lib/schedule-state';
 import { fetchRouteLeg } from '@/lib/transit';
-import { createId, createLoadingRouteLeg, hotelSchedulePlace, maxStopsPerDay, routeLegKey } from '@/lib/schedule-utils';
+import { createId, createLoadingRouteLeg, getScheduleHotelPlace, maxStopsPerDay, routeLegKey } from '@/lib/schedule-utils';
 import type { RouteLeg, ScheduleDay, ScheduleStop } from '@/types/schedule';
 import type { Place } from '@/types/travel';
 
@@ -170,7 +170,7 @@ export function useSchedule(places: Place[], canPersist = false) {
   }
 
   function addDay() {
-    updateDays((current) => [...current, { id: createId('day'), stops: [], selectedReturnRouteMode: null }]);
+    updateDays((current) => [...current, { id: createId('day'), stops: [], selectedReturnRouteMode: null, hotelPlaceId: null }]);
   }
 
   function removeDay(dayId: string) {
@@ -231,6 +231,14 @@ export function useSchedule(places: Place[], canPersist = false) {
     );
   }
 
+  function setDayHotel(dayId: string, hotelPlaceId: string | null) {
+    updateDays((current) =>
+      current.map((day) =>
+        day.id === dayId ? clearDayRouteSelection({ ...day, hotelPlaceId }) : day
+      )
+    );
+  }
+
   async function optimizeDayRoutes(dayId: string) {
     const day = days.find((candidate) => candidate.id === dayId);
     if (!day || day.stops.length < 1) return;
@@ -240,21 +248,22 @@ export function useSchedule(places: Place[], canPersist = false) {
       .filter((place): place is Place => Boolean(place));
     if (dayPlaces.length < 1) return;
 
+    const hotelPlace = getScheduleHotelPlace(day, placesById);
     const pairs = [
       ...dayPlaces.map((place) => ({
-        from: hotelSchedulePlace,
+        from: hotelPlace,
         to: place,
-        key: routeLegKey(hotelSchedulePlace, place)
+        key: routeLegKey(hotelPlace, place)
       })),
       ...dayPlaces.map((place) => ({
         from: place,
-        to: hotelSchedulePlace,
-        key: routeLegKey(place, hotelSchedulePlace)
+        to: hotelPlace,
+        key: routeLegKey(place, hotelPlace)
       })),
       ...dayPlaces.flatMap((from) =>
         dayPlaces.flatMap((to) => (from.id === to.id ? [] : [{ from, to, key: routeLegKey(from, to) }]))
       )
-    ];
+    ].filter(({ from, to }) => from.id !== to.id);
     const missingPairs = pairs.filter(({ key }) => !isResolvedRouteLeg(routeLegsRef.current[key]));
 
     if (missingPairs.length) {
@@ -274,7 +283,7 @@ export function useSchedule(places: Place[], canPersist = false) {
       setRouteLegValue(key, leg);
     });
 
-    const optimized = optimizePlaceOrder(dayPlaces, routeLegsRef.current, hotelSchedulePlace, hotelSchedulePlace);
+    const optimized = optimizePlaceOrder(dayPlaces, routeLegsRef.current, hotelPlace, hotelPlace);
     if (!optimized) {
       setScheduleStatus('error');
       setScheduleError('동선 최적화에 필요한 이동 시간을 계산하지 못했습니다.');
@@ -337,6 +346,7 @@ export function useSchedule(places: Place[], canPersist = false) {
     addStops,
     removeStop,
     moveStop,
+    setDayHotel,
     optimizeDayRoutes,
     refreshDayRoutes
   };

@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, MapPinPlus, MapPinned, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Building2, MapPinPlus, MapPinned, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
+import { AccommodationSelectorDialog } from '@/components/dialogs/AccommodationSelectorDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getCategoryBadgeClass, getCategoryOption } from '@/lib/place-utils';
-import { hotelSchedulePlace, maxStopsPerDay, routeLegKey } from '@/lib/schedule-utils';
+import { getScheduleHotelPlace, maxStopsPerDay, routeLegKey } from '@/lib/schedule-utils';
 import type { RouteLeg, ScheduleDay } from '@/types/schedule';
 import type { CategoryOption, Place } from '@/types/travel';
 import { DayRouteMapDialog } from './DayRouteMapDialog';
@@ -23,6 +24,7 @@ type DayScheduleCardProps = {
   onAddStops: (dayId: string, placeIds: string[]) => void;
   onRemoveStop: (dayId: string, stopId: string) => void;
   onMoveStop: (dayId: string, stopId: string, direction: -1 | 1) => void;
+  onSetDayHotel: (dayId: string, placeId: string | null) => void;
   isOptimizingRoutes: boolean;
   onOptimizeRoutes: () => void;
   isRefreshingRoutes: boolean;
@@ -44,6 +46,7 @@ export function DayScheduleCard({
   onAddStops,
   onRemoveStop,
   onMoveStop,
+  onSetDayHotel,
   isOptimizingRoutes,
   onOptimizeRoutes,
   isRefreshingRoutes,
@@ -52,6 +55,7 @@ export function DayScheduleCard({
   onOpenPlaceDetails
 }: DayScheduleCardProps) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [isHotelPickerOpen, setIsHotelPickerOpen] = useState(false);
   const [isRouteMapOpen, setIsRouteMapOpen] = useState(false);
   const scheduledPlaceIds = useMemo(() => new Set(day.stops.map((stop) => stop.placeId)), [day.stops]);
   const scheduledPlaces = useMemo(
@@ -60,8 +64,12 @@ export function DayScheduleCard({
   );
   const isFull = day.stops.length >= maxStopsPerDay;
   const dayLabel = `DAY ${dayIndex + 1}`;
+  const hotelPlace = useMemo(() => getScheduleHotelPlace(day, placesById), [day, placesById]);
   const lastScheduledPlace = scheduledPlaces[scheduledPlaces.length - 1] ?? null;
-  const returnLeg = lastScheduledPlace ? routeLegs[routeLegKey(lastScheduledPlace, hotelSchedulePlace)] : undefined;
+  const returnLeg =
+    lastScheduledPlace && lastScheduledPlace.id !== hotelPlace.id
+      ? routeLegs[routeLegKey(lastScheduledPlace, hotelPlace)]
+      : undefined;
 
   function addPlaces(selectedPlaces: Place[]) {
     onAddStops(
@@ -83,6 +91,11 @@ export function DayScheduleCard({
           </div>
           <h2 className="mt-2 text-lg font-bold tracking-tight sm:text-2xl">{dayLabel}</h2>
           <p className="mt-1 text-sm leading-5 text-muted-foreground">방문 순서를 정하고 장소 간 이동 시간을 비교합니다.</p>
+          <div className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full bg-background px-2.5 py-1 text-xs text-muted-foreground">
+            <Building2 className="h-3.5 w-3.5 shrink-0" />
+            <span className="shrink-0">숙소</span>
+            <span className="truncate font-semibold text-foreground">{hotelPlace.name}</span>
+          </div>
         </div>
         {scheduledPlaces.length > 0 || isEditing ? (
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
@@ -122,6 +135,14 @@ export function DayScheduleCard({
               <>
                 <Button
                   className="min-w-0 rounded-full px-2 text-xs sm:px-3 sm:text-sm"
+                  variant="outline"
+                  onClick={() => setIsHotelPickerOpen(true)}
+                >
+                  <Building2 className="h-4 w-4" />
+                  숙소 변경
+                </Button>
+                <Button
+                  className="min-w-0 rounded-full px-2 text-xs sm:px-3 sm:text-sm"
                   onClick={() => setIsPickerOpen(true)}
                   disabled={isFull || !places.length}
                 >
@@ -150,12 +171,12 @@ export function DayScheduleCard({
               {day.stops.map((stop, index) => {
                 const place = placesById.get(stop.placeId);
                 const previousPlace = index > 0 ? placesById.get(day.stops[index - 1].placeId) : null;
-                const edgeFrom = previousPlace ?? hotelSchedulePlace;
-                const leg = place ? routeLegs[routeLegKey(edgeFrom, place)] : undefined;
+                const edgeFrom = previousPlace ?? hotelPlace;
+                const leg = place && edgeFrom.id !== place.id ? routeLegs[routeLegKey(edgeFrom, place)] : undefined;
 
                 return (
                   <div key={stop.id}>
-                    {place ? (
+                    {place && edgeFrom.id !== place.id ? (
                       <RouteLegRow from={edgeFrom} to={place} leg={leg} selectedMode={stop.selectedRouteMode} />
                     ) : null}
                     <div className="grid grid-cols-[1.75rem_minmax(0,1fr)] items-start gap-2 rounded-lg px-1.5 py-3 transition hover:bg-muted/25 sm:grid-cols-[2.25rem_minmax(0,1fr)] sm:items-center sm:gap-3 sm:px-3">
@@ -236,10 +257,10 @@ export function DayScheduleCard({
                   </div>
                 );
               })}
-              {lastScheduledPlace ? (
+              {lastScheduledPlace && lastScheduledPlace.id !== hotelPlace.id ? (
                 <RouteLegRow
                   from={lastScheduledPlace}
-                  to={hotelSchedulePlace}
+                  to={hotelPlace}
                   leg={returnLeg}
                   selectedMode={day.selectedReturnRouteMode}
                 />
@@ -273,11 +294,22 @@ export function DayScheduleCard({
           onSelect={addPlaces}
         />
       ) : null}
+      {isHotelPickerOpen ? (
+        <AccommodationSelectorDialog
+          title={`${dayLabel} 숙소 지정`}
+          description="이 DAY의 출발지와 도착지로 사용할 숙소를 선택합니다. 기본 숙소를 고르면 기존 기준점으로 돌아갑니다."
+          places={places}
+          categories={categories}
+          selectedPlaceId={day.hotelPlaceId ?? null}
+          onSelect={(placeId) => onSetDayHotel(day.id, placeId)}
+          onClose={() => setIsHotelPickerOpen(false)}
+        />
+      ) : null}
       {isRouteMapOpen ? (
         <DayRouteMapDialog
           dayLabel={dayLabel}
           places={scheduledPlaces}
-          anchorPlace={hotelSchedulePlace}
+          anchorPlace={hotelPlace}
           isDarkMode={isDarkMode}
           onClose={() => setIsRouteMapOpen(false)}
         />

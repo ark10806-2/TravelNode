@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { AccommodationSelectorDialog } from '@/components/dialogs/AccommodationSelectorDialog';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { AppHeader } from '@/components/place/AppHeader';
 import { CategoryFilterBar } from '@/components/place/CategoryFilterBar';
@@ -6,8 +7,10 @@ import { PlaceList, type PlaceListViewMode } from '@/components/place/PlaceList'
 import { PlacesPageDialogs } from '@/components/place/PlacesPageDialogs';
 import { SelectedPlacePanel } from '@/components/place/SelectedPlacePanel';
 import { TravelMap } from '@/components/place/TravelMap';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import type { TravelPlacesState } from '@/hooks/useTravelPlaces';
 import { toHotelDistancePlaces } from '@/lib/place-utils';
+import { hotelSchedulePlace } from '@/lib/schedule-utils';
 import type { CategoryId, NearbyPlace, PhotoState, Place } from '@/types/travel';
 
 const emptyPhotoState: PhotoState = {
@@ -23,6 +26,12 @@ type PlacesPageProps = {
   onRequireAuth: () => void;
 };
 
+const placeReferenceStorageKey = 'travel-node-place-reference-id';
+
+function isReferencePlaceId(value: unknown): value is string | null {
+  return value === null || typeof value === 'string';
+}
+
 export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onRequireAuth }: PlacesPageProps) {
   const {
     categories,
@@ -30,9 +39,9 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
     selectedCategoryId,
     setSelectedCategoryId,
     visiblePlaces,
+    places,
     selectedPlace,
     setSelectedId,
-    nearbyPlaces,
     travelMode,
     setTravelMode,
     status,
@@ -56,8 +65,21 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
   const [isGoogleSyncDialogOpen, setIsGoogleSyncDialogOpen] = useState(false);
   const [mobilePlaceListViewMode, setMobilePlaceListViewMode] = useState<PlaceListViewMode>('table');
   const [placeListViewMode, setPlaceListViewMode] = useState<PlaceListViewMode>('table');
+  const [referencePlaceId, setReferencePlaceId] = usePersistedState<string | null>(
+    placeReferenceStorageKey,
+    null,
+    isReferencePlaceId
+  );
+  const [isReferenceDialogOpen, setIsReferenceDialogOpen] = useState(false);
   const canModify = isEditing && canEdit;
-  const mobilePlaces = useMemo<NearbyPlace[]>(() => toHotelDistancePlaces(visiblePlaces), [visiblePlaces]);
+  const referencePlace = useMemo(
+    () => (referencePlaceId ? places.find((place) => place.id === referencePlaceId) ?? hotelSchedulePlace : hotelSchedulePlace),
+    [places, referencePlaceId]
+  );
+  const referencePlaces = useMemo<NearbyPlace[]>(
+    () => toHotelDistancePlaces(visiblePlaces.filter((place) => place.id !== referencePlace.id), referencePlace),
+    [referencePlace, visiblePlaces]
+  );
 
   const selectPlace = useCallback(
     (place: Place) => {
@@ -93,6 +115,8 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
         <AppHeader
           travelMode={travelMode}
           onTravelModeChange={setTravelMode}
+          referencePlace={referencePlace}
+          onChangeReference={() => setIsReferenceDialogOpen(true)}
           isEditing={canModify}
           onOpenGoogleMapsSync={() => (canEdit ? setIsGoogleSyncDialogOpen(true) : onRequireAuth())}
         />
@@ -107,12 +131,14 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
           <TravelMap
             places={visiblePlaces}
             selectedPlace={selectedPlace}
+            referencePlace={referencePlace}
             status={status}
             isDarkMode={isDarkMode}
             onSelectPlace={selectPlace}
           />
           <SelectedPlacePanel
             place={selectedPlace}
+            referencePlace={referencePlace}
             categories={categories}
             photoState={selectedPlace ? photoCache[selectedPlace.id] ?? emptyPhotoState : emptyPhotoState}
             isEditing={canModify}
@@ -135,8 +161,9 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
 
           <div className="md:hidden">
             <PlaceList
-              title={`${selectedCategory.emoji} ${selectedCategory.label} 전체 장소`}
-              places={mobilePlaces}
+              title={`${selectedCategory.emoji} ${selectedCategory.label} 기준점 근처`}
+              places={referencePlaces}
+              referencePlace={referencePlace}
               viewMode={mobilePlaceListViewMode}
               onViewModeChange={setMobilePlaceListViewMode}
               isEditing={canModify}
@@ -154,8 +181,9 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
 
           <div className="hidden md:block">
             <PlaceList
-              title={`선택한 장소 근처 ${selectedCategory.emoji} ${selectedCategory.label}`}
-              places={nearbyPlaces}
+              title={`기준점 근처 ${selectedCategory.emoji} ${selectedCategory.label}`}
+              places={referencePlaces}
+              referencePlace={referencePlace}
               viewMode={placeListViewMode}
               onViewModeChange={setPlaceListViewMode}
               isEditing={canModify}
@@ -195,6 +223,17 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
         onClosePhotos={() => setPhotoTarget(null)}
         onRetryPhotos={(place) => void loadPhotos(place, true)}
       />
+      {isReferenceDialogOpen ? (
+        <AccommodationSelectorDialog
+          title="장소 기준점 변경"
+          description="장소 탭에서 거리 정렬과 지도 기준으로 사용할 위치를 선택합니다. 기본 숙소를 고르면 기존 기준점으로 돌아갑니다."
+          places={places}
+          categories={categories}
+          selectedPlaceId={referencePlaceId}
+          onSelect={setReferencePlaceId}
+          onClose={() => setIsReferenceDialogOpen(false)}
+        />
+      ) : null}
     </>
   );
 }

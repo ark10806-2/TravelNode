@@ -9,6 +9,7 @@ import { PlaceThumbnailButton } from './PlaceThumbnailButton';
 
 type PlaceExpandableRowProps = {
   place: NearbyPlace;
+  referencePlace: Place;
   category: CategoryOption;
   photoState: PhotoState;
   isExpanded: boolean;
@@ -25,6 +26,7 @@ type PlaceExpandableRowProps = {
 
 export function PlaceExpandableRow({
   place,
+  referencePlace,
   category,
   photoState,
   isExpanded,
@@ -87,6 +89,7 @@ export function PlaceExpandableRow({
       {isExpanded ? (
         <PlaceExpandedDetails
           place={place}
+          referencePlace={referencePlace}
           photoState={photoState}
           isEditing={isEditing}
           isDeleting={isDeleting}

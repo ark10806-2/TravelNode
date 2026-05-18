@@ -53,9 +53,13 @@ export function getEmbedMapUrl(target: Pick<Place, 'latitude' | 'longitude'> | t
   return `https://www.google.com/maps?q=${target.latitude},${target.longitude}&z=15&output=embed`;
 }
 
-export function getHotelToPlaceEmbedUrl(target: Pick<Place, 'latitude' | 'longitude' | 'travelMode'>, apiKey?: string) {
+export function getHotelToPlaceEmbedUrl(
+  target: Pick<Place, 'latitude' | 'longitude' | 'travelMode'>,
+  apiKey?: string,
+  originPlace: Pick<Place, 'latitude' | 'longitude'> | typeof hotel = hotel
+) {
   const mode = target.travelMode === 'walk' ? 'walking' : 'transit';
-  const origin = `${hotel.latitude},${hotel.longitude}`;
+  const origin = `${originPlace.latitude},${originPlace.longitude}`;
   const destination = `${target.latitude},${target.longitude}`;
 
   if (apiKey) {
@@ -87,11 +91,11 @@ export function normalizeCategories(categories: CategoryOption[]) {
   return categories.length ? categories : defaultCategoryOptions;
 }
 
-export function toHotelDistancePlaces(places: Place[]): NearbyPlace[] {
+export function toHotelDistancePlaces(places: Place[], referencePlace: Pick<Place, 'latitude' | 'longitude'> | typeof hotel = hotel): NearbyPlace[] {
   return places
     .map((place) => ({
       ...place,
-      distanceFromSelectedKm: haversineKm(hotel, place)
+      distanceFromSelectedKm: haversineKm(referencePlace, place)
     }))
     .sort((a, b) => a.distanceFromSelectedKm - b.distanceFromSelectedKm);
 }

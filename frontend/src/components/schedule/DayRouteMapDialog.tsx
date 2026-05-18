@@ -22,12 +22,19 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(googleMapsApiKey ? 'loading' : 'error');
   const [error, setError] = useState(googleMapsApiKey ? '' : 'Google Maps API 키가 필요합니다.');
   const orderedPlaces = useMemo(() => places.filter(Boolean), [places]);
-  const markerPlaces = useMemo(
-    () => (anchorPlace ? [anchorPlace, ...orderedPlaces] : orderedPlaces),
+  const anchorIsScheduled = useMemo(
+    () => Boolean(anchorPlace && orderedPlaces.some((place) => place.id === anchorPlace.id)),
     [anchorPlace, orderedPlaces]
   );
+  const markerPlaces = useMemo(
+    () => (anchorPlace && !anchorIsScheduled ? [anchorPlace, ...orderedPlaces] : orderedPlaces),
+    [anchorIsScheduled, anchorPlace, orderedPlaces]
+  );
   const pathPlaces = useMemo(
-    () => (anchorPlace && orderedPlaces.length ? [anchorPlace, ...orderedPlaces, anchorPlace] : orderedPlaces),
+    () => {
+      const routePlaces = anchorPlace && orderedPlaces.length ? [anchorPlace, ...orderedPlaces, anchorPlace] : orderedPlaces;
+      return routePlaces.filter((place, index) => index === 0 || place.id !== routePlaces[index - 1].id);
+    },
     [anchorPlace, orderedPlaces]
   );
   const [selectedPlaceId, setSelectedPlaceId] = useState(orderedPlaces[0]?.id ?? '');
@@ -104,8 +111,8 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
 
     markerPlaces.forEach((place, index) => {
       const isSelected = place.id === selectedPlaceId;
-      const isAnchor = anchorPlace?.id === place.id;
-      const orderLabel = anchorPlace ? index : index + 1;
+      const isAnchor = Boolean(anchorPlace && !anchorIsScheduled && anchorPlace.id === place.id);
+      const orderLabel = orderedPlaces.findIndex((orderedPlace) => orderedPlace.id === place.id) + 1;
       const marker = new maps.Marker({
         position: { lat: place.latitude, lng: place.longitude },
         map: mapInstanceRef.current,
@@ -152,7 +159,7 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
       mapInstanceRef.current.setCenter(path[0]);
       mapInstanceRef.current.setZoom(16);
     }
-  }, [anchorPlace, isDarkMode, markerPlaces, orderedPlaces, pathPlaces, selectedPlaceId, status]);
+  }, [anchorIsScheduled, anchorPlace, isDarkMode, markerPlaces, orderedPlaces, pathPlaces, selectedPlaceId, status]);
 
   return (
     <ModalFrame

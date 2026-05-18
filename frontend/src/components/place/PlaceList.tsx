@@ -12,6 +12,7 @@ export type PlaceListViewMode = 'table' | 'gallery';
 type PlaceListProps = {
   title: string;
   places: NearbyPlace[];
+  referencePlace: Place;
   viewMode: PlaceListViewMode;
   onViewModeChange: (viewMode: PlaceListViewMode) => void;
   showViewModeToggle?: boolean;
@@ -35,6 +36,7 @@ const emptyPhotoState: PhotoState = {
 export function PlaceList({
   title,
   places,
+  referencePlace,
   viewMode,
   onViewModeChange,
   showViewModeToggle = true,
@@ -103,6 +105,7 @@ export function PlaceList({
                 <PlaceExpandableRow
                   key={place.id}
                   place={place}
+                  referencePlace={referencePlace}
                   category={getCategoryOption(categories, place.category)}
                   photoState={photoCache[place.id] ?? emptyPhotoState}
                   isExpanded={expandedPlaceId === place.id}

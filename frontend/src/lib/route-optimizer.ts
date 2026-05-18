@@ -52,9 +52,9 @@ export function optimizePlaceOrder(
     places: orderedPlaces,
     selectedModes: orderedPlaces.map((place, index) => {
       const from = index === 0 ? start : orderedPlaces[index - 1];
-      return selectBestRouteMode(routeLegs[routeLegKey(from, place)])?.mode ?? null;
+      return selectBestEdgeChoice(routeLegs, from, place)?.mode ?? null;
     }),
-    selectedReturnMode: lastPlace ? selectBestRouteMode(routeLegs[routeLegKey(lastPlace, end)])?.mode ?? null : null
+    selectedReturnMode: lastPlace ? selectBestEdgeChoice(routeLegs, lastPlace, end)?.mode ?? null : null
   };
 }
 
@@ -63,12 +63,17 @@ function createOptimizationGraph(places: Place[], routeLegs: Record<string, Rout
     between: places.map((from) =>
       places.map((to) => {
         if (from.id === to.id) return null;
-        return selectBestRouteMode(routeLegs[routeLegKey(from, to)]);
+        return selectBestEdgeChoice(routeLegs, from, to);
       })
     ),
-    fromStart: places.map((place) => selectBestRouteMode(routeLegs[routeLegKey(start, place)])),
-    toEnd: places.map((place) => selectBestRouteMode(routeLegs[routeLegKey(place, end)]))
+    fromStart: places.map((place) => selectBestEdgeChoice(routeLegs, start, place)),
+    toEnd: places.map((place) => selectBestEdgeChoice(routeLegs, place, end))
   };
+}
+
+function selectBestEdgeChoice(routeLegs: Record<string, RouteLeg>, from: Place, to: Place): EdgeChoice | null {
+  if (from.id === to.id) return { mode: 'walking', minutes: 0 };
+  return selectBestRouteMode(routeLegs[routeLegKey(from, to)]);
 }
 
 type OptimizationGraph = ReturnType<typeof createOptimizationGraph>;

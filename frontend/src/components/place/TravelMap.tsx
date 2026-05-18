@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader2, MapPin } from 'lucide-react';
 import { googleMapsApiKey, mapsKeyLabel } from '@/config/env';
-import { hotel } from '@/constants/travel';
 import { createPlaceMarkerIcon, describeError, getPlaceMapStyles, loadGoogleMaps } from '@/lib/google-maps';
 import { getEmbedMapUrl } from '@/lib/place-utils';
 import type { LoadStatus, Place } from '@/types/travel';
@@ -9,12 +8,13 @@ import type { LoadStatus, Place } from '@/types/travel';
 type TravelMapProps = {
   places: Place[];
   selectedPlace: Place | null;
+  referencePlace: Place;
   status: LoadStatus;
   isDarkMode: boolean;
   onSelectPlace: (place: Place) => void;
 };
 
-export function TravelMap({ places, selectedPlace, status, isDarkMode, onSelectPlace }: TravelMapProps) {
+export function TravelMap({ places, selectedPlace, referencePlace, status, isDarkMode, onSelectPlace }: TravelMapProps) {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
@@ -44,7 +44,7 @@ export function TravelMap({ places, selectedPlace, status, isDarkMode, onSelectP
         if (cancelled || mapInstanceRef.current || !mapRef.current) return;
 
         mapInstanceRef.current = new maps.Map(mapRef.current, {
-          center: { lat: hotel.latitude, lng: hotel.longitude },
+          center: { lat: referencePlace.latitude, lng: referencePlace.longitude },
           zoom: 14,
           gestureHandling: 'greedy',
           scrollwheel: true,
@@ -67,7 +67,7 @@ export function TravelMap({ places, selectedPlace, status, isDarkMode, onSelectP
     return () => {
       cancelled = true;
     };
-  }, [isDarkMode, status]);
+  }, [isDarkMode, referencePlace.latitude, referencePlace.longitude, status]);
 
   useEffect(() => {
     if (!mapReady || !mapInstanceRef.current) return;
@@ -81,13 +81,13 @@ export function TravelMap({ places, selectedPlace, status, isDarkMode, onSelectP
     markersRef.current.forEach((marker) => marker.setMap(null));
     markersRef.current = [];
 
-    const hotelMarker = new maps.Marker({
-      position: { lat: hotel.latitude, lng: hotel.longitude },
+    const referenceMarker = new maps.Marker({
+      position: { lat: referencePlace.latitude, lng: referencePlace.longitude },
       map: mapInstanceRef.current,
-      title: hotel.name,
+      title: `기준점: ${referencePlace.name}`,
       icon: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png'
     });
-    markersRef.current.push(hotelMarker);
+    markersRef.current.push(referenceMarker);
 
     places.forEach((place) => {
       const isSelected = place.id === selectedPlace?.id;
@@ -104,16 +104,16 @@ export function TravelMap({ places, selectedPlace, status, isDarkMode, onSelectP
     });
 
     const bounds = new maps.LatLngBounds();
-    bounds.extend({ lat: hotel.latitude, lng: hotel.longitude });
+    bounds.extend({ lat: referencePlace.latitude, lng: referencePlace.longitude });
     places.forEach((place) => bounds.extend({ lat: place.latitude, lng: place.longitude }));
 
     if (places.length) {
       mapInstanceRef.current.fitBounds(bounds, 64);
     } else {
-      mapInstanceRef.current.setCenter({ lat: hotel.latitude, lng: hotel.longitude });
+      mapInstanceRef.current.setCenter({ lat: referencePlace.latitude, lng: referencePlace.longitude });
       mapInstanceRef.current.setZoom(14);
     }
-  }, [mapReady, onSelectPlace, places, selectedPlace?.id]);
+  }, [mapReady, onSelectPlace, places, referencePlace, selectedPlace?.id]);
 
   useEffect(() => {
     if (!mapReady || !window.google?.maps || !mapInstanceRef.current || !selectedPlace) return;
@@ -129,7 +129,7 @@ export function TravelMap({ places, selectedPlace, status, isDarkMode, onSelectP
         <div className="h-full min-h-[272px] w-full overflow-hidden rounded-lg sm:min-h-[412px] lg:min-h-[552px]">
           <iframe
             className="h-full min-h-[272px] w-full border-0 sm:min-h-[412px] lg:min-h-[552px]"
-            src={getEmbedMapUrl(selectedPlace ?? hotel)}
+            src={getEmbedMapUrl(selectedPlace ?? referencePlace)}
             title="Google Maps fallback"
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"

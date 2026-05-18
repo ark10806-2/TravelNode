@@ -1,6 +1,6 @@
 import { hotel } from '@/constants/travel';
 import { haversineKm } from '@/lib/place-utils';
-import type { RouteMode, RouteModeLeg } from '@/types/schedule';
+import type { RouteMode, RouteModeLeg, ScheduleDay } from '@/types/schedule';
 import type { Place } from '@/types/travel';
 
 export const scheduleStorageKey = 'japan-trip-schedule-v1';
@@ -36,6 +36,11 @@ export function buildPlaceDirectionsUrl(from: Place, to: Place, mode: RouteMode 
 
 export function routeLegKey(from: Place, to: Place) {
   return `${from.id}:${to.id}`;
+}
+
+export function getScheduleHotelPlace(day: Pick<ScheduleDay, 'hotelPlaceId'>, placesById: Map<string, Place>) {
+  if (!day.hotelPlaceId) return hotelSchedulePlace;
+  return placesById.get(day.hotelPlaceId) ?? hotelSchedulePlace;
 }
 
 export function estimateRouteModeLeg(from: Place, to: Place, mode: RouteMode): RouteModeLeg {

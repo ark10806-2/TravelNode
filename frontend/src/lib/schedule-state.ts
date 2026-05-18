@@ -1,4 +1,4 @@
-import { createId, hotelSchedulePlace, routeLegKey, scheduleStorageKey } from '@/lib/schedule-utils';
+import { createId, getScheduleHotelPlace, routeLegKey, scheduleStorageKey } from '@/lib/schedule-utils';
 import type { RouteMode, ScheduleDay, ScheduleStop } from '@/types/schedule';
 import type { Place } from '@/types/travel';
 
@@ -13,6 +13,7 @@ export function loadStoredDays() {
     return parsed.map((day) => ({
       id: typeof day.id === 'string' ? day.id : createId('day'),
       selectedReturnRouteMode: isRouteMode(day.selectedReturnRouteMode) ? day.selectedReturnRouteMode : null,
+      hotelPlaceId: typeof day.hotelPlaceId === 'string' && day.hotelPlaceId.trim() ? day.hotelPlaceId : null,
       stops: Array.isArray(day.stops)
         ? day.stops
             .filter((stop) => typeof stop?.placeId === 'string')
@@ -58,18 +59,17 @@ export function scheduleRoutePairs(day: ScheduleDay, placesById: Map<string, Pla
     .filter((place): place is Place => Boolean(place));
 
   if (!dayPlaces.length) return [];
+  const hotelPlace = getScheduleHotelPlace(day, placesById);
+  const firstPlace = dayPlaces[0];
+  const lastPlace = dayPlaces[dayPlaces.length - 1];
 
   return [
-    { from: hotelSchedulePlace, to: dayPlaces[0], key: routeLegKey(hotelSchedulePlace, dayPlaces[0]) },
+    ...(hotelPlace.id === firstPlace.id ? [] : [{ from: hotelPlace, to: firstPlace, key: routeLegKey(hotelPlace, firstPlace) }]),
     ...dayPlaces.slice(1).map((place, index) => {
       const from = dayPlaces[index];
       return { from, to: place, key: routeLegKey(from, place) };
     }),
-    {
-      from: dayPlaces[dayPlaces.length - 1],
-      to: hotelSchedulePlace,
-      key: routeLegKey(dayPlaces[dayPlaces.length - 1], hotelSchedulePlace)
-    }
+    ...(lastPlace.id === hotelPlace.id ? [] : [{ from: lastPlace, to: hotelPlace, key: routeLegKey(lastPlace, hotelPlace) }])
   ];
 }
 
@@ -90,7 +90,8 @@ function createEmptyScheduleDays(): ScheduleDay[] {
     {
       id: createId('day'),
       stops: [],
-      selectedReturnRouteMode: null
+      selectedReturnRouteMode: null,
+      hotelPlaceId: null
     }
   ];
 }

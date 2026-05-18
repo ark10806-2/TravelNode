@@ -1,6 +1,7 @@
 package com.example.japantrip
 
 import java.sql.ResultSet
+import java.sql.Types
 import java.util.UUID
 import javax.sql.DataSource
 
@@ -12,6 +13,7 @@ class ScheduleRepository(
       SELECT
         d.id AS day_id,
         d.selected_return_route_mode AS selected_return_route_mode,
+        d.hotel_place_id AS hotel_place_id,
         s.id AS stop_id,
         s.restaurant_id AS place_id,
         s.selected_route_mode AS selected_route_mode
@@ -29,6 +31,7 @@ class ScheduleRepository(
             val day = days.getOrPut(dayId) {
               ScheduleDayAccumulator(
                 selectedReturnRouteMode = rows.getString("selected_return_route_mode"),
+                hotelPlaceId = rows.getObject("hotel_place_id", UUID::class.java)?.toString(),
                 stops = mutableListOf()
               )
             }
@@ -42,7 +45,8 @@ class ScheduleRepository(
             ScheduleDayResponse(
               id = dayId,
               stops = day.stops,
-              selectedReturnRouteMode = day.selectedReturnRouteMode
+              selectedReturnRouteMode = day.selectedReturnRouteMode,
+              hotelPlaceId = day.hotelPlaceId
             )
           }
         }
@@ -53,8 +57,8 @@ class ScheduleRepository(
   fun replaceAll(request: ScheduleSaveRequest): List<ScheduleDayResponse> {
     val requestedDays = request.days.orEmpty()
     val insertDaySql = """
-      INSERT INTO schedule_days (id, sort_order, selected_return_route_mode)
-      VALUES (?, ?, ?)
+      INSERT INTO schedule_days (id, sort_order, selected_return_route_mode, hotel_place_id)
+      VALUES (?, ?, ?, ?)
     """.trimIndent()
     val insertStopSql = """
       INSERT INTO schedule_stops (id, day_id, restaurant_id, sort_order, selected_route_mode)
@@ -74,6 +78,12 @@ class ScheduleRepository(
             statement.setString(1, day.id!!.trim())
             statement.setInt(2, dayIndex)
             statement.setString(3, day.selectedReturnRouteMode?.trim()?.takeIf { it.isNotBlank() })
+            val hotelPlaceId = day.hotelPlaceId?.trim()?.takeIf { it.isNotBlank() }
+            if (hotelPlaceId == null) {
+              statement.setNull(4, Types.OTHER)
+            } else {
+              statement.setObject(4, UUID.fromString(hotelPlaceId))
+            }
             statement.addBatch()
           }
           statement.executeBatch()
@@ -111,6 +121,7 @@ class ScheduleRepository(
 
   private data class ScheduleDayAccumulator(
     val selectedReturnRouteMode: String?,
+    val hotelPlaceId: String?,
     val stops: MutableList<ScheduleStopResponse>
   )
 }

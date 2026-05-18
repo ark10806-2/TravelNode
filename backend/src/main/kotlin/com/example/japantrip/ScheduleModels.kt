@@ -9,7 +9,8 @@ data class ScheduleStopResponse(
 data class ScheduleDayResponse(
   val id: String,
   val stops: List<ScheduleStopResponse>,
-  val selectedReturnRouteMode: String? = null
+  val selectedReturnRouteMode: String? = null,
+  val hotelPlaceId: String? = null
 )
 
 data class ScheduleSaveRequest(
@@ -19,7 +20,8 @@ data class ScheduleSaveRequest(
 data class ScheduleDayRequest(
   val id: String? = null,
   val stops: List<ScheduleStopRequest>? = emptyList(),
-  val selectedReturnRouteMode: String? = null
+  val selectedReturnRouteMode: String? = null,
+  val hotelPlaceId: String? = null
 )
 
 data class ScheduleStopRequest(
@@ -55,6 +57,11 @@ fun ScheduleSaveRequest.validate(): List<String> {
     val selectedReturnRouteMode = day.selectedReturnRouteMode?.trim()
     if (selectedReturnRouteMode != null && selectedReturnRouteMode !in allowedRouteModes) {
       errors += "days[$dayIndex].selectedReturnRouteMode must be driving, transit, or walking"
+    }
+
+    val hotelPlaceId = day.hotelPlaceId?.trim()?.takeIf { it.isNotBlank() }
+    if (hotelPlaceId != null) {
+      validateUuid("days[$dayIndex].hotelPlaceId", hotelPlaceId)?.let { errors += it }
     }
 
     val stops = day.stops.orEmpty()

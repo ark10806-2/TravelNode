@@ -1,14 +1,14 @@
 import { ExternalLink, Loader2, Map, Navigation, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { googleMapsApiKey } from '@/config/env';
-import { travelLabel } from '@/constants/travel';
-import { getHotelToPlaceEmbedUrl, getPlaceInfoUrl } from '@/lib/place-utils';
+import { getHotelToPlaceEmbedUrl, getPlaceInfoUrl, haversineKm } from '@/lib/place-utils';
 import type { CategoryId, CategoryOption, NearbyPlace, PhotoState, Place } from '@/types/travel';
 import { CategoryMoveSelect } from './CategoryMoveSelect';
 import { PhotoBundlePreview } from './PhotoBundlePreview';
 
 type PlaceExpandedDetailsProps = {
   place: NearbyPlace;
+  referencePlace: Place;
   photoState: PhotoState;
   isEditing: boolean;
   isDeleting: boolean;
@@ -21,6 +21,7 @@ type PlaceExpandedDetailsProps = {
 
 export function PlaceExpandedDetails({
   place,
+  referencePlace,
   photoState,
   isEditing,
   isDeleting,
@@ -31,6 +32,7 @@ export function PlaceExpandedDetails({
   onMoveCategory
 }: PlaceExpandedDetailsProps) {
   const isBusy = isDeleting || isMovingCategory;
+  const distanceKm = haversineKm(referencePlace, place);
 
   return (
     <div className="grid gap-3 border-t bg-background px-3 py-3 sm:px-4 sm:py-4 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -38,12 +40,12 @@ export function PlaceExpandedDetails({
         <section className="overflow-hidden rounded-xl border bg-muted/20">
           <div className="flex items-center gap-2 border-b bg-background px-3 py-2 text-sm font-semibold">
             <Map className="h-4 w-4 text-muted-foreground" />
-            숙소에서 장소까지
+            기준점에서 장소까지
           </div>
           <iframe
             className="h-52 w-full border-0 sm:h-64"
-            src={getHotelToPlaceEmbedUrl(place, googleMapsApiKey)}
-            title={`${place.name} 숙소 기준 위치`}
+            src={getHotelToPlaceEmbedUrl(place, googleMapsApiKey, referencePlace)}
+            title={`${place.name} 기준점 위치`}
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
           />
@@ -59,10 +61,10 @@ export function PlaceExpandedDetails({
         <PhotoBundlePreview place={place} photoState={photoState} onOpen={onOpenPhotos} />
 
         <div className="grid gap-2 rounded-xl border bg-muted/20 p-3 text-sm">
-          <div className="font-semibold">숙소 기준 이동</div>
+          <div className="font-semibold">기준점 이동</div>
           <div className="flex items-center gap-2 text-muted-foreground">
             <Navigation className="h-4 w-4 shrink-0" />
-            {place.distanceLabel} · {travelLabel[place.travelMode]} {place.travelMinutes}분
+            직선거리 {distanceKm.toFixed(1)}km
           </div>
           <div className="pt-1 text-xs leading-5 text-muted-foreground">{place.address}</div>
         </div>

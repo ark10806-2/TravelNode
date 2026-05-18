@@ -129,11 +129,13 @@ CREATE TABLE IF NOT EXISTS schedule_days (
   id text PRIMARY KEY,
   sort_order integer NOT NULL,
   selected_return_route_mode text CHECK (selected_return_route_mode IN ('driving', 'transit', 'walking')),
+  hotel_place_id uuid REFERENCES restaurants(id) ON DELETE SET NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 ALTER TABLE schedule_days ADD COLUMN IF NOT EXISTS selected_return_route_mode text;
+ALTER TABLE schedule_days ADD COLUMN IF NOT EXISTS hotel_place_id uuid REFERENCES restaurants(id) ON DELETE SET NULL;
 
 DO $$
 BEGIN

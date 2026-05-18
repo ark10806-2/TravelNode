@@ -1,14 +1,14 @@
 import { ExternalLink, Navigation, Pencil, Utensils } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { travelLabel } from '@/constants/travel';
-import { getCategoryBadgeClass, getCategoryOption, getPlaceInfoUrl } from '@/lib/place-utils';
+import { getCategoryBadgeClass, getCategoryOption, getPlaceInfoUrl, haversineKm } from '@/lib/place-utils';
 import type { CategoryId, CategoryOption, PhotoState, Place } from '@/types/travel';
 import { CategoryMoveSelect } from './CategoryMoveSelect';
 import { PhotoBundlePreview } from './PhotoBundlePreview';
 
 type SelectedPlacePanelProps = {
   place: Place | null;
+  referencePlace: Place;
   categories: CategoryOption[];
   photoState: PhotoState;
   isEditing: boolean;
@@ -20,6 +20,7 @@ type SelectedPlacePanelProps = {
 
 export function SelectedPlacePanel({
   place,
+  referencePlace,
   categories,
   photoState,
   isEditing,
@@ -38,6 +39,7 @@ export function SelectedPlacePanel({
 
   const category = getCategoryOption(categories, place.category);
   const isMovingCategory = movingCategoryPlaceId === place.id;
+  const distanceKm = haversineKm(referencePlace, place);
 
   return (
     <aside className="soft-panel rounded-xl p-3.5 sm:rounded-lg sm:p-5">
@@ -84,10 +86,10 @@ export function SelectedPlacePanel({
           </div>
           <PhotoBundlePreview place={place} photoState={photoState} onOpen={onOpenPhotos} />
           <div>
-            <div className="text-xs font-semibold text-muted-foreground">숙소 기준 이동</div>
+            <div className="text-xs font-semibold text-muted-foreground">기준점 이동</div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <Navigation className="h-4 w-4" />
-              {place.distanceLabel} · {travelLabel[place.travelMode]} {place.travelMinutes}분
+              직선거리 {distanceKm.toFixed(1)}km
             </div>
           </div>
           <div>

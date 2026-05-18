@@ -42,6 +42,7 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
     addStops,
     removeStop,
     moveStop,
+    setDayHotel,
     optimizeDayRoutes,
     refreshDayRoutes
   } = useSchedule(places, isEditing);
@@ -147,6 +148,7 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
             onAddStops={addStops}
             onRemoveStop={removeStop}
             onMoveStop={moveStop}
+            onSetDayHotel={setDayHotel}
             isOptimizingRoutes={optimizingDayId === day.id}
             onOptimizeRoutes={() => void optimizeRoutes(day.id)}
             isRefreshingRoutes={refreshingDayId === day.id}
