@@ -181,13 +181,21 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
   useEffect(() => {
     if (selectionFocusVersion === 0) return;
 
-    const selectedPlace = markerPlaces.find((place) => place.id === selectedPlaceId);
-    if (status === 'ready' && selectedPlace && mapInstanceRef.current) {
-      mapInstanceRef.current.panTo({ lat: selectedPlace.latitude, lng: selectedPlace.longitude });
-      mapInstanceRef.current.setZoom(selectedRouteZoom());
+    const selectedIndex = orderedPlaces.findIndex((place) => place.id === selectedPlaceId);
+    if (status === 'ready' && window.google?.maps && mapInstanceRef.current && selectedIndex >= 0) {
+      const focusPlaces = orderedPlaces.slice(Math.max(0, selectedIndex - 1), Math.min(orderedPlaces.length, selectedIndex + 2));
+      if (focusPlaces.length > 1) {
+        const maps = window.google.maps;
+        const bounds = new maps.LatLngBounds();
+        focusPlaces.forEach((place) => bounds.extend({ lat: place.latitude, lng: place.longitude }));
+        mapInstanceRef.current.fitBounds(bounds, focusedRouteBoundsPadding());
+      } else {
+        const selectedPlace = focusPlaces[0];
+        mapInstanceRef.current.panTo({ lat: selectedPlace.latitude, lng: selectedPlace.longitude });
+        mapInstanceRef.current.setZoom(selectedRouteZoom());
+      }
     }
 
-    const selectedIndex = orderedPlaces.findIndex((place) => place.id === selectedPlaceId);
     const listScrollElement = listScrollRef.current;
     if (!listScrollElement || selectedIndex < 0) return;
 
@@ -296,4 +304,9 @@ function routeMapBoundsPadding() {
 function selectedRouteZoom() {
   const isMobile = window.matchMedia('(max-width: 767px)').matches;
   return isMobile ? 17 : 18;
+}
+
+function focusedRouteBoundsPadding() {
+  const isMobile = window.matchMedia('(max-width: 767px)').matches;
+  return isMobile ? 48 : 72;
 }
