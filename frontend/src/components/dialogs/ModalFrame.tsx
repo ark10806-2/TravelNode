@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -11,17 +11,51 @@ type ModalFrameProps = {
   scroll?: boolean;
 };
 
+let activeModalCount = 0;
+let lockedScrollY = 0;
+let previousBodyStyle: Pick<CSSStyleDeclaration, 'overflow' | 'position' | 'top' | 'width'> | null = null;
+
 export function ModalFrame({ title, eyebrow, children, onClose, maxWidth = 'max-w-xl', scroll }: ModalFrameProps) {
+  useEffect(() => {
+    if (activeModalCount === 0) {
+      lockedScrollY = window.scrollY;
+      previousBodyStyle = {
+        overflow: document.body.style.overflow,
+        position: document.body.style.position,
+        top: document.body.style.top,
+        width: document.body.style.width
+      };
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${lockedScrollY}px`;
+      document.body.style.width = '100%';
+    }
+
+    activeModalCount += 1;
+
+    return () => {
+      activeModalCount = Math.max(0, activeModalCount - 1);
+      if (activeModalCount > 0 || !previousBodyStyle) return;
+
+      document.body.style.overflow = previousBodyStyle.overflow;
+      document.body.style.position = previousBodyStyle.position;
+      document.body.style.top = previousBodyStyle.top;
+      document.body.style.width = previousBodyStyle.width;
+      previousBodyStyle = null;
+      window.scrollTo(0, lockedScrollY);
+    };
+  }, []);
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/35 p-2 sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-foreground/35 p-2 sm:items-center sm:p-4"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
       <div
         className={`w-full overflow-hidden rounded-md border bg-background shadow-xl ${maxWidth} ${
-          scroll ? 'max-h-[94vh] overflow-y-auto sm:max-h-[92vh]' : ''
+          scroll ? 'max-h-[94vh] overflow-y-auto overscroll-contain sm:max-h-[92vh]' : ''
         }`}
         onMouseDown={(event) => event.stopPropagation()}
       >

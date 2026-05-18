@@ -242,7 +242,7 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
 
         <aside
           ref={listScrollRef}
-          className="max-h-[52vh] overflow-y-auto scroll-smooth border-t bg-background p-4 sm:p-5 lg:max-h-[540px] lg:border-l lg:border-t-0"
+          className="max-h-[52vh] overflow-y-auto overscroll-contain scroll-smooth border-t bg-background p-4 sm:p-5 lg:max-h-[540px] lg:border-l lg:border-t-0"
         >
           <div className="mb-4 text-base font-semibold text-foreground">방문 순서</div>
           {orderedPlaces.length ? (
