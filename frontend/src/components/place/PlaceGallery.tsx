@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type TouchEvent } from 'react';
-import { ChevronLeft, ChevronRight, Images, MapPin } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Images, MapPin, Pencil } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { travelLabel } from '@/constants/travel';
@@ -13,6 +13,7 @@ type PlaceGalleryProps = {
   photoCache: Record<string, PhotoState>;
   onLoadPhotos: (place: Place) => Promise<void>;
   onOpenPhotos: (place: Place) => void;
+  onEditPlace: (place: Place) => void;
   isEditing: boolean;
   categories: CategoryOption[];
   movingCategoryPlaceId: string | null;
@@ -24,6 +25,7 @@ export function PlaceGallery({
   photoCache,
   onLoadPhotos,
   onOpenPhotos,
+  onEditPlace,
   isEditing,
   categories,
   movingCategoryPlaceId,
@@ -266,6 +268,17 @@ export function PlaceGallery({
                 <Images className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 전체 사진 보기
               </Button>
+              {isEditing ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 min-w-0 rounded-full px-2.5 text-xs sm:h-9 sm:px-3 sm:text-sm"
+                  onClick={() => onEditPlace(activePlace)}
+                >
+                  <Pencil className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  수정
+                </Button>
+              ) : null}
               {isEditing ? (
                 <CategoryMoveSelect
                   place={activePlace}

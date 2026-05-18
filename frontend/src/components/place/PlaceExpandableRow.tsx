@@ -13,13 +13,17 @@ type PlaceExpandableRowProps = {
   category: CategoryOption;
   photoState: PhotoState;
   isExpanded: boolean;
+  isSelected: boolean;
+  enableExpandedDetails: boolean;
   isEditing: boolean;
   isDeleting: boolean;
   isMovingCategory: boolean;
   categories: CategoryOption[];
   hasDivider: boolean;
   onToggle: (place: NearbyPlace) => void;
+  onSelect?: (place: Place) => void;
   onOpenPhotos: (place: Place) => void;
+  onEditPlace: (place: Place) => void;
   onDelete: (place: Place) => void;
   onMoveCategory: (place: Place, categoryId: CategoryId) => void;
 };
@@ -30,25 +34,34 @@ export function PlaceExpandableRow({
   category,
   photoState,
   isExpanded,
+  isSelected,
+  enableExpandedDetails,
   isEditing,
   isDeleting,
   isMovingCategory,
   categories,
   hasDivider,
   onToggle,
+  onSelect,
   onOpenPhotos,
+  onEditPlace,
   onDelete,
   onMoveCategory
 }: PlaceExpandableRowProps) {
   const isBusy = isDeleting || isMovingCategory;
+  const isHighlighted = isExpanded || (!enableExpandedDetails && isSelected);
 
   return (
     <article className={cn(hasDivider && 'border-t')}>
       <div
         className={cn(
           'relative grid grid-cols-[4rem_minmax(0,1fr)_2.25rem] gap-3 px-3 py-3 transition sm:grid-cols-[3.25rem_minmax(11rem,1.05fr)_minmax(9rem,0.9fr)_minmax(12rem,1.35fr)_2.5rem] sm:items-center sm:px-4',
-          isExpanded ? 'bg-primary/5' : 'bg-background hover:bg-muted/25'
+          isHighlighted ? 'bg-primary/5' : 'bg-background hover:bg-muted/25',
+          !enableExpandedDetails && 'cursor-pointer'
         )}
+        onClick={() => {
+          if (!enableExpandedDetails) onSelect?.(place);
+        }}
       >
         <PlaceThumbnailButton
           place={place}
@@ -77,16 +90,26 @@ export function PlaceExpandableRow({
         <SummaryCell className="col-span-3 sm:col-auto" label="대표 항목" value={place.menu} />
         <SummaryCell className="col-span-3 sm:col-auto" label="요약" value={place.description} muted />
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="col-start-3 row-start-1 h-9 w-9 justify-self-end rounded-full sm:static"
-          onClick={() => onToggle(place)}
-          aria-expanded={isExpanded}
-          aria-label={`${place.name} 상세 ${isExpanded ? '접기' : '펼치기'}`}
-        >
-          <ChevronDown className={cn('h-4 w-4 transition-transform', isExpanded && 'rotate-180')} />
-        </Button>
+        {enableExpandedDetails ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="col-start-3 row-start-1 h-9 w-9 justify-self-end rounded-full sm:static"
+            onClick={() => onToggle(place)}
+            aria-expanded={isExpanded}
+            aria-label={`${place.name} 상세 ${isExpanded ? '접기' : '펼치기'}`}
+          >
+            <ChevronDown className={cn('h-4 w-4 transition-transform', isExpanded && 'rotate-180')} />
+          </Button>
+        ) : (
+          <div className="col-start-3 row-start-1 flex h-9 items-center justify-end sm:static">
+            {isSelected ? (
+              <Badge variant="outline" className="rounded-full bg-primary/10 text-primary">
+                선택
+              </Badge>
+            ) : null}
+          </div>
+        )}
       </div>
 
       {isExpanded ? (
@@ -99,6 +122,7 @@ export function PlaceExpandableRow({
           isMovingCategory={isMovingCategory}
           categories={categories}
           onOpenPhotos={onOpenPhotos}
+          onEditPlace={onEditPlace}
           onDelete={onDelete}
           onMoveCategory={onMoveCategory}
         />

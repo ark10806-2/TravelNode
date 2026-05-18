@@ -1,4 +1,4 @@
-import { ExternalLink, Loader2, Map, Navigation, Trash2 } from 'lucide-react';
+import { ExternalLink, Loader2, Map, Navigation, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { googleMapsApiKey } from '@/config/env';
 import { getGoogleMapsNoteLabel, getHotelToPlaceEmbedUrl, getPlaceInfoUrl, haversineKm } from '@/lib/place-utils';
@@ -15,6 +15,7 @@ type PlaceExpandedDetailsProps = {
   isMovingCategory: boolean;
   categories: CategoryOption[];
   onOpenPhotos: (place: Place) => void;
+  onEditPlace: (place: Place) => void;
   onDelete: (place: Place) => void;
   onMoveCategory: (place: Place, categoryId: CategoryId) => void;
 };
@@ -28,6 +29,7 @@ export function PlaceExpandedDetails({
   isMovingCategory,
   categories,
   onOpenPhotos,
+  onEditPlace,
   onDelete,
   onMoveCategory
 }: PlaceExpandedDetailsProps) {
@@ -75,24 +77,35 @@ export function PlaceExpandedDetails({
         </div>
 
         {isEditing ? (
-          <div className="flex items-center gap-2">
+          <div className="grid gap-2">
+            <Button
+              variant="outline"
+              className="rounded-full"
+              onClick={() => onEditPlace(place)}
+              disabled={isBusy}
+            >
+              <Pencil className="h-4 w-4" />
+              세부항목 수정
+            </Button>
             <CategoryMoveSelect
               place={place}
               categories={categories}
               disabled={isBusy}
-              className="min-w-0 flex-1 rounded-full"
+              className="min-w-0 rounded-full"
               onMove={onMoveCategory}
             />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 shrink-0 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
-              onClick={() => onDelete(place)}
-              disabled={isBusy}
-              aria-label={`${place.name} 삭제`}
-            >
-              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-            </Button>
+            <div className="flex justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => onDelete(place)}
+                disabled={isBusy}
+              >
+                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                삭제
+              </Button>
+            </div>
           </div>
         ) : null}
 

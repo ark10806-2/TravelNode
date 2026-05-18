@@ -26,6 +26,10 @@ type PlaceListProps = {
   deletingId: string | null;
   movingCategoryPlaceId: string | null;
   onOpenPhotos: (place: Place) => void;
+  onEditPlace: (place: Place) => void;
+  selectedPlaceId?: string | null;
+  enableExpandedDetails?: boolean;
+  onSelectPlace?: (place: Place) => void;
 };
 
 const emptyPhotoState: PhotoState = {
@@ -49,7 +53,11 @@ export function PlaceList({
   onMoveCategory,
   deletingId,
   movingCategoryPlaceId,
-  onOpenPhotos
+  onOpenPhotos,
+  onEditPlace,
+  selectedPlaceId = null,
+  enableExpandedDetails = true,
+  onSelectPlace
 }: PlaceListProps) {
   const [expandedPlaceId, setExpandedPlaceId] = useState<string | null>(null);
 
@@ -65,6 +73,10 @@ export function PlaceList({
   }, [expandedPlaceId, places]);
 
   function togglePlace(place: NearbyPlace) {
+    if (!enableExpandedDetails) {
+      onSelectPlace?.(place);
+      return;
+    }
     setExpandedPlaceId((current) => (current === place.id ? null : place.id));
   }
 
@@ -85,6 +97,7 @@ export function PlaceList({
           photoCache={photoCache}
           onLoadPhotos={onLoadPhotos}
           onOpenPhotos={onOpenPhotos}
+          onEditPlace={onEditPlace}
           isEditing={isEditing}
           categories={categories}
           movingCategoryPlaceId={movingCategoryPlaceId}
@@ -108,14 +121,18 @@ export function PlaceList({
                   referencePlace={referencePlace}
                   category={getCategoryOption(categories, place.category)}
                   photoState={photoCache[place.id] ?? emptyPhotoState}
-                  isExpanded={expandedPlaceId === place.id}
+                  isExpanded={enableExpandedDetails && expandedPlaceId === place.id}
+                  isSelected={selectedPlaceId === place.id}
+                  enableExpandedDetails={enableExpandedDetails}
                   isEditing={isEditing}
                   isDeleting={deletingId === place.id}
                   isMovingCategory={movingCategoryPlaceId === place.id}
                   categories={categories}
                   hasDivider={index > 0}
                   onToggle={togglePlace}
+                  onSelect={onSelectPlace}
                   onOpenPhotos={onOpenPhotos}
+                  onEditPlace={onEditPlace}
                   onDelete={onDelete}
                   onMoveCategory={onMoveCategory}
                 />

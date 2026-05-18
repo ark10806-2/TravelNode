@@ -176,6 +176,8 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
               deletingId={deletingId}
               movingCategoryPlaceId={movingCategoryPlaceId}
               onOpenPhotos={openPhotoDialog}
+              onEditPlace={(place) => (canEdit ? setEditTarget(place) : onRequireAuth())}
+              onSelectPlace={selectPlace}
             />
           </div>
 
@@ -196,6 +198,10 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
               deletingId={deletingId}
               movingCategoryPlaceId={movingCategoryPlaceId}
               onOpenPhotos={openPhotoDialog}
+              onEditPlace={(place) => (canEdit ? setEditTarget(place) : onRequireAuth())}
+              selectedPlaceId={selectedPlace?.id ?? null}
+              enableExpandedDetails={false}
+              onSelectPlace={selectPlace}
             />
           </div>
         </section>
