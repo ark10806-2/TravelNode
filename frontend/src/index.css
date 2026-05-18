@@ -85,6 +85,45 @@
   .dark .soft-panel {
     @apply bg-secondary/80 shadow-[0_10px_30px_rgba(0,0,0,0.28)];
   }
+
+  .gallery-slide-next {
+    animation: gallery-slide-next 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .gallery-slide-prev {
+    animation: gallery-slide-prev 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+}
+
+@keyframes gallery-slide-next {
+  from {
+    opacity: 0.35;
+    transform: translateX(22px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes gallery-slide-prev {
+  from {
+    opacity: 0.35;
+    transform: translateX(-22px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery-slide-next,
+  .gallery-slide-prev {
+    animation: none;
+  }
 }
 
 .map-shell {
