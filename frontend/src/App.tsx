@@ -3,6 +3,7 @@ import { AuthDialog } from '@/components/dialogs/AuthDialog';
 import { AppTabs } from '@/components/layout/AppTabs';
 import { PullRefreshIndicator } from '@/components/layout/PullRefreshIndicator';
 import { PlacesPage } from '@/components/place/PlacesPage';
+import { ReservationPage } from '@/components/reservation/ReservationPage';
 import { SchedulePage } from '@/components/schedule/SchedulePage';
 import { TodoPage } from '@/components/todo/TodoPage';
 import { UsagePage } from '@/components/usage/UsagePage';
@@ -16,7 +17,7 @@ import type { AppTab } from '@/types/schedule';
 const activeTabStorageKey = 'japan-trip-active-tab';
 
 function isAppTab(value: unknown): value is AppTab {
-  return value === 'schedule' || value === 'places' || value === 'todo' || value === 'usage';
+  return value === 'schedule' || value === 'places' || value === 'reservations' || value === 'todo' || value === 'usage';
 }
 
 function App() {
@@ -98,6 +99,9 @@ function App() {
           photoCache={travelPlaces.photoCache}
           onLoadPhotos={travelPlaces.loadPhotos}
         />
+      ) : null}
+      {activeTab === 'reservations' ? (
+        <ReservationPage places={travelPlaces.places} isEditing={isEditing} />
       ) : null}
       {activeTab === 'todo' ? <TodoPage isEditing={isEditing} /> : null}
       {activeTab === 'usage' ? <UsagePage isEditing={isEditing} /> : null}

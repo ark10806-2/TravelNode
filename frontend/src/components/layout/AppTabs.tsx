@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Activity, CalendarDays, Check, KeyRound, ListChecks, LogOut, MapPinned, Pencil, Plane } from 'lucide-react';
+import { Activity, CalendarDays, Check, KeyRound, ListChecks, LogOut, MapPinned, Pencil, Plane, TicketCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { AppTab } from '@/types/schedule';
@@ -21,6 +21,7 @@ type AppTabsProps = {
 const tabs = [
   { id: 'places', label: '장소', icon: MapPinned },
   { id: 'schedule', label: '일정', icon: CalendarDays },
+  { id: 'reservations', label: '예약', icon: TicketCheck },
   { id: 'todo', label: '할일', icon: ListChecks },
   { id: 'usage', label: '관리', icon: Activity }
 ] satisfies { id: AppTab; label: string; icon: typeof MapPinned }[];
@@ -119,7 +120,7 @@ export function AppTabs({
             isCompact ? 'py-1' : 'py-1.5 sm:py-2'
           )}
         >
-          <div className="grid w-full grid-cols-4 gap-1 rounded-full border bg-secondary p-1 shadow-sm shadow-black/5 sm:w-[34rem]" role="tablist" aria-label="페이지 전환">
+          <div className="grid w-full grid-cols-5 gap-1 rounded-full border bg-secondary p-1 shadow-sm shadow-black/5 sm:w-[42rem]" role="tablist" aria-label="페이지 전환">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = tab.id === activeTab;

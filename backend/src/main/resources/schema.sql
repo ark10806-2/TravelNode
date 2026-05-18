@@ -212,6 +212,21 @@ CREATE TABLE IF NOT EXISTS custom_todo_items (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS reservations (
+  id text PRIMARY KEY,
+  reservation_type text NOT NULL CHECK (reservation_type IN ('restaurant', 'ticket', 'transport', 'hotel', 'other')),
+  title text NOT NULL,
+  day_index integer,
+  place_id uuid REFERENCES restaurants(id) ON DELETE SET NULL,
+  time_label text NOT NULL DEFAULT '',
+  reference_number text NOT NULL DEFAULT '',
+  link_url text NOT NULL DEFAULT '',
+  notes text NOT NULL DEFAULT '',
+  sort_order integer NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS api_usage_daily (
   usage_date date NOT NULL,
   service_id text NOT NULL,
@@ -288,6 +303,8 @@ CREATE INDEX IF NOT EXISTS schedule_stops_day_sort_order_idx ON schedule_stops (
 CREATE INDEX IF NOT EXISTS todo_items_section_sort_order_idx ON todo_items (section, day_index, sort_order);
 CREATE INDEX IF NOT EXISTS custom_todo_lists_sort_order_idx ON custom_todo_lists (sort_order);
 CREATE INDEX IF NOT EXISTS custom_todo_items_list_sort_order_idx ON custom_todo_items (list_id, sort_order);
+CREATE INDEX IF NOT EXISTS reservations_day_sort_order_idx ON reservations (day_index, sort_order);
+CREATE INDEX IF NOT EXISTS reservations_place_idx ON reservations (place_id);
 CREATE INDEX IF NOT EXISTS route_cache_to_place_idx ON route_cache (to_place_id);
 CREATE INDEX IF NOT EXISTS route_cache_updated_at_idx ON route_cache (updated_at);
 CREATE INDEX IF NOT EXISTS route_cache_entries_updated_at_idx ON route_cache_entries (updated_at);
