@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AuthDialog } from '@/components/dialogs/AuthDialog';
 import { AppTabs } from '@/components/layout/AppTabs';
-import { PullRefreshIndicator } from '@/components/layout/PullRefreshIndicator';
 import { PlacesPage } from '@/components/place/PlacesPage';
 import { ReservationPage } from '@/components/reservation/ReservationPage';
 import { SchedulePage } from '@/components/schedule/SchedulePage';
@@ -9,7 +8,6 @@ import { TodoPage } from '@/components/todo/TodoPage';
 import { UsagePage } from '@/components/usage/UsagePage';
 import { useAuth } from '@/hooks/useAuth';
 import { usePersistedState } from '@/hooks/usePersistedState';
-import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useTheme } from '@/hooks/useTheme';
 import { useTravelPlaces } from '@/hooks/useTravelPlaces';
 import type { AppTab } from '@/types/schedule';
@@ -24,7 +22,6 @@ function App() {
   const travelPlaces = useTravelPlaces();
   const auth = useAuth();
   const { theme, resolvedTheme, setTheme } = useTheme();
-  const pullToRefresh = usePullToRefresh();
   const [activeTab, setActiveTab] = usePersistedState<AppTab>(activeTabStorageKey, 'places', isAppTab);
   const [authDialogMode, setAuthDialogMode] = useState<'login' | 'change' | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -69,7 +66,6 @@ function App() {
 
   return (
     <main className="app-background min-h-[100dvh] overflow-x-hidden">
-      <PullRefreshIndicator {...pullToRefresh} />
       <AppTabs
         activeTab={activeTab}
         isAuthenticated={auth.isAuthenticated}
