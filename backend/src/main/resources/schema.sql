@@ -233,10 +233,13 @@ CREATE TABLE IF NOT EXISTS reservations (
   reference_number text NOT NULL DEFAULT '',
   link_url text NOT NULL DEFAULT '',
   notes text NOT NULL DEFAULT '',
+  attachments jsonb NOT NULL DEFAULT '[]'::jsonb,
   sort_order integer NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE reservations ADD COLUMN IF NOT EXISTS attachments jsonb NOT NULL DEFAULT '[]'::jsonb;
 
 CREATE TABLE IF NOT EXISTS api_usage_daily (
   usage_date date NOT NULL,

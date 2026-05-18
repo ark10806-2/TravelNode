@@ -10,6 +10,15 @@ export type Reservation = {
   referenceNumber: string;
   linkUrl: string;
   notes: string;
+  attachments: ReservationAttachment[];
+};
+
+export type ReservationAttachment = {
+  id: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  dataUrl: string;
 };
 
 export type ReservationDraft = Omit<Reservation, 'id'>;

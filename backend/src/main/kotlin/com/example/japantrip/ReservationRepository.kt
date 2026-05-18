@@ -1,5 +1,7 @@
 package com.example.japantrip
 
+import com.fasterxml.jackson.core.type.TypeReference
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import java.sql.ResultSet
 import java.sql.Types
 import java.util.UUID
@@ -8,6 +10,8 @@ import javax.sql.DataSource
 class ReservationRepository(
   private val dataSource: DataSource
 ) {
+  private val mapper = jacksonObjectMapper()
+
   fun findAll(): List<ReservationResponse> {
     val sql = """
       SELECT
@@ -19,7 +23,8 @@ class ReservationRepository(
         time_label,
         reference_number,
         link_url,
-        notes
+        notes,
+        attachments
       FROM reservations
       ORDER BY COALESCE(day_index, 9999), sort_order
     """.trimIndent()
@@ -49,9 +54,10 @@ class ReservationRepository(
         reference_number,
         link_url,
         notes,
+        attachments,
         sort_order
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?)
     """.trimIndent()
 
     dataSource.connection.use { connection ->
@@ -84,7 +90,8 @@ class ReservationRepository(
             statement.setString(7, reservation.referenceNumber.orEmpty().trim())
             statement.setString(8, reservation.linkUrl.orEmpty().trim())
             statement.setString(9, reservation.notes.orEmpty().trim())
-            statement.setInt(10, index)
+            statement.setString(10, mapper.writeValueAsString(reservation.attachments.orEmpty().map { it.toResponse() }))
+            statement.setInt(11, index)
             statement.addBatch()
           }
           statement.executeBatch()
@@ -109,6 +116,20 @@ class ReservationRepository(
     timeLabel = getString("time_label"),
     referenceNumber = getString("reference_number"),
     linkUrl = getString("link_url"),
-    notes = getString("notes")
+    notes = getString("notes"),
+    attachments = parseAttachments(getString("attachments"))
+  )
+
+  private fun parseAttachments(value: String?): List<ReservationAttachmentResponse> {
+    if (value.isNullOrBlank()) return emptyList()
+    return mapper.readValue(value, object : TypeReference<List<ReservationAttachmentResponse>>() {})
+  }
+
+  private fun ReservationAttachmentRequest.toResponse() = ReservationAttachmentResponse(
+    id = id!!.trim(),
+    fileName = fileName!!.trim(),
+    contentType = contentType!!.trim(),
+    sizeBytes = sizeBytes!!,
+    dataUrl = dataUrl!!.trim()
   )
 }

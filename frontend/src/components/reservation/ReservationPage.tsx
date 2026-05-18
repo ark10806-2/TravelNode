@@ -1,12 +1,30 @@
 import { FormEvent, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { CalendarClock, ExternalLink, Hotel, Pencil, Plus, ReceiptText, TicketCheck, TrainFront, Trash2, Utensils } from 'lucide-react';
+import {
+  CalendarClock,
+  DownloadCloud,
+  ExternalLink,
+  FileText,
+  Hotel,
+  Image,
+  Loader2,
+  Pencil,
+  Plus,
+  ReceiptText,
+  TicketCheck,
+  TrainFront,
+  Trash2,
+  UploadCloud,
+  Utensils,
+  X
+} from 'lucide-react';
 import { fetchSchedule } from '@/api/schedule';
+import { ModalFrame } from '@/components/dialogs/ModalFrame';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useReservations } from '@/hooks/useReservations';
 import { cn } from '@/lib/utils';
-import type { Reservation, ReservationDraft, ReservationType } from '@/types/reservation';
+import type { Reservation, ReservationAttachment, ReservationDraft, ReservationType } from '@/types/reservation';
 import type { Place } from '@/types/travel';
 
 type ReservationPageProps = {
@@ -30,13 +48,23 @@ const emptyDraft: ReservationDraft = {
   timeLabel: '',
   referenceNumber: '',
   linkUrl: '',
-  notes: ''
+  notes: '',
+  attachments: []
 };
+
+const maxReservationAttachmentBytes = 5 * 1024 * 1024;
+const googleReservationImportSample = `예시)
+Toriton Tokyo Skytree Town Solamachi
+2026. 5. 22. 18:30
+예약번호: ABC12345
+https://example.com/booking
+요청사항: 창가 좌석`;
 
 export function ReservationPage({ places, isEditing }: ReservationPageProps) {
   const [scheduleDayCount, setScheduleDayCount] = useState(1);
   const [editingReservationId, setEditingReservationId] = useState<string | null>(null);
-  const { reservations, status, error, isSaving, addReservation, updateReservation, removeReservation } =
+  const [isGoogleImportOpen, setIsGoogleImportOpen] = useState(false);
+  const { reservations, status, error, isSaving, addReservation, addReservations, updateReservation, removeReservation } =
     useReservations(isEditing);
   const placesById = useMemo(() => new Map(places.map((place) => [place.id, place])), [places]);
   const dayCount = Math.max(
@@ -80,13 +108,21 @@ export function ReservationPage({ places, isEditing }: ReservationPageProps) {
                 : '예약/티켓은 서버 DB에 저장됩니다.'}
           </p>
         </div>
-        <div className="soft-panel flex items-center gap-3 rounded-xl px-4 py-3">
-          <div className="grid h-10 w-10 place-items-center rounded-md bg-primary/10 text-primary">
-            <TicketCheck className="h-5 w-5" />
-          </div>
-          <div>
-            <div className="text-sm text-muted-foreground">등록된 항목</div>
-            <div className="text-xl font-bold">{reservations.length}개</div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+          {isEditing ? (
+            <Button variant="outline" className="rounded-full" onClick={() => setIsGoogleImportOpen(true)}>
+              <DownloadCloud className="h-4 w-4" />
+              Google 예약 가져오기
+            </Button>
+          ) : null}
+          <div className="soft-panel flex items-center gap-3 rounded-xl px-4 py-3">
+            <div className="grid h-10 w-10 place-items-center rounded-md bg-primary/10 text-primary">
+              <TicketCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="text-sm text-muted-foreground">등록된 항목</div>
+              <div className="text-xl font-bold">{reservations.length}개</div>
+            </div>
           </div>
         </div>
       </header>
@@ -157,6 +193,19 @@ export function ReservationPage({ places, isEditing }: ReservationPageProps) {
           </div>
         )}
       </section>
+
+      {isGoogleImportOpen ? (
+        <GoogleReservationImportDialog
+          places={places}
+          dayCount={dayCount}
+          disabled={isSaving}
+          onClose={() => setIsGoogleImportOpen(false)}
+          onImport={(drafts) => {
+            addReservations(drafts);
+            setIsGoogleImportOpen(false);
+          }}
+        />
+      ) : null}
     </PageContainer>
   );
 }
@@ -261,6 +310,9 @@ function ReservationCard({
           </div>
         ) : null}
         {reservation.notes ? <p className="leading-6 text-muted-foreground">{reservation.notes}</p> : null}
+        {reservation.attachments.length ? (
+          <ReservationAttachmentGrid attachments={reservation.attachments} />
+        ) : null}
         {normalizedLink ? (
           <Button asChild variant="outline" className="rounded-full">
             <a href={normalizedLink} target="_blank" rel="noreferrer">
@@ -271,6 +323,87 @@ function ReservationCard({
         ) : null}
       </div>
     </article>
+  );
+}
+
+function GoogleReservationImportDialog({
+  places,
+  dayCount,
+  disabled,
+  onClose,
+  onImport
+}: {
+  places: Place[];
+  dayCount: number;
+  disabled: boolean;
+  onClose: () => void;
+  onImport: (drafts: ReservationDraft[]) => void;
+}) {
+  const [rawText, setRawText] = useState('');
+  const parsedDrafts = useMemo(() => parseGoogleReservationText(rawText, places, dayCount), [dayCount, places, rawText]);
+
+  return (
+    <ModalFrame title="Google 예약 가져오기" maxWidth="max-w-4xl" scroll onClose={onClose}>
+      <div className="grid gap-5 p-5">
+        <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm leading-6 text-muted-foreground">
+          Google Maps 또는 Reserve with Google 예약 상세 화면, 예약 확인 메일의 내용을 복사해 붙여넣으면 예약 후보로 변환합니다.
+          Google 개인 예약 목록을 직접 읽는 공개 API는 없어, 계정 화면의 내용을 사용자가 가져오는 방식으로 동작합니다.
+        </div>
+
+        <Field label="예약 내용">
+          <textarea
+            className="min-h-56 rounded-md border bg-background px-3 py-2 text-sm leading-6 outline-none ring-offset-background focus:ring-2 focus:ring-ring"
+            value={rawText}
+            disabled={disabled}
+            placeholder={googleReservationImportSample}
+            onChange={(event) => setRawText(event.target.value)}
+          />
+        </Field>
+
+        <section className="grid gap-3">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="font-bold">가져올 예약 후보</h3>
+            <Badge variant="outline" className="rounded-full">
+              {parsedDrafts.length}개
+            </Badge>
+          </div>
+
+          {parsedDrafts.length ? (
+            <div className="grid gap-3 md:grid-cols-2">
+              {parsedDrafts.map((draft, index) => (
+                <div key={`${draft.title}-${index}`} className="rounded-lg border bg-background p-3 text-sm">
+                  <Badge variant="outline" className={cn('rounded-full', reservationTypeMeta[draft.reservationType].className)}>
+                    {reservationTypeMeta[draft.reservationType].label}
+                  </Badge>
+                  <div className="mt-2 line-clamp-2 text-base font-bold">{draft.title}</div>
+                  <div className="mt-2 grid gap-1 text-muted-foreground">
+                    <div>{draft.dayIndex == null ? 'DAY 미지정' : `DAY ${draft.dayIndex + 1}`}</div>
+                    {draft.timeLabel ? <div>{draft.timeLabel}</div> : null}
+                    {draft.referenceNumber ? <div>예약번호: {draft.referenceNumber}</div> : null}
+                    {draft.linkUrl ? <div className="truncate">{draft.linkUrl}</div> : null}
+                  </div>
+                  {draft.notes ? <p className="mt-2 line-clamp-3 leading-5 text-muted-foreground">{draft.notes}</p> : null}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid min-h-28 place-items-center rounded-lg border border-dashed bg-muted/20 p-4 text-center text-sm text-muted-foreground">
+              붙여넣은 내용에서 예약 후보를 찾으면 여기에 표시됩니다.
+            </div>
+          )}
+        </section>
+
+        <div className="flex justify-end gap-2 border-t pt-4">
+          <Button variant="outline" onClick={onClose} disabled={disabled}>
+            취소
+          </Button>
+          <Button onClick={() => onImport(parsedDrafts)} disabled={disabled || !parsedDrafts.length}>
+            {disabled ? <Loader2 className="h-4 w-4 animate-spin" /> : <DownloadCloud className="h-4 w-4" />}
+            {parsedDrafts.length}개 가져오기
+          </Button>
+        </div>
+      </div>
+    </ModalFrame>
   );
 }
 
@@ -292,6 +425,7 @@ function ReservationForm({
   onCancel?: () => void;
 }) {
   const [draft, setDraft] = useState<ReservationDraft>(() => ({ ...initialDraft }));
+  const [attachmentError, setAttachmentError] = useState('');
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -302,6 +436,28 @@ function ReservationForm({
 
   function updateDraft<K extends keyof ReservationDraft>(field: K, value: ReservationDraft[K]) {
     setDraft((current) => ({ ...current, [field]: value }));
+  }
+
+  async function addFiles(files: FileList | null) {
+    if (!files?.length) return;
+    setAttachmentError('');
+
+    try {
+      const attachments = await Promise.all(Array.from(files).map(readReservationAttachment));
+      setDraft((current) => ({
+        ...current,
+        attachments: [...current.attachments, ...attachments].slice(0, 8)
+      }));
+    } catch (fileError) {
+      setAttachmentError(fileError instanceof Error ? fileError.message : '첨부파일을 읽지 못했습니다.');
+    }
+  }
+
+  function removeAttachment(attachmentId: string) {
+    setDraft((current) => ({
+      ...current,
+      attachments: current.attachments.filter((attachment) => attachment.id !== attachmentId)
+    }));
   }
 
   return (
@@ -392,6 +548,34 @@ function ReservationForm({
           onChange={(event) => updateDraft('linkUrl', event.target.value)}
         />
       </Field>
+      <Field label="첨부파일">
+        <div className="grid gap-2">
+          <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed bg-muted/20 px-3 py-4 text-center text-sm text-muted-foreground transition hover:border-primary hover:bg-primary/5">
+            <UploadCloud className="h-5 w-5" />
+            <span>이미지 또는 PDF 추가</span>
+            <span className="text-xs">파일당 최대 5MB</span>
+            <input
+              className="sr-only"
+              type="file"
+              accept="image/*,application/pdf"
+              multiple
+              disabled={disabled}
+              onChange={(event) => {
+                void addFiles(event.target.files);
+                event.target.value = '';
+              }}
+            />
+          </label>
+          {attachmentError ? (
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {attachmentError}
+            </div>
+          ) : null}
+          {draft.attachments.length ? (
+            <ReservationAttachmentGrid attachments={draft.attachments} isEditing onRemove={removeAttachment} />
+          ) : null}
+        </div>
+      </Field>
       <Field label="메모">
         <textarea
           className="min-h-24 rounded-md border bg-background px-3 py-2 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
@@ -417,6 +601,63 @@ function ReservationForm({
   );
 }
 
+function ReservationAttachmentGrid({
+  attachments,
+  isEditing = false,
+  onRemove
+}: {
+  attachments: ReservationAttachment[];
+  isEditing?: boolean;
+  onRemove?: (attachmentId: string) => void;
+}) {
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      {attachments.map((attachment) => {
+        const isImage = attachment.contentType.startsWith('image/');
+
+        return (
+          <div key={attachment.id} className="relative overflow-hidden rounded-lg border bg-muted/20">
+            <a
+              className="grid gap-2 p-2"
+              href={attachment.dataUrl}
+              target="_blank"
+              rel="noreferrer"
+              download={attachment.fileName}
+            >
+              <div className="grid h-28 place-items-center overflow-hidden rounded-md bg-background">
+                {isImage ? (
+                  <img src={attachment.dataUrl} alt={attachment.fileName} className="h-full w-full object-cover" loading="lazy" />
+                ) : (
+                  <FileText className="h-9 w-9 text-muted-foreground" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold">{attachment.fileName}</div>
+                <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                  {isImage ? <Image className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
+                  {isImage ? '이미지' : 'PDF'} · {formatBytes(attachment.sizeBytes)}
+                </div>
+              </div>
+            </a>
+            {isEditing && onRemove ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-1.5 top-1.5 h-7 w-7 rounded-full bg-background/90 text-destructive hover:bg-background hover:text-destructive"
+                onClick={() => onRemove(attachment.id)}
+                aria-label={`${attachment.fileName} 첨부 삭제`}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="grid min-w-0 gap-1">
@@ -431,4 +672,143 @@ function normalizeLink(linkUrl: string) {
   if (!trimmedUrl) return '';
   if (/^https?:\/\//i.test(trimmedUrl)) return trimmedUrl;
   return `https://${trimmedUrl}`;
+}
+
+function readReservationAttachment(file: File): Promise<ReservationAttachment> {
+  if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+    return Promise.reject(new Error('이미지 또는 PDF 파일만 첨부할 수 있습니다.'));
+  }
+
+  if (file.size > maxReservationAttachmentBytes) {
+    return Promise.reject(new Error(`${file.name} 파일이 5MB를 초과합니다.`));
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      resolve({
+        id: createId('reservation-file'),
+        fileName: file.name,
+        contentType: file.type || 'application/octet-stream',
+        sizeBytes: file.size,
+        dataUrl: String(reader.result)
+      });
+    };
+    reader.onerror = () => reject(new Error(`${file.name} 파일을 읽지 못했습니다.`));
+    reader.readAsDataURL(file);
+  });
+}
+
+function formatBytes(sizeBytes: number) {
+  if (sizeBytes < 1024) return `${sizeBytes}B`;
+  if (sizeBytes < 1024 * 1024) return `${(sizeBytes / 1024).toFixed(1)}KB`;
+  return `${(sizeBytes / 1024 / 1024).toFixed(1)}MB`;
+}
+
+function parseGoogleReservationText(rawText: string, places: Place[], dayCount: number): ReservationDraft[] {
+  return rawText
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean)
+    .map((block) => parseGoogleReservationBlock(block, places, dayCount))
+    .filter((draft): draft is ReservationDraft => Boolean(draft));
+}
+
+function parseGoogleReservationBlock(block: string, places: Place[], dayCount: number): ReservationDraft | null {
+  const lines = block
+    .split(/\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (!lines.length) return null;
+
+  const matchedPlace = findMatchingPlace(block, places);
+  const title = matchedPlace?.name ?? findTitleLine(lines);
+  if (!title) return null;
+
+  const dayIndex = parseDayIndex(block, dayCount);
+  const timeLabel = parseTimeLabel(block);
+  const referenceNumber = parseReferenceNumber(block);
+  const linkUrl = parseFirstUrl(block);
+  const reservationType = inferReservationType(block, matchedPlace);
+  const notes = lines
+    .filter((line) => !linkUrl || !line.includes(linkUrl))
+    .slice(0, 8)
+    .join('\n')
+    .slice(0, 1000);
+
+  return {
+    ...emptyDraft,
+    reservationType,
+    title,
+    dayIndex,
+    placeId: matchedPlace?.id ?? null,
+    timeLabel,
+    referenceNumber,
+    linkUrl,
+    notes,
+    attachments: []
+  };
+}
+
+function findMatchingPlace(text: string, places: Place[]) {
+  const normalizedText = normalizeSearchText(text);
+  return places.find((place) => {
+    const normalizedName = normalizeSearchText(place.name);
+    return normalizedName.length >= 3 && normalizedText.includes(normalizedName);
+  }) ?? null;
+}
+
+function findTitleLine(lines: string[]) {
+  return lines
+    .find((line) => !/^https?:\/\//i.test(line) && !/^(예약번호|booking|confirmation|date|time|날짜|시간|주소|address)\s*[:：]/i.test(line))
+    ?.slice(0, 120)
+    .trim() ?? '';
+}
+
+function parseDayIndex(text: string, dayCount: number) {
+  const dayMatch = text.match(/\bday\s*([0-9]{1,2})\b/i) ?? text.match(/DAY\s*([0-9]{1,2})/i);
+  if (!dayMatch) return null;
+  const dayIndex = Number(dayMatch[1]) - 1;
+  if (!Number.isInteger(dayIndex) || dayIndex < 0 || dayIndex >= dayCount) return null;
+  return dayIndex;
+}
+
+function parseTimeLabel(text: string) {
+  const dateTimeMatch = text.match(/([0-9]{4}[./-]\s*[0-9]{1,2}[./-]\s*[0-9]{1,2}[^0-9]{1,8}[0-9]{1,2}:[0-9]{2})/);
+  if (dateTimeMatch) return dateTimeMatch[1].replace(/\s+/g, ' ').slice(0, 80);
+
+  const koreanDateTimeMatch = text.match(/([0-9]{1,2}\s*월\s*[0-9]{1,2}\s*일[^0-9]{1,8}[0-9]{1,2}:[0-9]{2})/);
+  if (koreanDateTimeMatch) return koreanDateTimeMatch[1].replace(/\s+/g, ' ').slice(0, 80);
+
+  const timeMatch = text.match(/\b([01]?[0-9]|2[0-3]):[0-5][0-9]\b/);
+  return timeMatch?.[0] ?? '';
+}
+
+function parseReferenceNumber(text: string) {
+  const referenceMatch =
+    text.match(/(?:예약번호|예약 번호|confirmation|booking|reference|order)\s*[:：#]?\s*([A-Z0-9-]{4,})/i) ??
+    text.match(/\b[A-Z]{2,}[0-9][A-Z0-9-]{3,}\b/);
+  return referenceMatch?.[1]?.slice(0, 120) ?? referenceMatch?.[0]?.slice(0, 120) ?? '';
+}
+
+function parseFirstUrl(text: string) {
+  return text.match(/https?:\/\/[^\s)]+/i)?.[0]?.slice(0, 500) ?? '';
+}
+
+function inferReservationType(text: string, place: Place | null): ReservationType {
+  const normalizedText = normalizeSearchText(text);
+  if (place?.category === 'meal' || place?.category === 'dessert') return 'restaurant';
+  if (normalizedText.includes('hotel') || normalizedText.includes('숙소') || normalizedText.includes('checkin')) return 'hotel';
+  if (normalizedText.includes('train') || normalizedText.includes('flight') || normalizedText.includes('교통') || normalizedText.includes('항공')) return 'transport';
+  if (normalizedText.includes('ticket') || normalizedText.includes('티켓') || normalizedText.includes('입장권')) return 'ticket';
+  return 'restaurant';
+}
+
+function normalizeSearchText(value: string) {
+  return value.toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function createId(prefix: string) {
+  if (window.crypto?.randomUUID) return `${prefix}-${window.crypto.randomUUID()}`;
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }

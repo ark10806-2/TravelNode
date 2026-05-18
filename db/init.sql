@@ -176,6 +176,24 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
   expires_at timestamptz NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS reservations (
+  id text PRIMARY KEY,
+  reservation_type text NOT NULL CHECK (reservation_type IN ('restaurant', 'ticket', 'transport', 'hotel', 'other')),
+  title text NOT NULL,
+  day_index integer,
+  place_id uuid REFERENCES restaurants(id) ON DELETE SET NULL,
+  time_label text NOT NULL DEFAULT '',
+  reference_number text NOT NULL DEFAULT '',
+  link_url text NOT NULL DEFAULT '',
+  notes text NOT NULL DEFAULT '',
+  attachments jsonb NOT NULL DEFAULT '[]'::jsonb,
+  sort_order integer NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE reservations ADD COLUMN IF NOT EXISTS attachments jsonb NOT NULL DEFAULT '[]'::jsonb;
+
 DO $$
 BEGIN
   IF EXISTS (
@@ -220,3 +238,5 @@ CREATE INDEX IF NOT EXISTS categories_sort_order_idx ON categories (sort_order, 
 CREATE INDEX IF NOT EXISTS schedule_days_sort_order_idx ON schedule_days (sort_order);
 CREATE INDEX IF NOT EXISTS schedule_stops_day_sort_order_idx ON schedule_stops (day_id, sort_order);
 CREATE INDEX IF NOT EXISTS route_cache_entries_updated_at_idx ON route_cache_entries (updated_at);
+CREATE INDEX IF NOT EXISTS reservations_day_sort_order_idx ON reservations (day_index, sort_order);
+CREATE INDEX IF NOT EXISTS reservations_place_idx ON reservations (place_id);

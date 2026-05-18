@@ -80,6 +80,16 @@ export function useReservations(canPersist = false) {
     ]);
   }
 
+  function addReservations(drafts: ReservationDraft[]) {
+    updateReservations((current) => [
+      ...current,
+      ...drafts.map((draft) => ({
+        id: createId('reservation'),
+        ...normalizeDraft(draft)
+      }))
+    ]);
+  }
+
   function updateReservation(id: string, draft: ReservationDraft) {
     updateReservations((current) =>
       current.map((reservation) => (reservation.id === id ? { id, ...normalizeDraft(draft) } : reservation))
@@ -96,6 +106,7 @@ export function useReservations(canPersist = false) {
     error,
     isSaving,
     addReservation,
+    addReservations,
     updateReservation,
     removeReservation
   };
@@ -117,8 +128,21 @@ function normalizeDraft(draft: ReservationDraft): ReservationDraft {
     timeLabel: draft.timeLabel.trim(),
     referenceNumber: draft.referenceNumber.trim(),
     linkUrl: draft.linkUrl.trim(),
-    notes: draft.notes.trim()
+    notes: draft.notes.trim(),
+    attachments: normalizeAttachments(draft.attachments ?? [])
   };
+}
+
+function normalizeAttachments(attachments: ReservationDraft['attachments']) {
+  return attachments
+    .filter((attachment) => attachment.id && attachment.fileName && attachment.dataUrl)
+    .map((attachment) => ({
+      id: attachment.id,
+      fileName: attachment.fileName.trim(),
+      contentType: attachment.contentType.trim(),
+      sizeBytes: attachment.sizeBytes,
+      dataUrl: attachment.dataUrl
+    }));
 }
 
 function createId(prefix: string) {
