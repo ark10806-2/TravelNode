@@ -99,7 +99,7 @@ export function GoogleMapsSyncDialog({ onClose, onSynced }: GoogleMapsSyncDialog
 
         <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm leading-6 text-muted-foreground">
           조회된 장소는 기본으로 모두 선택됩니다. 앱에서 삭제한 장소는 <span className="font-semibold text-foreground">deleted</span>{' '}
-          상태로 남겨 다음 동기화 때 다시 생기지 않습니다.
+          상태로 남겨 다음 동기화 때 다시 생기지 않습니다. 기존 장소의 메모, 설명, 대표 항목은 기본값일 때만 보강하고 직접 수정한 값은 보존합니다.
         </div>
 
         {formError ? (
@@ -154,12 +154,42 @@ export function GoogleMapsSyncDialog({ onClose, onSynced }: GoogleMapsSyncDialog
               <div className="font-bold">{result.listTitle ?? 'Google Maps 목록'}</div>
               <div className="text-muted-foreground">총 {result.requestedCount}개</div>
             </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
               <SyncStat label="추가" value={result.createdCount} />
-              <SyncStat label="이미 있음" value={result.skippedExistingCount} />
-              <SyncStat label="삭제됨" value={result.skippedDeletedCount} />
+              <SyncStat label="정보 보강" value={result.enrichedCount} />
+              <SyncStat label="내 입력 보존" value={result.preservedCustomizedCount} />
+              <SyncStat label="변경 없음" value={result.skippedExistingCount} />
+              <SyncStat label="삭제 차단" value={result.skippedDeletedCount} />
               <SyncStat label="실패" value={result.failedCount} />
             </div>
+            {result.details.length ? (
+              <div className="grid max-h-72 gap-2 overflow-y-auto pr-1">
+                {result.details.map((detail, index) => (
+                  <div key={`${detail.name}-${detail.status}-${index}`} className="rounded-md border bg-muted/20 px-3 py-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="min-w-0 truncate font-semibold">{detail.name}</div>
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${syncDetailBadgeClass(detail.status)}`}>
+                        {detail.label}
+                      </span>
+                    </div>
+                    {detail.updatedFields.length || detail.preservedFields.length ? (
+                      <div className="mt-2 grid gap-1 text-xs leading-5 text-muted-foreground">
+                        {detail.updatedFields.length ? (
+                          <p>
+                            반영: <span className="text-foreground">{detail.updatedFields.join(', ')}</span>
+                          </p>
+                        ) : null}
+                        {detail.preservedFields.length ? (
+                          <p>
+                            보존: <span className="text-foreground">{detail.preservedFields.join(', ')}</span>
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : null}
             {result.warnings.length ? (
               <div className="rounded-md bg-muted px-3 py-2 text-xs leading-5 text-muted-foreground">
                 {result.warnings.map((warning) => (
@@ -262,4 +292,19 @@ function SyncStat({ label, value }: { label: string; value: number }) {
       <div className="mt-1 text-lg font-bold">{value}</div>
     </div>
   );
+}
+
+function syncDetailBadgeClass(status: string) {
+  switch (status) {
+    case 'created':
+      return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200';
+    case 'enriched':
+      return 'bg-sky-500/10 text-sky-700 dark:text-sky-200';
+    case 'preserved':
+      return 'bg-amber-500/10 text-amber-800 dark:text-amber-200';
+    case 'deleted':
+      return 'bg-rose-500/10 text-rose-700 dark:text-rose-200';
+    default:
+      return 'bg-muted text-muted-foreground';
+  }
 }

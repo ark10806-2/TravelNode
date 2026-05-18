@@ -45,11 +45,22 @@ export type GoogleMapsListSyncResult = {
   resolvedUrl: string | null;
   requestedCount: number;
   createdCount: number;
+  enrichedCount: number;
+  preservedCustomizedCount: number;
   skippedExistingCount: number;
   skippedDeletedCount: number;
   failedCount: number;
   created: Place[];
+  details: GoogleMapsSyncDetail[];
   warnings: string[];
+};
+
+export type GoogleMapsSyncDetail = {
+  name: string;
+  status: 'created' | 'enriched' | 'preserved' | 'unchanged' | 'deleted' | string;
+  label: string;
+  updatedFields: string[];
+  preservedFields: string[];
 };
 
 export type GoogleMapsListPreviewPlace = PlaceDraft & {

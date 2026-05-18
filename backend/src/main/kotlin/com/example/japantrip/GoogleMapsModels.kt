@@ -70,11 +70,22 @@ data class GoogleMapsListSyncResponse(
   val resolvedUrl: String?,
   val requestedCount: Int,
   val createdCount: Int,
+  val enrichedCount: Int,
+  val preservedCustomizedCount: Int,
   val skippedExistingCount: Int,
   val skippedDeletedCount: Int,
   val failedCount: Int,
   val created: List<RestaurantResponse>,
+  val details: List<GoogleMapsSyncDetail>,
   val warnings: List<String>
+)
+
+data class GoogleMapsSyncDetail(
+  val name: String,
+  val status: String,
+  val label: String,
+  val updatedFields: List<String>,
+  val preservedFields: List<String>
 )
 
 data class GoogleMapsSyncedRestaurantValues(
@@ -86,6 +97,9 @@ data class GoogleMapsSyncedRestaurantValues(
 
 data class GoogleMapsSyncImportResult(
   val created: List<RestaurantResponse>,
+  val enrichedCount: Int,
+  val preservedCustomizedCount: Int,
   val skippedExistingCount: Int,
-  val skippedDeletedCount: Int
+  val skippedDeletedCount: Int,
+  val details: List<GoogleMapsSyncDetail>
 )

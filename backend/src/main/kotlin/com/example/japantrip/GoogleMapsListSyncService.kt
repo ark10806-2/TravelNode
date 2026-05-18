@@ -71,10 +71,13 @@ class GoogleMapsListSyncService(
       resolvedUrl = parsed.resolvedUrl,
       requestedCount = parsed.requestedCount,
       createdCount = importResult.created.size,
+      enrichedCount = importResult.enrichedCount,
+      preservedCustomizedCount = importResult.preservedCustomizedCount,
       skippedExistingCount = importResult.skippedExistingCount,
       skippedDeletedCount = importResult.skippedDeletedCount,
       failedCount = parsed.failedCount,
       created = importResult.created,
+      details = importResult.details,
       warnings = warnings.distinct()
     )
   }

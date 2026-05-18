@@ -88,10 +88,19 @@ class RestaurantRepository(
   }
 
   fun importSynced(values: List<GoogleMapsSyncedRestaurantValues>): GoogleMapsSyncImportResult {
-    if (values.isEmpty()) return GoogleMapsSyncImportResult(emptyList(), 0, 0)
+    if (values.isEmpty()) return GoogleMapsSyncImportResult(emptyList(), 0, 0, 0, 0, emptyList())
 
     val statusSql = """
-      SELECT id, place_status
+      SELECT
+        id,
+        place_status,
+        name,
+        category,
+        cuisine,
+        menu,
+        description,
+        google_maps_note,
+        address
       FROM restaurants
       WHERE google_sync_key = ?
         OR (
@@ -126,10 +135,14 @@ class RestaurantRepository(
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, now())
       RETURNING *
     """.trimIndent()
-    val updateNoteSql = """
+    val updateSyncedDetailsSql = """
       UPDATE restaurants
       SET
+        cuisine = ?,
+        menu = ?,
+        description = ?,
         google_maps_note = ?,
+        address = ?,
         google_sync_key = COALESCE(google_sync_key, ?),
         google_sync_source_url = ?,
         google_synced_at = now(),
@@ -142,23 +155,65 @@ class RestaurantRepository(
       connection.autoCommit = false
       try {
         val created = mutableListOf<RestaurantResponse>()
+        val details = mutableListOf<GoogleMapsSyncDetail>()
+        var enrichedCount = 0
+        var preservedCustomizedCount = 0
         var skippedExistingCount = 0
         var skippedDeletedCount = 0
 
         connection.prepareStatement(statusSql).use { statusStatement ->
           connection.prepareStatement(insertSql).use { insertStatement ->
-            connection.prepareStatement(updateNoteSql).use { updateNoteStatement ->
+            connection.prepareStatement(updateSyncedDetailsSql).use { updateSyncedDetailsStatement ->
               values.forEach { synced ->
                 val existing = statusStatement.findStatus(synced)
                 when (existing?.status) {
-                  "deleted" -> skippedDeletedCount += 1
+                  "deleted" -> {
+                    skippedDeletedCount += 1
+                    details += GoogleMapsSyncDetail(
+                      name = synced.restaurant.name,
+                      status = "deleted",
+                      label = "삭제 차단 유지",
+                      updatedFields = emptyList(),
+                      preservedFields = emptyList()
+                    )
+                  }
                   "active" -> {
-                    updateNoteStatement.setString(1, synced.restaurant.googleMapsNote)
-                    updateNoteStatement.setString(2, synced.syncKey)
-                    updateNoteStatement.setString(3, synced.sourceUrl)
-                    updateNoteStatement.setObject(4, existing.id)
-                    updateNoteStatement.addBatch()
-                    skippedExistingCount += 1
+                    val merge = existing.mergeSyncedDetails(synced.restaurant)
+                    updateSyncedDetailsStatement.setString(1, merge.cuisine)
+                    updateSyncedDetailsStatement.setString(2, merge.menu)
+                    updateSyncedDetailsStatement.setString(3, merge.description)
+                    updateSyncedDetailsStatement.setString(4, merge.googleMapsNote)
+                    updateSyncedDetailsStatement.setString(5, merge.address)
+                    updateSyncedDetailsStatement.setString(6, synced.syncKey)
+                    updateSyncedDetailsStatement.setString(7, synced.sourceUrl)
+                    updateSyncedDetailsStatement.setObject(8, existing.id)
+                    updateSyncedDetailsStatement.addBatch()
+
+                    val detailStatus = when {
+                      merge.updatedFields.isNotEmpty() -> {
+                        enrichedCount += 1
+                        "enriched"
+                      }
+                      merge.preservedFields.isNotEmpty() -> {
+                        preservedCustomizedCount += 1
+                        "preserved"
+                      }
+                      else -> {
+                        skippedExistingCount += 1
+                        "unchanged"
+                      }
+                    }
+                    details += GoogleMapsSyncDetail(
+                      name = existing.name,
+                      status = detailStatus,
+                      label = when (detailStatus) {
+                        "enriched" -> "기본 정보 보강"
+                        "preserved" -> "내 입력 보존"
+                        else -> "변경 없음"
+                      },
+                      updatedFields = merge.updatedFields,
+                      preservedFields = merge.preservedFields
+                    )
                   }
                   else -> {
                     insertStatement.bindValues(synced.restaurant)
@@ -168,16 +223,30 @@ class RestaurantRepository(
                       rows.next()
                       created += rows.toRestaurant()
                     }
+                    details += GoogleMapsSyncDetail(
+                      name = synced.restaurant.name,
+                      status = "created",
+                      label = "새 장소 추가",
+                      updatedFields = listOf("전체"),
+                      preservedFields = emptyList()
+                    )
                   }
                 }
               }
-              updateNoteStatement.executeBatch()
+              updateSyncedDetailsStatement.executeBatch()
             }
           }
         }
 
         connection.commit()
-        return GoogleMapsSyncImportResult(created, skippedExistingCount, skippedDeletedCount)
+        return GoogleMapsSyncImportResult(
+          created = created,
+          enrichedCount = enrichedCount,
+          preservedCustomizedCount = preservedCustomizedCount,
+          skippedExistingCount = skippedExistingCount,
+          skippedDeletedCount = skippedDeletedCount,
+          details = details
+        )
       } catch (cause: Exception) {
         connection.rollback()
         throw cause
@@ -270,7 +339,14 @@ class RestaurantRepository(
       return if (rows.next()) {
         ExistingRestaurantStatus(
           id = rows.getObject("id", UUID::class.java),
-          status = rows.getString("place_status")
+          status = rows.getString("place_status"),
+          name = rows.getString("name"),
+          category = rows.getString("category"),
+          cuisine = rows.getString("cuisine"),
+          menu = rows.getString("menu"),
+          description = rows.getString("description"),
+          googleMapsNote = rows.getString("google_maps_note"),
+          address = rows.getString("address")
         )
       } else {
         null
@@ -295,6 +371,108 @@ class RestaurantRepository(
     setBoolean(14, values.noSeafood)
   }
 
+  private fun ExistingRestaurantStatus.mergeSyncedDetails(values: RestaurantValues): SyncedDetailMerge {
+    val updatedFields = mutableListOf<String>()
+    val preservedFields = mutableListOf<String>()
+    var nextCuisine = cuisine
+    var nextMenu = menu
+    var nextDescription = description
+    var nextGoogleMapsNote = googleMapsNote
+    var nextAddress = address
+
+    fun mergeField(
+      label: String,
+      currentValue: String?,
+      incomingValue: String?,
+      isDefault: Boolean,
+      update: (String?) -> Unit
+    ) {
+      val normalizedCurrentValue = currentValue.normalizedOrNull()
+      val normalizedIncomingValue = incomingValue.normalizedOrNull()
+      if (normalizedIncomingValue == null || normalizedIncomingValue == normalizedCurrentValue) return
+
+      if (normalizedCurrentValue == null || isDefault) {
+        update(normalizedIncomingValue)
+        updatedFields += label
+      } else {
+        preservedFields += label
+      }
+    }
+
+    mergeField(
+      label = "분류",
+      currentValue = cuisine,
+      incomingValue = values.cuisine,
+      isDefault = isDefaultCuisine(),
+      update = { nextCuisine = it.orEmpty() }
+    )
+    mergeField(
+      label = "대표 항목",
+      currentValue = menu,
+      incomingValue = values.menu,
+      isDefault = isDefaultMenu(),
+      update = { nextMenu = it.orEmpty() }
+    )
+    mergeField(
+      label = "설명",
+      currentValue = description,
+      incomingValue = values.description,
+      isDefault = isDefaultDescription(),
+      update = { nextDescription = it.orEmpty() }
+    )
+    mergeField(
+      label = "Google Maps 메모",
+      currentValue = googleMapsNote,
+      incomingValue = values.googleMapsNote,
+      isDefault = googleMapsNote.isNullOrBlank(),
+      update = { nextGoogleMapsNote = it }
+    )
+    mergeField(
+      label = "주소",
+      currentValue = address,
+      incomingValue = values.address,
+      isDefault = isDefaultAddress(),
+      update = { nextAddress = it.orEmpty() }
+    )
+
+    return SyncedDetailMerge(
+      cuisine = nextCuisine,
+      menu = nextMenu,
+      description = nextDescription,
+      googleMapsNote = nextGoogleMapsNote,
+      address = nextAddress,
+      updatedFields = updatedFields.distinct(),
+      preservedFields = preservedFields.distinct()
+    )
+  }
+
+  private fun ExistingRestaurantStatus.isDefaultCuisine(): Boolean {
+    return cuisine.trim() == GoogleMapsPlaceInference.cuisine(name, category)
+  }
+
+  private fun ExistingRestaurantStatus.isDefaultMenu(): Boolean {
+    val defaultMenuValues = setOf(
+      GoogleMapsPlaceInference.menu(name, "", category),
+      GoogleMapsPlaceInference.menu(name, googleMapsNote.orEmpty(), category)
+    )
+    return menu.trim() in defaultMenuValues
+  }
+
+  private fun ExistingRestaurantStatus.isDefaultDescription(): Boolean {
+    val normalizedDescription = description.trim()
+    if (normalizedDescription == GoogleMapsPlaceInference.description(name, "", null)) return true
+
+    val escapedName = Regex.escape(name)
+    return Regex("""^${escapedName}은 (Google Maps 즐겨찾기|.+ 목록)에서 가져온 장소입니다\. 방문 전 영업시간과 휴무일을 확인해주세요\.$""")
+      .matches(normalizedDescription)
+  }
+
+  private fun ExistingRestaurantStatus.isDefaultAddress(): Boolean {
+    return address.isBlank() || address.trim() == "주소 확인 필요"
+  }
+
+  private fun String?.normalizedOrNull() = this?.trim()?.takeIf { it.isNotBlank() }
+
   private fun ResultSet.toRestaurant() = RestaurantResponse(
     id = getObject("id", UUID::class.java).toString(),
     name = getString("name"),
@@ -317,6 +495,23 @@ class RestaurantRepository(
 
   private data class ExistingRestaurantStatus(
     val id: UUID,
-    val status: String
+    val status: String,
+    val name: String,
+    val category: String,
+    val cuisine: String,
+    val menu: String,
+    val description: String,
+    val googleMapsNote: String?,
+    val address: String
+  )
+
+  private data class SyncedDetailMerge(
+    val cuisine: String,
+    val menu: String,
+    val description: String,
+    val googleMapsNote: String?,
+    val address: String,
+    val updatedFields: List<String>,
+    val preservedFields: List<String>
   )
 }
