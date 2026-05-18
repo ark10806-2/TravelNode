@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type TouchEvent } from 'react';
 import { ChevronLeft, ChevronRight, Images, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -29,9 +29,11 @@ export function PlaceGallery({
 }: PlaceGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+  const galleryViewportRef = useRef<HTMLDivElement | null>(null);
   const thumbnailRailRef = useRef<HTMLDivElement | null>(null);
   const scrollAnchorRef = useRef<{ element: HTMLElement; top: number } | null>(null);
   const scrollAnchorTimerRef = useRef<number | null>(null);
+  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const activePlace = places[activeIndex] ?? places[0] ?? null;
   const activePhotoState = activePlace ? photoCache[activePlace.id] : undefined;
   const activePhotos = activePhotoState?.photos ?? [];
@@ -75,7 +77,7 @@ export function PlaceGallery({
     places.length
   ]);
 
-  function move(offset: -1 | 1, anchor: HTMLElement) {
+  function movePlace(offset: -1 | 1, anchor: HTMLElement | null = galleryViewportRef.current) {
     if (!places.length) return;
     captureScrollAnchor(anchor);
     setActiveIndex((current) => (current + offset + places.length) % places.length);
@@ -90,6 +92,30 @@ export function PlaceGallery({
   function selectPlace(index: number) {
     captureScrollAnchor(thumbnailRailRef.current);
     setActiveIndex(index);
+  }
+
+  function handleSwipeStart(event: TouchEvent<HTMLDivElement>) {
+    if (!hasMultiplePlaces) return;
+
+    const touch = event.touches[0];
+    if (!touch) return;
+    swipeStartRef.current = { x: touch.clientX, y: touch.clientY };
+  }
+
+  function handleSwipeEnd(event: TouchEvent<HTMLDivElement>) {
+    const start = swipeStartRef.current;
+    swipeStartRef.current = null;
+    if (!start || !hasMultiplePlaces) return;
+
+    const touch = event.changedTouches[0];
+    if (!touch) return;
+
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    const isHorizontalSwipe = Math.abs(deltaX) > 56 && Math.abs(deltaX) > Math.abs(deltaY) * 1.25;
+    if (!isHorizontalSwipe) return;
+
+    movePlace(deltaX < 0 ? 1 : -1);
   }
 
   function captureScrollAnchor(anchor: HTMLElement | null) {
@@ -128,7 +154,15 @@ export function PlaceGallery({
 
   return (
     <section className="soft-panel overflow-hidden rounded-lg">
-      <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div
+        ref={galleryViewportRef}
+        className="grid touch-pan-y gap-0 lg:grid-cols-[minmax(0,1fr)_380px]"
+        onTouchStart={handleSwipeStart}
+        onTouchEnd={handleSwipeEnd}
+        onTouchCancel={() => {
+          swipeStartRef.current = null;
+        }}
+      >
         <div className="relative bg-muted">
           {activePhoto ? (
             <img
@@ -188,7 +222,7 @@ export function PlaceGallery({
                 variant="outline"
                 size="icon"
                 className="h-9 w-9"
-                onClick={(event) => move(-1, event.currentTarget)}
+                onClick={(event) => movePlace(-1, event.currentTarget)}
                 disabled={!hasMultiplePlaces}
                 aria-label="이전 장소"
               >
@@ -198,7 +232,7 @@ export function PlaceGallery({
                 variant="outline"
                 size="icon"
                 className="h-9 w-9"
-                onClick={(event) => move(1, event.currentTarget)}
+                onClick={(event) => movePlace(1, event.currentTarget)}
                 disabled={!hasMultiplePlaces}
                 aria-label="다음 장소"
               >
@@ -254,7 +288,7 @@ export function PlaceGallery({
               <button
                 key={place.id}
                 type="button"
-                className={`min-w-28 overflow-hidden rounded-md border bg-background text-left transition hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                className={`min-w-36 overflow-hidden rounded-md border bg-background text-left transition hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   isActive ? 'border-primary ring-2 ring-primary/20' : ''
                 }`}
                 onClick={() => selectPlace(index)}
@@ -268,7 +302,13 @@ export function PlaceGallery({
                     </div>
                   )}
                 </div>
-                <div className="truncate px-2 py-1 text-xs font-semibold">{place.name}</div>
+                <div className="grid gap-0.5 px-2 py-1.5">
+                  <div className="truncate text-xs font-semibold">{place.name}</div>
+                  <div className="truncate text-[11px] text-muted-foreground">{place.menu}</div>
+                  <div className="text-[10px] font-medium text-muted-foreground/80">
+                    {place.distanceFromSelectedKm.toFixed(1)}km
+                  </div>
+                </div>
               </button>
             );
           })}

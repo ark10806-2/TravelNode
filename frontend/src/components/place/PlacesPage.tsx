@@ -54,6 +54,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
   const [editTarget, setEditTarget] = useState<Place | null>(null);
   const [photoTarget, setPhotoTarget] = useState<Place | null>(null);
   const [isGoogleSyncDialogOpen, setIsGoogleSyncDialogOpen] = useState(false);
+  const [mobilePlaceListViewMode, setMobilePlaceListViewMode] = useState<PlaceListViewMode>('table');
   const [placeListViewMode, setPlaceListViewMode] = useState<PlaceListViewMode>('table');
   const canModify = isEditing && canEdit;
   const mobilePlaces = useMemo<NearbyPlace[]>(() => toHotelDistancePlaces(visiblePlaces), [visiblePlaces]);
@@ -136,9 +137,8 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
             <PlaceList
               title={`${selectedCategory.emoji} ${selectedCategory.label} 전체 장소`}
               places={mobilePlaces}
-              viewMode="table"
-              onViewModeChange={() => undefined}
-              showViewModeToggle={false}
+              viewMode={mobilePlaceListViewMode}
+              onViewModeChange={setMobilePlaceListViewMode}
               isEditing={canModify}
               categories={categories}
               photoCache={photoCache}
