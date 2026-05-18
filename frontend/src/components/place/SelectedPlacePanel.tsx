@@ -40,14 +40,14 @@ export function SelectedPlacePanel({
   const isMovingCategory = movingCategoryPlaceId === place.id;
 
   return (
-    <aside className="soft-panel rounded-lg p-4 sm:p-5">
-      <div className="flex h-full flex-col gap-4">
+    <aside className="soft-panel rounded-xl p-3.5 sm:rounded-lg sm:p-5">
+      <div className="flex h-full flex-col gap-3.5 sm:gap-4">
         <div className="flex items-start justify-between gap-2 sm:gap-3">
           <div className="min-w-0">
             <Badge variant="outline" className={`rounded-full ${getCategoryBadgeClass(place.category)}`}>
               {category.emoji} {category.label}
             </Badge>
-            <h2 className="mt-2 text-xl font-bold tracking-tight sm:mt-3 sm:text-2xl">{place.name}</h2>
+            <h2 className="mt-2 line-clamp-2 text-lg font-bold leading-snug tracking-tight sm:mt-3 sm:text-2xl">{place.name}</h2>
           </div>
           <div className="flex shrink-0 items-center gap-1">
             {isEditing ? (
@@ -60,7 +60,7 @@ export function SelectedPlacePanel({
               />
             ) : null}
             {isEditing ? (
-              <Button variant="ghost" size="sm" onClick={() => onEditPlace(place)}>
+              <Button variant="ghost" size="sm" className="px-2 sm:px-3" onClick={() => onEditPlace(place)}>
                 <Pencil className="h-4 w-4" />
                 수정
               </Button>
@@ -77,8 +77,8 @@ export function SelectedPlacePanel({
             onMove={onMoveCategory}
           />
         ) : null}
-        <div className="grid gap-3 text-sm">
-          <div className="rounded-md bg-secondary p-3">
+        <div className="grid gap-2.5 text-sm sm:gap-3">
+          <div className="rounded-lg bg-secondary p-3">
             <div className="text-xs font-semibold text-muted-foreground">대표 항목</div>
             <div className="mt-1 font-semibold leading-6">{place.menu}</div>
           </div>

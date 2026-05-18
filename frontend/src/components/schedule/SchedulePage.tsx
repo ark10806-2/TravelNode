@@ -102,11 +102,11 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
     <PageContainer className="gap-4 px-3 py-4 sm:gap-6 sm:px-4 sm:py-5">
       <header className="flex flex-col gap-3 border-b border-border/70 pb-4 sm:gap-4 sm:pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="mb-3 inline-flex rounded-full bg-accent px-3 py-1 text-xs font-bold uppercase text-primary">
+          <p className="mb-2 inline-flex rounded-full bg-accent px-2.5 py-1 text-[11px] font-bold uppercase text-primary sm:mb-3 sm:px-3 sm:text-xs">
             Schedule
           </p>
-          <h1 className="text-3xl font-bold tracking-normal sm:text-5xl">여행 일정</h1>
-          <p className="mt-2 text-sm text-muted-foreground sm:mt-3 sm:text-base">DAY별로 장소를 배치하고 이동 순서를 조정합니다.</p>
+          <h1 className="text-2xl font-bold tracking-normal sm:text-5xl">여행 일정</h1>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground sm:mt-3 sm:text-base">DAY별로 장소를 배치하고 이동 순서를 조정합니다.</p>
           <p className="mt-2 text-xs text-muted-foreground">
             {scheduleStatus === 'loading'
               ? '일정을 불러오는 중입니다.'
@@ -117,7 +117,7 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
         </div>
         {isEditing ? (
           <div className="grid gap-2 sm:flex sm:items-center">
-            <Button onClick={addDay} disabled={isSavingSchedule}>
+            <Button className="rounded-full" onClick={addDay} disabled={isSavingSchedule}>
               <CalendarPlus className="h-4 w-4" />
               DAY 추가
             </Button>

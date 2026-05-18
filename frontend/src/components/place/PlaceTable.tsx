@@ -53,9 +53,9 @@ export function PlaceTable({
 
   return (
     <section className="min-w-0">
-      <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="mb-3 flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <h2 className="min-w-0 text-lg font-bold tracking-tight sm:text-xl">{title}</h2>
+          <h2 className="min-w-0 text-base font-bold tracking-tight sm:text-xl">{title}</h2>
           <Badge variant="outline" className="rounded-full">{places.length}곳</Badge>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
@@ -80,7 +80,7 @@ export function PlaceTable({
             </Button>
           </div>
           {isEditing ? (
-            <Button className="flex-1 sm:flex-none" variant="outline" size="sm" onClick={onAdd}>
+            <Button className="flex-1 rounded-full sm:flex-none" variant="outline" size="sm" onClick={onAdd}>
               <Plus className="h-4 w-4" />
               추가
             </Button>
@@ -230,7 +230,7 @@ function MobilePlaceCard({
   const isBusy = isDeleting || isMovingCategory;
 
   return (
-    <article className="soft-panel rounded-lg p-3">
+    <article className="soft-panel rounded-xl p-3.5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -246,13 +246,13 @@ function MobilePlaceCard({
         <PlaceThumbnail
           place={place}
           photoState={photoState}
-          sizeClassName="h-12 w-12"
+          sizeClassName="h-14 w-14"
           onOpenPhotos={onOpenPhotos}
           disabled={isBusy}
         />
       </div>
 
-      <div className="mt-3 rounded-md bg-secondary/70 p-2.5">
+      <div className="mt-3 rounded-lg bg-secondary/70 p-2.5">
         <div className="text-[11px] font-semibold text-muted-foreground">대표 항목</div>
         <div className="mt-1 line-clamp-2 text-sm font-semibold leading-5">{place.menu}</div>
       </div>
@@ -260,29 +260,31 @@ function MobilePlaceCard({
       <p className="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">{place.description}</p>
 
       <div className="mt-3 flex items-center gap-2">
-        <Button className="flex-1" variant="outline" size="sm" onClick={() => onSelect(place)} disabled={isBusy}>
-          선택
-        </Button>
-        {isEditing ? (
-          <>
+        <div className="grid min-w-0 flex-1 gap-2">
+          <Button className="min-w-0 rounded-full" variant="outline" size="sm" onClick={() => onSelect(place)} disabled={isBusy}>
+            선택
+          </Button>
+          {isEditing ? (
             <CategoryMoveSelect
               place={place}
               categories={categories}
               disabled={isBusy}
-              className="min-w-24 flex-1"
+              className="min-w-0 rounded-full"
               onMove={onMoveCategory}
             />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
-              onClick={() => onDelete(place)}
-              disabled={isBusy}
-              aria-label={`${place.name} 삭제`}
-            >
-              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-            </Button>
-          </>
+          ) : null}
+        </div>
+        {isEditing ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => onDelete(place)}
+            disabled={isBusy}
+            aria-label={`${place.name} 삭제`}
+          >
+            {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+          </Button>
         ) : null}
       </div>
     </article>

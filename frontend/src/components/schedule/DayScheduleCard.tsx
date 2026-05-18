@@ -72,8 +72,8 @@ export function DayScheduleCard({
   }
 
   return (
-    <section className="soft-panel overflow-hidden rounded-lg">
-      <div className="flex flex-col gap-3 border-b bg-secondary px-3 py-3 sm:gap-4 sm:px-4 sm:py-4 lg:flex-row lg:items-center lg:justify-between">
+    <section className="soft-panel overflow-hidden rounded-xl sm:rounded-lg">
+      <div className="flex flex-col gap-3 border-b bg-secondary/90 px-3 py-3 sm:gap-4 sm:px-4 sm:py-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <Badge className="rounded-full bg-primary text-primary-foreground">{dayLabel}</Badge>
@@ -81,14 +81,14 @@ export function DayScheduleCard({
               {day.stops.length}/{maxStopsPerDay}
             </Badge>
           </div>
-          <h2 className="mt-2 text-xl font-bold tracking-tight sm:text-2xl">{dayLabel}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">방문 순서를 정하고 장소 간 이동 시간을 비교합니다.</p>
+          <h2 className="mt-2 text-lg font-bold tracking-tight sm:text-2xl">{dayLabel}</h2>
+          <p className="mt-1 text-sm leading-5 text-muted-foreground">방문 순서를 정하고 장소 간 이동 시간을 비교합니다.</p>
         </div>
         {scheduledPlaces.length > 0 || isEditing ? (
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
             {scheduledPlaces.length ? (
               <Button
-                className="min-w-0 flex-1 sm:flex-none"
+                className="min-w-0 flex-1 rounded-full px-2 text-xs sm:flex-none sm:px-3 sm:text-sm"
                 variant="outline"
                 onClick={() => setIsRouteMapOpen(true)}
               >
@@ -98,7 +98,7 @@ export function DayScheduleCard({
             ) : null}
             {isEditing && scheduledPlaces.length > 0 ? (
               <Button
-                className="min-w-0 flex-1 sm:flex-none"
+                className="min-w-0 flex-1 rounded-full px-2 text-xs sm:flex-none sm:px-3 sm:text-sm"
                 variant="outline"
                 onClick={onOptimizeRoutes}
                 disabled={isOptimizingRoutes || isRefreshingRoutes}
@@ -109,7 +109,7 @@ export function DayScheduleCard({
             ) : null}
             {scheduledPlaces.length > 0 ? (
               <Button
-                className="min-w-0 flex-1 sm:flex-none"
+                className="min-w-0 flex-1 rounded-full px-2 text-xs sm:flex-none sm:px-3 sm:text-sm"
                 variant="outline"
                 onClick={onRefreshRoutes}
                 disabled={isRefreshingRoutes || routeRefreshRemainingSeconds > 0}
@@ -121,7 +121,7 @@ export function DayScheduleCard({
             {isEditing ? (
               <>
                 <Button
-                  className="min-w-0"
+                  className="min-w-0 rounded-full px-2 text-xs sm:px-3 sm:text-sm"
                   onClick={() => setIsPickerOpen(true)}
                   disabled={isFull || !places.length}
                 >
@@ -131,7 +131,7 @@ export function DayScheduleCard({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="justify-self-end text-destructive hover:bg-destructive/10 hover:text-destructive sm:justify-self-auto"
+                  className="h-9 w-9 justify-self-end rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive sm:justify-self-auto"
                   onClick={() => onRemoveDay(day.id)}
                   aria-label={`${dayLabel} 삭제`}
                 >
@@ -158,8 +158,8 @@ export function DayScheduleCard({
                     {place ? (
                       <RouteLegRow from={edgeFrom} to={place} leg={leg} selectedMode={stop.selectedRouteMode} />
                     ) : null}
-                    <div className="grid grid-cols-[1.8rem_minmax(0,1fr)] items-center gap-2 rounded-md px-1.5 py-3 transition hover:bg-muted/25 sm:grid-cols-[2.25rem_minmax(0,1fr)] sm:gap-3 sm:px-3">
-                      <div className="grid h-7 w-7 place-items-center rounded-full bg-foreground text-sm font-bold text-background sm:h-8 sm:w-8">
+                    <div className="grid grid-cols-[1.75rem_minmax(0,1fr)] items-start gap-2 rounded-lg px-1.5 py-3 transition hover:bg-muted/25 sm:grid-cols-[2.25rem_minmax(0,1fr)] sm:items-center sm:gap-3 sm:px-3">
+                      <div className="mt-0.5 grid h-7 w-7 place-items-center rounded-full bg-foreground text-sm font-bold text-background sm:mt-0 sm:h-8 sm:w-8">
                         {index + 1}
                       </div>
                       {place ? (
@@ -173,12 +173,12 @@ export function DayScheduleCard({
                             </div>
                             <button
                               type="button"
-                              className="mt-1 block max-w-full truncate text-left text-base font-semibold underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              className="mt-1 block max-w-full text-left text-base font-semibold leading-snug underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:truncate"
                               onClick={() => onOpenPlaceDetails(place)}
                             >
                               {place.name}
                             </button>
-                            <div className="mt-1 line-clamp-1 text-sm leading-5 text-muted-foreground">{place.menu}</div>
+                            <div className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground sm:line-clamp-1">{place.menu}</div>
                             <div className="mt-1 line-clamp-2 text-sm leading-5 text-foreground/75">{place.description}</div>
                           </div>
                           <div className="flex flex-wrap items-center justify-start gap-1 md:justify-end">
@@ -187,7 +187,7 @@ export function DayScheduleCard({
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8 sm:h-9 sm:w-9"
+                                  className="h-8 w-8 rounded-full sm:h-9 sm:w-9"
                                   onClick={() => onMoveStop(day.id, stop.id, -1)}
                                   disabled={index === 0}
                                   aria-label={`${place.name} 앞으로 이동`}
@@ -197,7 +197,7 @@ export function DayScheduleCard({
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8 sm:h-9 sm:w-9"
+                                  className="h-8 w-8 rounded-full sm:h-9 sm:w-9"
                                   onClick={() => onMoveStop(day.id, stop.id, 1)}
                                   disabled={index === day.stops.length - 1}
                                   aria-label={`${place.name} 뒤로 이동`}
@@ -210,7 +210,7 @@ export function DayScheduleCard({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive sm:h-9 sm:w-9"
+                                className="h-8 w-8 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive sm:h-9 sm:w-9"
                                 onClick={() => onRemoveStop(day.id, stop.id)}
                                 aria-label={`${place.name} 일정에서 제외`}
                               >
@@ -252,7 +252,7 @@ export function DayScheduleCard({
                 <p className="mt-3 font-semibold text-foreground">아직 장소가 없습니다.</p>
                 <p className="mt-1">{isEditing ? '장소 추가 버튼으로 후보를 골라보세요.' : '최상단 편집을 누르면 장소를 추가할 수 있습니다.'}</p>
                 {isEditing ? (
-                  <Button className="mt-4" onClick={() => setIsPickerOpen(true)} disabled={isFull || !places.length}>
+                  <Button className="mt-4 rounded-full" onClick={() => setIsPickerOpen(true)} disabled={isFull || !places.length}>
                     <MapPinPlus className="h-4 w-4" />
                     장소 추가
                   </Button>

@@ -20,8 +20,8 @@ export function CategoryFilterBar({
   onDeleteCategory
 }: CategoryFilterBarProps) {
   return (
-    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-      <div className="flex gap-1 overflow-x-auto rounded-full border bg-background p-1 shadow-sm shadow-slate-900/5 dark:shadow-black/20 md:flex-wrap md:gap-2">
+    <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between">
+      <div className="flex gap-1 overflow-x-auto rounded-xl border bg-background p-1 shadow-sm shadow-slate-900/5 [-ms-overflow-style:none] [scrollbar-width:none] dark:shadow-black/20 md:flex-wrap md:gap-2 md:rounded-full [&::-webkit-scrollbar]:hidden">
         {categories.map((category) => {
           const isSelected = category.id === selectedCategoryId;
 
@@ -30,7 +30,7 @@ export function CategoryFilterBar({
               <Button
                 variant={isSelected ? 'default' : 'ghost'}
                 size="sm"
-                className={`rounded-full ${isEditing ? 'pr-2' : ''}`}
+                className={`h-9 shrink-0 rounded-full px-3 ${isEditing ? 'pr-2' : ''}`}
                 onClick={() => onSelectCategory(category.id)}
               >
                 <span aria-hidden="true">{category.emoji}</span>
@@ -51,7 +51,7 @@ export function CategoryFilterBar({
         })}
       </div>
       {isEditing ? (
-        <Button className="w-full md:w-auto" variant="outline" size="sm" onClick={onAddCategory}>
+        <Button className="w-full rounded-full md:w-auto" variant="outline" size="sm" onClick={onAddCategory}>
           <Plus className="h-4 w-4" />
           카테고리 추가
         </Button>

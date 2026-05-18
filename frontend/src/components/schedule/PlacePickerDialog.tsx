@@ -71,18 +71,18 @@ export function PlacePickerDialog({
         className="flex h-[calc(100dvh-1rem)] min-h-0 w-full max-w-6xl flex-col overflow-hidden rounded-md border bg-background shadow-xl sm:h-[90vh]"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className="shrink-0 flex items-start justify-between gap-4 border-b px-5 py-4">
+        <div className="shrink-0 flex items-start justify-between gap-3 border-b px-4 py-3 sm:gap-4 sm:px-5 sm:py-4">
           <div>
             <p className="text-sm font-semibold text-primary">{dayLabel}</p>
-            <h2 className="mt-1 text-2xl font-bold">장소 추가</h2>
-            <p className="mt-1 text-sm text-muted-foreground">최대 {maxSelectable}개까지 한 번에 선택할 수 있습니다.</p>
+            <h2 className="mt-1 text-xl font-bold sm:text-2xl">장소 추가</h2>
+            <p className="mt-1 text-sm leading-5 text-muted-foreground">최대 {maxSelectable}개까지 한 번에 선택할 수 있습니다.</p>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="닫기">
             <X className="h-4 w-4" />
           </Button>
         </div>
 
-        <div className="shrink-0 grid gap-3 border-b bg-muted/30 p-4">
+        <div className="shrink-0 grid gap-3 border-b bg-muted/30 p-3 sm:p-4">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -92,13 +92,14 @@ export function PlacePickerDialog({
               placeholder="장소명, 대표 항목, 설명으로 검색"
             />
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant={categoryId === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setCategoryId('all')}>
+          <div className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap [&::-webkit-scrollbar]:hidden">
+            <Button className="shrink-0 rounded-full" variant={categoryId === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setCategoryId('all')}>
               전체
             </Button>
             {categories.map((category) => (
               <Button
                 key={category.id}
+                className="shrink-0 rounded-full"
                 variant={categoryId === category.id ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setCategoryId(category.id)}
@@ -124,7 +125,7 @@ export function PlacePickerDialog({
                     <button
                       key={place.id}
                       type="button"
-                      className={`rounded-md border bg-background p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                      className={`rounded-xl border bg-background p-3.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:rounded-md sm:p-4 ${
                         isSelected
                           ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
                           : isFocused
@@ -145,7 +146,7 @@ export function PlacePickerDialog({
                           >
                             {category.emoji} {category.label}
                           </div>
-                          <div className="truncate text-base font-bold">{place.name}</div>
+                          <div className="line-clamp-2 text-base font-bold leading-snug">{place.name}</div>
                           <div className="mt-1 line-clamp-2 text-sm text-muted-foreground">{place.menu}</div>
                           <div className="mt-2 line-clamp-3 text-sm leading-5 text-foreground/80">{place.description}</div>
                         </div>
@@ -205,10 +206,10 @@ export function PlacePickerDialog({
             선택 {selectedPlaces.length}개 / 남은 자리 {maxSelectable}개
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
-            <Button variant="outline" onClick={onClose}>
+            <Button className="rounded-full" variant="outline" onClick={onClose}>
               취소
             </Button>
-            <Button onClick={() => onSelect(selectedPlaces)} disabled={!selectedPlaces.length}>
+            <Button className="rounded-full" onClick={() => onSelect(selectedPlaces)} disabled={!selectedPlaces.length}>
               <Plus className="h-4 w-4" />
               선택한 장소 추가
             </Button>

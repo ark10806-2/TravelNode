@@ -121,14 +121,14 @@ export function TravelMap({ places, selectedPlace, status, isDarkMode, onSelectP
   }, [mapReady, selectedPlace]);
 
   return (
-    <div className="soft-panel relative min-h-[320px] overflow-hidden rounded-lg p-1 sm:min-h-[420px] lg:min-h-[560px]">
+    <div className="soft-panel relative min-h-[280px] overflow-hidden rounded-xl p-1 sm:min-h-[420px] lg:min-h-[560px]">
       {googleMapsApiKey && !mapLoadFailed ? (
-        <div ref={mapRef} className="h-full min-h-[312px] w-full overflow-hidden rounded-md sm:min-h-[412px] lg:min-h-[552px]" />
+        <div ref={mapRef} className="h-full min-h-[272px] w-full overflow-hidden rounded-lg sm:min-h-[412px] lg:min-h-[552px]" />
       ) : null}
       {mapLoadFailed ? (
-        <div className="h-full min-h-[312px] w-full overflow-hidden rounded-md sm:min-h-[412px] lg:min-h-[552px]">
+        <div className="h-full min-h-[272px] w-full overflow-hidden rounded-lg sm:min-h-[412px] lg:min-h-[552px]">
           <iframe
-            className="h-full min-h-[312px] w-full border-0 sm:min-h-[412px] lg:min-h-[552px]"
+            className="h-full min-h-[272px] w-full border-0 sm:min-h-[412px] lg:min-h-[552px]"
             src={getEmbedMapUrl(selectedPlace ?? hotel)}
             title="Google Maps fallback"
             loading="lazy"
@@ -144,7 +144,7 @@ export function TravelMap({ places, selectedPlace, status, isDarkMode, onSelectP
         </div>
       ) : null}
       {!googleMapsApiKey ? (
-        <div className="map-shell flex h-full min-h-[312px] flex-col items-center justify-center gap-3 rounded-md p-4 text-center sm:min-h-[412px] sm:p-6 lg:min-h-[552px]">
+        <div className="map-shell flex h-full min-h-[272px] flex-col items-center justify-center gap-3 rounded-lg p-4 text-center sm:min-h-[412px] sm:p-6 lg:min-h-[552px]">
           <MapPin className="h-10 w-10 text-primary" />
           <div>
             <p className="font-semibold">Google Maps API 키가 필요합니다.</p>

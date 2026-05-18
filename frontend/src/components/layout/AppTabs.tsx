@@ -68,22 +68,22 @@ export function AppTabs({
 
   return (
     <>
-      <div ref={introRef} className="border-b border-border/70 bg-background/80">
-        <div className="mx-auto flex w-full max-w-none flex-col gap-3 px-3 py-3 sm:px-4 lg:flex-row lg:items-center lg:justify-between lg:px-5">
+      <div ref={introRef} className="border-b border-border/70 bg-background/90 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-none flex-col gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3 lg:flex-row lg:items-center lg:justify-between lg:px-5">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground shadow-sm shadow-primary/20">
-              <Plane className="h-5 w-5" />
+            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground shadow-sm shadow-primary/20 sm:h-9 sm:w-9">
+              <Plane className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
             <div className="min-w-0">
-              <div className="truncate text-base font-bold">Japan Trip Planner</div>
+              <div className="truncate text-sm font-bold sm:text-base">Japan Trip Planner</div>
               <div className="truncate text-xs text-muted-foreground">Ginza Capital Hotel Moegi 기준 여행 정리</div>
             </div>
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-            <div className="flex w-full flex-wrap gap-1 sm:w-auto sm:flex-nowrap">
+            <div className="flex w-full items-center gap-1 sm:w-auto sm:flex-nowrap">
               <ThemeToggle theme={theme} onThemeChange={onThemeChange} />
-              <div className="flex flex-1 gap-1 rounded-md border bg-background p-1 sm:flex-none">
+              <div className="flex flex-1 gap-1 rounded-full border bg-background p-1 sm:flex-none">
                 <Button
                   className="flex-1 sm:flex-none"
                   variant={isEditing ? 'default' : 'ghost'}
@@ -114,11 +114,11 @@ export function AppTabs({
       <div className="sticky top-0 z-40 transform-gpu border-b bg-background/95 backdrop-blur-xl will-change-transform">
         <div
           className={cn(
-            'mx-auto flex w-full max-w-none justify-center px-3 transition-all duration-200 sm:px-4 sm:py-2 lg:px-5',
-            isCompact ? 'py-1' : 'py-2'
+            'mx-auto flex w-full max-w-none justify-center px-2 transition-all duration-200 sm:px-4 sm:py-2 lg:px-5',
+            isCompact ? 'py-1' : 'py-1.5 sm:py-2'
           )}
         >
-          <div className="grid w-full grid-cols-3 gap-1 rounded-full border bg-secondary p-1 sm:w-[30rem]" role="tablist" aria-label="페이지 전환">
+          <div className="grid w-full grid-cols-3 gap-1 rounded-full border bg-secondary p-1 shadow-sm shadow-black/5 sm:w-[30rem]" role="tablist" aria-label="페이지 전환">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = tab.id === activeTab;

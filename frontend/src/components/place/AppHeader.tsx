@@ -13,17 +13,17 @@ type AppHeaderProps = {
 
 export function AppHeader({ travelMode, onTravelModeChange, isEditing, onOpenGoogleMapsSync }: AppHeaderProps) {
   return (
-    <header className="flex flex-col gap-4 pb-2 lg:flex-row lg:items-end lg:justify-between">
+    <header className="flex flex-col gap-3 pb-1 sm:gap-4 sm:pb-2 lg:flex-row lg:items-end lg:justify-between">
       <div className="max-w-2xl">
-        <p className="mb-3 inline-flex rounded-full bg-accent px-3 py-1 text-xs font-bold uppercase text-primary">
+        <p className="mb-2 inline-flex rounded-full bg-accent px-2.5 py-1 text-[11px] font-bold uppercase text-primary sm:mb-3 sm:px-3 sm:text-xs">
           Places
         </p>
-        <h1 className="text-3xl font-bold tracking-normal sm:text-5xl">숙소 근처 장소</h1>
-        <p className="mt-3 text-base text-muted-foreground">지도에서 후보를 확인하고 카테고리별로 가까운 장소를 정리합니다.</p>
+        <h1 className="text-2xl font-bold tracking-normal sm:text-5xl">숙소 근처 장소</h1>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground sm:mt-3 sm:text-base">지도에서 후보를 확인하고 카테고리별로 가까운 장소를 정리합니다.</p>
       </div>
-      <div className="grid gap-2 sm:flex sm:items-center">
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
         <Select value={travelMode} onValueChange={(value) => onTravelModeChange(value as TravelModeFilter)}>
-          <SelectTrigger className="w-full sm:w-44">
+          <SelectTrigger className="col-span-2 w-full sm:w-44">
             <SelectValue placeholder="이동 방식" />
           </SelectTrigger>
           <SelectContent>
@@ -33,12 +33,12 @@ export function AppHeader({ travelMode, onTravelModeChange, isEditing, onOpenGoo
           </SelectContent>
         </Select>
         {isEditing ? (
-          <Button variant="outline" onClick={onOpenGoogleMapsSync}>
+          <Button className="col-span-2 sm:col-span-1" variant="outline" onClick={onOpenGoogleMapsSync}>
             <DownloadCloud className="h-4 w-4" />
             즐겨찾기 가져오기
           </Button>
         ) : null}
-        <Button asChild variant="outline">
+        <Button asChild className="col-span-2 sm:col-span-1" variant="outline">
           <a href={`${apiBaseUrl}/api/restaurants`} target="_blank" rel="noreferrer">
             API 열기
             <ExternalLink className="h-4 w-4" />
