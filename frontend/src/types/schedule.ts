@@ -1,4 +1,4 @@
-export type AppTab = 'places' | 'schedule' | 'usage';
+export type AppTab = 'places' | 'schedule' | 'todo' | 'usage';
 
 export type ScheduleStop = {
   id: string;

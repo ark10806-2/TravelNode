@@ -179,6 +179,21 @@ BEGIN
   END IF;
 END $$;
 
+CREATE TABLE IF NOT EXISTS todo_items (
+  id text PRIMARY KEY,
+  section text NOT NULL CHECK (section IN ('before', 'day', 'after')),
+  day_index integer,
+  text text NOT NULL,
+  is_done boolean NOT NULL DEFAULT false,
+  sort_order integer NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CHECK (
+    (section = 'day' AND day_index IS NOT NULL)
+    OR (section <> 'day' AND day_index IS NULL)
+  )
+);
+
 CREATE TABLE IF NOT EXISTS api_usage_daily (
   usage_date date NOT NULL,
   service_id text NOT NULL,
@@ -252,6 +267,7 @@ CREATE INDEX IF NOT EXISTS auth_sessions_expires_at_idx ON auth_sessions (expire
 CREATE INDEX IF NOT EXISTS categories_sort_order_idx ON categories (sort_order, label);
 CREATE INDEX IF NOT EXISTS schedule_days_sort_order_idx ON schedule_days (sort_order);
 CREATE INDEX IF NOT EXISTS schedule_stops_day_sort_order_idx ON schedule_stops (day_id, sort_order);
+CREATE INDEX IF NOT EXISTS todo_items_section_sort_order_idx ON todo_items (section, day_index, sort_order);
 CREATE INDEX IF NOT EXISTS route_cache_to_place_idx ON route_cache (to_place_id);
 CREATE INDEX IF NOT EXISTS route_cache_updated_at_idx ON route_cache (updated_at);
 CREATE INDEX IF NOT EXISTS route_cache_entries_updated_at_idx ON route_cache_entries (updated_at);

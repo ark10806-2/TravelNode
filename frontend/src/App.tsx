@@ -4,6 +4,7 @@ import { AppTabs } from '@/components/layout/AppTabs';
 import { PullRefreshIndicator } from '@/components/layout/PullRefreshIndicator';
 import { PlacesPage } from '@/components/place/PlacesPage';
 import { SchedulePage } from '@/components/schedule/SchedulePage';
+import { TodoPage } from '@/components/todo/TodoPage';
 import { UsagePage } from '@/components/usage/UsagePage';
 import { useAuth } from '@/hooks/useAuth';
 import { usePersistedState } from '@/hooks/usePersistedState';
@@ -15,7 +16,7 @@ import type { AppTab } from '@/types/schedule';
 const activeTabStorageKey = 'japan-trip-active-tab';
 
 function isAppTab(value: unknown): value is AppTab {
-  return value === 'schedule' || value === 'places' || value === 'usage';
+  return value === 'schedule' || value === 'places' || value === 'todo' || value === 'usage';
 }
 
 function App() {
@@ -98,6 +99,7 @@ function App() {
           onLoadPhotos={travelPlaces.loadPhotos}
         />
       ) : null}
+      {activeTab === 'todo' ? <TodoPage isEditing={isEditing} /> : null}
       {activeTab === 'usage' ? <UsagePage isEditing={isEditing} /> : null}
       <footer className="mx-auto mt-8 flex w-full max-w-none justify-center px-3 pb-12 pt-8 text-xs font-medium text-muted-foreground/70 sm:px-4 lg:px-5">
         created by eigen.vector
