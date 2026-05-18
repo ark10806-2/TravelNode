@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 type ModalFrameProps = {
   title: string;
@@ -9,13 +10,26 @@ type ModalFrameProps = {
   onClose: () => void;
   maxWidth?: string;
   scroll?: boolean;
+  overlayClassName?: string;
+  panelClassName?: string;
+  headerClassName?: string;
 };
 
 let activeModalCount = 0;
 let lockedScrollY = 0;
 let previousBodyStyle: Pick<CSSStyleDeclaration, 'overflow' | 'position' | 'top' | 'width'> | null = null;
 
-export function ModalFrame({ title, eyebrow, children, onClose, maxWidth = 'max-w-xl', scroll }: ModalFrameProps) {
+export function ModalFrame({
+  title,
+  eyebrow,
+  children,
+  onClose,
+  maxWidth = 'max-w-xl',
+  scroll,
+  overlayClassName,
+  panelClassName,
+  headerClassName
+}: ModalFrameProps) {
   useEffect(() => {
     if (activeModalCount === 0) {
       lockedScrollY = window.scrollY;
@@ -48,18 +62,29 @@ export function ModalFrame({ title, eyebrow, children, onClose, maxWidth = 'max-
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-foreground/35 p-2 sm:items-center sm:p-4"
+      className={cn(
+        'fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-foreground/35 p-2 sm:items-center sm:p-4',
+        overlayClassName
+      )}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
       <div
-        className={`w-full overflow-hidden rounded-md border bg-background shadow-xl ${maxWidth} ${
-          scroll ? 'max-h-[94vh] overflow-y-auto overscroll-contain sm:max-h-[92vh]' : ''
-        }`}
+        className={cn(
+          'w-full overflow-hidden rounded-md border bg-background shadow-xl',
+          maxWidth,
+          scroll && 'max-h-[94vh] overflow-y-auto overscroll-contain sm:max-h-[92vh]',
+          panelClassName
+        )}
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b bg-background px-4 py-3 sm:px-5 sm:py-4">
+        <div
+          className={cn(
+            'sticky top-0 z-10 flex items-start justify-between gap-3 border-b bg-background px-4 py-3 sm:px-5 sm:py-4',
+            headerClassName
+          )}
+        >
           <div className="min-w-0">
             {eyebrow ? <div className="mb-2">{eyebrow}</div> : null}
             <h2 className="truncate text-lg font-bold sm:text-xl">{title}</h2>

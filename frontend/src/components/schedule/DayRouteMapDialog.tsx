@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Loader2, MapPinned } from 'lucide-react';
+import { Home, Loader2, MapPin, MapPinned, Route } from 'lucide-react';
 import { ModalFrame } from '@/components/dialogs/ModalFrame';
 import { Badge } from '@/components/ui/badge';
 import { googleMapsApiKey } from '@/config/env';
 import { createPlaceMarkerIcon, describeError, getPlaceMapStyles, loadGoogleMaps } from '@/lib/google-maps';
 import { getGoogleMapsNoteLabel } from '@/lib/place-utils';
+import { cn } from '@/lib/utils';
 import type { Place } from '@/types/travel';
 
 type DayRouteMapDialogProps = {
@@ -42,6 +43,15 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
   );
   const [selectedPlaceId, setSelectedPlaceId] = useState(orderedPlaces[0]?.id ?? '');
   const [selectionFocusVersion, setSelectionFocusVersion] = useState(0);
+  const firstPlace = orderedPlaces[0] ?? null;
+  const lastPlace = orderedPlaces[orderedPlaces.length - 1] ?? null;
+  const selectedPlace = useMemo(
+    () => markerPlaces.find((place) => place.id === selectedPlaceId) ?? orderedPlaces[0] ?? anchorPlace ?? null,
+    [anchorPlace, markerPlaces, orderedPlaces, selectedPlaceId]
+  );
+  const selectedOrderIndex = selectedPlace
+    ? orderedPlaces.findIndex((place) => place.id === selectedPlace.id)
+    : -1;
 
   const selectRoutePlace = useCallback((placeId: string) => {
     setSelectedPlaceId(placeId);
@@ -139,15 +149,15 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
         path,
         map: mapInstanceRef.current,
         geodesic: true,
-        strokeColor: isDarkMode ? '#f28b82' : '#e07062',
-        strokeOpacity: 0.88,
-        strokeWeight: 4,
+        strokeColor: isDarkMode ? '#ff7a92' : '#ff385c',
+        strokeOpacity: 0.9,
+        strokeWeight: 5,
         icons: [
           {
             icon: {
               path: maps.SymbolPath.FORWARD_CLOSED_ARROW,
               scale: 3,
-              strokeColor: isDarkMode ? '#f28b82' : '#e07062',
+              strokeColor: isDarkMode ? '#ff7a92' : '#ff385c',
               strokeOpacity: 0.9
             },
             offset: '50%',
@@ -219,34 +229,102 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
       title={`${dayLabel} 동선 지도`}
       maxWidth="max-w-6xl"
       onClose={onClose}
-      eyebrow={<Badge variant="outline">{orderedPlaces.length}곳</Badge>}
-    >
-      <div className="grid max-h-[calc(94vh-76px)] min-h-0 gap-0 overflow-hidden lg:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="relative min-h-[320px] bg-muted sm:min-h-[360px] lg:min-h-[540px]">
-          {status !== 'error' ? <div ref={mapRef} className="h-full min-h-[320px] w-full sm:min-h-[360px] lg:min-h-[540px]" /> : null}
-          {status === 'loading' ? (
-            <div className="absolute inset-0 grid place-items-center bg-background/80">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : null}
-          {status === 'error' ? (
-            <div className="grid h-full min-h-[320px] place-items-center p-6 text-center sm:min-h-[360px] lg:min-h-[540px]">
-              <div>
-                <MapPinned className="mx-auto h-10 w-10 text-muted-foreground" />
-                <p className="mt-3 font-semibold">동선 지도를 표시할 수 없습니다.</p>
-                <p className="mt-1 text-sm text-muted-foreground">{error}</p>
-              </div>
-            </div>
+      overlayClassName="bg-foreground/45 backdrop-blur-[2px]"
+      panelClassName="rounded-2xl border-border/70 shadow-[0_24px_70px_rgba(0,0,0,0.18)] dark:shadow-[0_28px_80px_rgba(0,0,0,0.5)]"
+      headerClassName="border-b bg-background/95 px-4 py-4 backdrop-blur sm:px-6"
+      eyebrow={
+        <div className="flex max-w-full flex-wrap items-center gap-2">
+          <Badge className="gap-1.5 rounded-full border-transparent bg-primary/10 px-2.5 py-1 text-primary dark:bg-primary/15 dark:text-primary">
+            <Route className="h-3.5 w-3.5" />
+            {orderedPlaces.length}곳
+          </Badge>
+          {anchorPlace ? (
+            <Badge variant="outline" className="max-w-full gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-muted-foreground">
+              <Home className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{anchorPlace.name}</span>
+            </Badge>
           ) : null}
         </div>
+      }
+    >
+      <div className="grid h-[calc(94dvh-86px)] min-h-0 gap-0 overflow-hidden bg-secondary/45 lg:h-[592px] lg:grid-cols-[minmax(0,1fr)_390px]">
+        <section className="min-h-0 p-2 sm:p-3 lg:h-full lg:p-4 lg:pr-2">
+          <div className="relative h-[36dvh] min-h-[260px] overflow-hidden rounded-xl border bg-muted shadow-inner sm:min-h-[340px] lg:h-full lg:min-h-0">
+            {status !== 'error' ? (
+              <div ref={mapRef} className="h-full min-h-[260px] w-full sm:min-h-[340px] lg:min-h-0" />
+            ) : null}
+            {status === 'ready' && selectedPlace ? (
+              <div className="pointer-events-none absolute left-3 top-3 max-w-[calc(100%-1.5rem)] rounded-full border bg-background/90 px-3 py-2 shadow-sm backdrop-blur">
+                <div className="flex min-w-0 items-center gap-2 text-sm">
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-foreground text-xs font-bold text-background">
+                    {selectedOrderIndex >= 0 ? selectedOrderIndex + 1 : 'H'}
+                  </span>
+                  <span className="truncate font-semibold">{selectedPlace.name}</span>
+                </div>
+              </div>
+            ) : null}
+            {status === 'loading' ? (
+              <div className="absolute inset-0 grid place-items-center bg-background/80 backdrop-blur-sm">
+                <div className="rounded-full border bg-background px-4 py-3 shadow-sm">
+                  <Loader2 className="h-7 w-7 animate-spin text-primary" />
+                </div>
+              </div>
+            ) : null}
+            {status === 'error' ? (
+              <div className="grid h-full min-h-[260px] place-items-center p-6 text-center sm:min-h-[340px] lg:min-h-0">
+                <div className="max-w-sm rounded-xl border bg-background/85 p-5 shadow-sm backdrop-blur">
+                  <MapPinned className="mx-auto h-10 w-10 text-primary" />
+                  <p className="mt-3 font-semibold">동선 지도를 표시할 수 없습니다.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{error}</p>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </section>
 
         <aside
           ref={listScrollRef}
-          className="max-h-[52vh] overflow-y-auto overscroll-contain scroll-smooth border-t bg-background p-4 sm:p-5 lg:max-h-[540px] lg:border-l lg:border-t-0"
+          className="min-h-0 overflow-y-auto overscroll-contain scroll-smooth border-t bg-background/95 p-3 sm:p-4 lg:border-l lg:border-t-0"
         >
-          <div className="mb-4 text-base font-semibold text-foreground">방문 순서</div>
+          <div className="sticky top-0 z-10 -mx-3 -mt-3 border-b bg-background/95 px-3 pb-3 pt-3 backdrop-blur sm:-mx-4 sm:-mt-4 sm:px-4 sm:pt-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-base font-bold text-foreground">방문 순서</div>
+                <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+                  {anchorPlace
+                    ? `${anchorPlace.name}에서 출발 · 귀환`
+                    : firstPlace
+                      ? `${firstPlace.name}부터 시작`
+                      : '장소 없음'}
+                </p>
+              </div>
+              <Badge variant="outline" className="shrink-0 rounded-full bg-secondary px-2.5 py-1 text-xs text-muted-foreground">
+                {orderedPlaces.length}곳
+              </Badge>
+            </div>
+            {firstPlace || lastPlace ? (
+              <div className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 gap-y-1 rounded-xl border bg-secondary/60 px-3 py-2 text-xs">
+                <Home className="mt-0.5 h-3.5 w-3.5 text-muted-foreground" />
+                <span className="truncate text-muted-foreground">
+                  출발 <span className="font-semibold text-foreground">{anchorPlace?.name ?? firstPlace?.name}</span>
+                </span>
+                <MapPin className="mt-0.5 h-3.5 w-3.5 text-muted-foreground" />
+                <span className="truncate text-muted-foreground">
+                  마지막 방문 <span className="font-semibold text-foreground">{lastPlace?.name ?? firstPlace?.name}</span>
+                </span>
+                {anchorPlace ? (
+                  <>
+                    <Home className="mt-0.5 h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="truncate text-muted-foreground">
+                      귀환 <span className="font-semibold text-foreground">{anchorPlace.name}</span>
+                    </span>
+                  </>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
           {orderedPlaces.length ? (
-            <ol className="grid gap-3.5">
+            <ol className="mt-3 grid gap-2.5 sm:mt-4">
               {orderedPlaces.map((place, index) => {
                 const isSelected = place.id === selectedPlaceId;
 
@@ -259,25 +337,35 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
                   >
                     <button
                       type="button"
-                      className={`flex w-full gap-3 rounded-md border p-4 text-left transition-all duration-300 ${
+                      className={cn(
+                        'group grid w-full grid-cols-[2.25rem_minmax(0,1fr)] gap-3 rounded-xl border p-3.5 text-left transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                         isSelected
-                          ? 'border-primary/40 bg-primary/10 shadow-sm'
-                          : 'border-border bg-muted/20 hover:bg-muted/35'
-                      }`}
+                          ? 'border-primary/45 bg-primary/10 shadow-sm shadow-primary/10 ring-1 ring-primary/15'
+                          : 'border-transparent bg-secondary/60 hover:border-border hover:bg-secondary'
+                      )}
                       onClick={() => selectRoutePlace(place.id)}
+                      aria-current={isSelected ? 'step' : undefined}
                     >
-                      <span
-                        className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold ${
-                          isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                        }`}
-                      >
-                        {index + 1}
+                      <span className="relative flex justify-center">
+                        {index < orderedPlaces.length - 1 ? (
+                          <span className="absolute left-1/2 top-9 h-[calc(100%+0.625rem)] w-px -translate-x-1/2 bg-border/70" />
+                        ) : null}
+                        <span
+                          className={cn(
+                            'relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold transition-colors',
+                            isSelected
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-background text-muted-foreground ring-1 ring-border group-hover:text-foreground'
+                          )}
+                        >
+                          {index + 1}
+                        </span>
                       </span>
                       <span className="min-w-0">
-                        <span className="block truncate text-[15px] font-semibold">{place.name}</span>
-                        <span className="mt-1.5 block line-clamp-2 text-sm leading-5 text-muted-foreground">{place.menu}</span>
-                        <span className="mt-1 block line-clamp-2 text-xs leading-5 text-muted-foreground">
-                          메모: {getGoogleMapsNoteLabel(place)}
+                        <span className="block truncate text-[15px] font-bold leading-5">{place.name}</span>
+                        <span className="mt-1 block line-clamp-1 text-sm leading-5 text-foreground/70">{place.menu}</span>
+                        <span className="mt-2 inline-flex max-w-full rounded-full bg-background/75 px-2 py-1 text-[11px] leading-none text-muted-foreground ring-1 ring-border/70">
+                          <span className="truncate">메모: {getGoogleMapsNoteLabel(place)}</span>
                         </span>
                       </span>
                     </button>
@@ -286,7 +374,7 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
               })}
             </ol>
           ) : (
-            <div className="rounded-md border bg-muted/20 p-4 text-sm text-muted-foreground">
+            <div className="mt-3 rounded-xl border bg-secondary/60 p-4 text-sm text-muted-foreground">
               표시할 장소가 없습니다.
             </div>
           )}
