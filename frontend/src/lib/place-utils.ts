@@ -53,6 +53,18 @@ export function getEmbedMapUrl(target: Pick<Place, 'latitude' | 'longitude'> | t
   return `https://www.google.com/maps?q=${target.latitude},${target.longitude}&z=15&output=embed`;
 }
 
+export function getHotelToPlaceEmbedUrl(target: Pick<Place, 'latitude' | 'longitude' | 'travelMode'>, apiKey?: string) {
+  const mode = target.travelMode === 'walk' ? 'walking' : 'transit';
+  const origin = `${hotel.latitude},${hotel.longitude}`;
+  const destination = `${target.latitude},${target.longitude}`;
+
+  if (apiKey) {
+    return `https://www.google.com/maps/embed/v1/directions?key=${encodeURIComponent(apiKey)}&origin=${origin}&destination=${destination}&mode=${mode}&language=ko&region=JP`;
+  }
+
+  return `https://www.google.com/maps?hl=ko&saddr=${origin}&daddr=${destination}&dirflg=${mode === 'walking' ? 'w' : 'r'}&output=embed`;
+}
+
 export function createEmptyDraft(category: CategoryId): PlaceDraft {
   return {
     name: '',
