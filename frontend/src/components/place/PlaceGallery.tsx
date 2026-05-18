@@ -194,7 +194,7 @@ export function PlaceGallery({
             placeSlideDirection === -1 && 'gallery-slide-prev'
           )}
         >
-          <div className="relative aspect-[4/3] overflow-hidden bg-muted sm:aspect-[16/10] lg:aspect-auto lg:min-h-[360px]">
+          <div className="relative h-[40vw] min-h-32 max-h-40 overflow-hidden bg-muted sm:aspect-[16/10] sm:h-auto sm:max-h-none lg:aspect-auto lg:min-h-[360px]">
             {isActivePhotoVisible && activePhoto ? (
               <img
                 src={activePhoto.url}
@@ -212,15 +212,15 @@ export function PlaceGallery({
             {activePhotoState?.status === 'loading' ? (
               <div className="absolute inset-0 animate-pulse bg-background/30" />
             ) : null}
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/45 to-transparent p-3 text-white sm:p-4">
-              <div className="line-clamp-2 text-lg font-bold leading-tight sm:text-xl">{activePlace.name}</div>
-              <div className="mt-1 line-clamp-1 text-xs text-white/80">{activePlace.menu}</div>
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/45 to-transparent p-2.5 text-white sm:p-4">
+              <div className="line-clamp-1 text-base font-bold leading-tight sm:line-clamp-2 sm:text-xl">{activePlace.name}</div>
+              <div className="mt-0.5 line-clamp-1 text-[11px] text-white/80 sm:mt-1 sm:text-xs">{activePlace.menu}</div>
             </div>
             <div className="absolute inset-y-0 left-2 flex items-center">
               <Button
                 variant="outline"
                 size="icon"
-                className="h-8 w-8 border-white/40 bg-black/35 text-white hover:bg-black/50 hover:text-white"
+                className="h-7 w-7 border-white/40 bg-black/35 text-white hover:bg-black/50 hover:text-white sm:h-8 sm:w-8"
                 onClick={(event) => movePhoto(-1, event.currentTarget)}
                 disabled={!hasMultiplePhotos}
                 aria-label="이전 사진"
@@ -232,7 +232,7 @@ export function PlaceGallery({
               <Button
                 variant="outline"
                 size="icon"
-                className="h-8 w-8 border-white/40 bg-black/35 text-white hover:bg-black/50 hover:text-white"
+                className="h-7 w-7 border-white/40 bg-black/35 text-white hover:bg-black/50 hover:text-white sm:h-8 sm:w-8"
                 onClick={(event) => movePhoto(1, event.currentTarget)}
                 disabled={!hasMultiplePhotos}
                 aria-label="다음 사진"
@@ -241,22 +241,22 @@ export function PlaceGallery({
               </Button>
             </div>
             {activePhotos.length ? (
-              <Badge className="absolute right-3 top-3 border-white/40 bg-black/45 text-white">
+              <Badge className="absolute right-2.5 top-2.5 rounded-full border-white/40 bg-black/45 px-2 py-0.5 text-[10px] text-white sm:right-3 sm:top-3 sm:text-xs">
                 {activePhotoIndex + 1} / {activePhotos.length}
               </Badge>
             ) : null}
           </div>
 
-          <div className="flex flex-col gap-3 border-t p-3 sm:p-4 lg:border-l lg:border-t-0">
-            <div className="flex items-center justify-between gap-3">
-              <Badge variant="outline" className="rounded-full">
+          <div className="flex flex-col gap-2 border-t p-2.5 sm:gap-3 sm:p-4 lg:border-l lg:border-t-0">
+            <div className="flex items-center justify-between gap-2">
+              <Badge variant="outline" className="rounded-full px-2 py-0.5 text-[10px] sm:text-xs">
                 {activePosition}
               </Badge>
               <div className="flex gap-1">
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-9 w-9 rounded-full"
+                  className="h-8 w-8 rounded-full sm:h-9 sm:w-9"
                   onClick={(event) => movePlace(-1, event.currentTarget)}
                   disabled={!hasMultiplePlaces}
                   aria-label="이전 장소"
@@ -266,7 +266,7 @@ export function PlaceGallery({
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-9 w-9 rounded-full"
+                  className="h-8 w-8 rounded-full sm:h-9 sm:w-9"
                   onClick={(event) => movePlace(1, event.currentTarget)}
                   disabled={!hasMultiplePlaces}
                   aria-label="다음 장소"
@@ -276,30 +276,30 @@ export function PlaceGallery({
               </div>
             </div>
 
-            <div>
-              <h3 className="text-lg font-bold leading-snug sm:text-xl">{activePlace.name}</h3>
-              <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted-foreground sm:line-clamp-2">
+            <div className="sm:block">
+              <h3 className="hidden text-lg font-bold leading-snug sm:block sm:text-xl">{activePlace.name}</h3>
+              <p className="line-clamp-2 text-xs leading-5 text-muted-foreground sm:mt-2 sm:text-sm sm:leading-6">
                 {activePlace.description}
               </p>
             </div>
 
-            <div className="grid gap-1.5 text-sm">
+            <div className="grid gap-1 text-xs sm:gap-1.5 sm:text-sm">
               <div className="font-semibold">대표 항목</div>
-              <div className="leading-5 text-muted-foreground">{activePlace.menu}</div>
+              <div className="line-clamp-1 leading-5 text-muted-foreground sm:line-clamp-none">{activePlace.menu}</div>
             </div>
 
-            <div className="grid gap-1.5 text-sm">
+            <div className="grid gap-1 text-xs sm:gap-1.5 sm:text-sm">
               <div className="font-semibold">이동 정보</div>
               <div className="flex items-center gap-2 text-muted-foreground">
-                <MapPin className="h-4 w-4 shrink-0" />
+                <MapPin className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
                 {activePlace.distanceFromSelectedKm.toFixed(1)}km · {travelLabel[activePlace.travelMode]}{' '}
                 {activePlace.travelMinutes}분
               </div>
             </div>
 
-            <div className="mt-auto flex flex-wrap gap-2">
-              <Button variant="outline" className="rounded-full" onClick={() => onOpenPhotos(activePlace)}>
-                <Images className="h-4 w-4" />
+            <div className="mt-auto flex flex-wrap gap-1.5 sm:gap-2">
+              <Button variant="outline" size="sm" className="h-8 rounded-full px-2.5 text-xs sm:h-9 sm:px-3 sm:text-sm" onClick={() => onOpenPhotos(activePlace)}>
+                <Images className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 전체 사진 보기
               </Button>
               {isEditing ? (
@@ -307,7 +307,7 @@ export function PlaceGallery({
                   place={activePlace}
                   categories={categories}
                   disabled={isMovingCategory}
-                  className="min-w-32 rounded-full"
+                  className="min-w-28 rounded-full text-xs sm:min-w-32 sm:text-sm"
                   onMove={onMoveCategory}
                 />
               ) : null}
@@ -316,8 +316,8 @@ export function PlaceGallery({
         </div>
       </div>
 
-      <div ref={thumbnailRailRef} className="border-t bg-muted/20 p-2">
-        <div className="flex gap-2 overflow-x-auto pb-1">
+      <div ref={thumbnailRailRef} className="border-t bg-muted/20 p-1.5 sm:p-2">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 sm:gap-2">
           {places.map((place, index) => {
             const photo = photoCache[place.id]?.photos[0] ?? null;
             const isActive = index === activeIndex;
@@ -326,12 +326,12 @@ export function PlaceGallery({
               <button
                 key={place.id}
                 type="button"
-                className={`min-w-36 overflow-hidden rounded-md border bg-background text-left transition hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                className={`min-w-24 overflow-hidden rounded-md border bg-background text-left transition hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-w-36 ${
                   isActive ? 'border-primary ring-2 ring-primary/20' : ''
                 }`}
                 onClick={() => selectPlace(index)}
               >
-                <div className="aspect-[4/3] bg-muted">
+                <div className="h-12 bg-muted sm:aspect-[4/3] sm:h-auto">
                   {photo && !failedPhotoUrls.has(photo.url) ? (
                     <img
                       src={photo.url}
@@ -346,9 +346,9 @@ export function PlaceGallery({
                     </div>
                   )}
                 </div>
-                <div className="grid gap-0.5 px-2 py-1.5">
-                  <div className="truncate text-xs font-semibold">{place.name}</div>
-                  <div className="truncate text-[11px] text-muted-foreground">{place.menu}</div>
+                <div className="grid gap-0.5 px-1.5 py-1 sm:px-2 sm:py-1.5">
+                  <div className="truncate text-[11px] font-semibold sm:text-xs">{place.name}</div>
+                  <div className="hidden truncate text-[11px] text-muted-foreground sm:block">{place.menu}</div>
                   <div className="text-[10px] font-medium text-muted-foreground/80">
                     {place.distanceFromSelectedKm.toFixed(1)}km
                   </div>
