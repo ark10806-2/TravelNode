@@ -67,7 +67,7 @@ export function PlaceList({
   }
 
   return (
-    <section className="min-w-0">
+    <section className="min-w-0 max-w-full overflow-hidden">
       <PlaceListHeader
         title={title}
         count={places.length}
@@ -151,41 +151,41 @@ function PlaceListHeader({
   const showActions = showViewModeToggle || isEditing;
 
   return (
-    <div className="mb-3 flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between">
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <h2 className="min-w-0 text-base font-bold tracking-tight sm:text-xl">{title}</h2>
+    <div className="mb-3 flex min-w-0 flex-col gap-2.5 md:flex-row md:items-center md:justify-between">
+      <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
+        <h2 className="min-w-0 truncate text-base font-bold tracking-tight sm:text-xl">{title}</h2>
         <Badge variant="outline" className="rounded-full">
           {count}곳
         </Badge>
       </div>
 
       {showActions ? (
-        <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+        <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:flex-nowrap">
           {showViewModeToggle ? (
-            <div className="grid flex-1 grid-cols-2 overflow-hidden rounded-full border bg-secondary p-1 sm:flex-none">
+            <div className="grid w-full min-w-0 grid-cols-2 overflow-hidden rounded-full border bg-secondary p-1 sm:w-auto sm:min-w-56">
               <Button
                 variant={viewMode === 'table' ? 'default' : 'ghost'}
                 size="sm"
-                className="rounded-full"
+                className="min-w-0 rounded-full px-2 text-xs sm:px-3 sm:text-sm"
                 onClick={() => onViewModeChange('table')}
               >
-                <Table2 className="h-4 w-4" />
-                테이블
+                <Table2 className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
+                <span className="truncate">테이블</span>
               </Button>
               <Button
                 variant={viewMode === 'gallery' ? 'default' : 'ghost'}
                 size="sm"
-                className="rounded-full"
+                className="min-w-0 rounded-full px-2 text-xs sm:px-3 sm:text-sm"
                 onClick={() => onViewModeChange('gallery')}
               >
-                <LayoutGrid className="h-4 w-4" />
-                갤러리
+                <LayoutGrid className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
+                <span className="truncate">갤러리</span>
               </Button>
             </div>
           ) : null}
 
           {isEditing ? (
-            <Button className="flex-1 rounded-full sm:flex-none" variant="outline" size="sm" onClick={onAdd}>
+            <Button className="w-full rounded-full sm:w-auto" variant="outline" size="sm" onClick={onAdd}>
               <Plus className="h-4 w-4" />
               추가
             </Button>
