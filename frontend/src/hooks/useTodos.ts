@@ -136,6 +136,22 @@ export function useTodos(dayCount: number, canPersist = false) {
     }));
   }
 
+  function moveCustomChecklist(checklistId: string, direction: -1 | 1) {
+    updateTodos((current) => {
+      const fromIndex = current.custom.findIndex((checklist) => checklist.id === checklistId);
+      const toIndex = fromIndex + direction;
+      if (fromIndex < 0 || toIndex < 0 || toIndex >= current.custom.length) return current;
+
+      const nextCustom = [...current.custom];
+      const [movedChecklist] = nextCustom.splice(fromIndex, 1);
+      nextCustom.splice(toIndex, 0, movedChecklist);
+      return {
+        ...current,
+        custom: nextCustom
+      };
+    });
+  }
+
   function addCustomItem(checklistId: string, text: string) {
     const trimmedText = text.trim();
     if (!trimmedText) return;
@@ -220,6 +236,7 @@ export function useTodos(dayCount: number, canPersist = false) {
     addDay,
     addCustomChecklist,
     removeCustomChecklist,
+    moveCustomChecklist,
     addCustomItem,
     toggleItem,
     toggleDayItem,

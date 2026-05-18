@@ -1,5 +1,5 @@
-import { FormEvent, useEffect, useState } from 'react';
-import { CalendarCheck2, ClipboardList, Home, PlaneTakeoff, Plus, Trash2, type LucideIcon } from 'lucide-react';
+import { FormEvent, useEffect, useState, type ReactNode } from 'react';
+import { ArrowDown, ArrowUp, CalendarCheck2, ClipboardList, Home, PlaneTakeoff, Plus, Trash2, type LucideIcon } from 'lucide-react';
 import { fetchSchedule } from '@/api/schedule';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +24,7 @@ export function TodoPage({ isEditing }: TodoPageProps) {
     addDay,
     addCustomChecklist,
     removeCustomChecklist,
+    moveCustomChecklist,
     addCustomItem,
     toggleItem,
     toggleDayItem,
@@ -158,12 +159,16 @@ export function TodoPage({ isEditing }: TodoPageProps) {
             </Badge>
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {todos.custom.map((checklist) => (
+            {todos.custom.map((checklist, index) => (
               <CustomChecklistCard
                 key={checklist.id}
                 checklist={checklist}
+                canMoveUp={index > 0}
+                canMoveDown={index < todos.custom.length - 1}
                 isEditing={isEditing}
                 isSaving={isSaving}
+                onMoveUp={() => moveCustomChecklist(checklist.id, -1)}
+                onMoveDown={() => moveCustomChecklist(checklist.id, 1)}
                 onAdd={(text) => addCustomItem(checklist.id, text)}
                 onToggle={(itemId) => toggleCustomItem(checklist.id, itemId)}
                 onRemoveItem={(itemId) => removeCustomItem(checklist.id, itemId)}
@@ -185,6 +190,7 @@ function TodoSectionCard({
   isEditing,
   isSaving,
   accentClassName,
+  headerActions,
   onRemoveList,
   onAdd,
   onToggle,
@@ -197,6 +203,7 @@ function TodoSectionCard({
   isEditing: boolean;
   isSaving: boolean;
   accentClassName: string;
+  headerActions?: ReactNode;
   onRemoveList?: () => void;
   onAdd: (text: string) => void;
   onToggle: (itemId: string) => void;
@@ -221,6 +228,7 @@ function TodoSectionCard({
             <Badge variant="outline" className="rounded-full bg-background">
               {doneCount}/{items.length}
             </Badge>
+            {headerActions}
             {onRemoveList ? (
               <Button
                 variant="ghost"
@@ -254,16 +262,24 @@ function TodoSectionCard({
 
 function CustomChecklistCard({
   checklist,
+  canMoveUp,
+  canMoveDown,
   isEditing,
   isSaving,
+  onMoveUp,
+  onMoveDown,
   onAdd,
   onToggle,
   onRemoveItem,
   onRemoveChecklist
 }: {
   checklist: TodoCustomChecklist;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
   isEditing: boolean;
   isSaving: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
   onAdd: (text: string) => void;
   onToggle: (itemId: string) => void;
   onRemoveItem: (itemId: string) => void;
@@ -278,6 +294,32 @@ function CustomChecklistCard({
       isEditing={isEditing}
       isSaving={isSaving}
       accentClassName="bg-violet-500/10 text-violet-700 dark:text-violet-300"
+      headerActions={
+        isEditing ? (
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full"
+              onClick={onMoveUp}
+              disabled={isSaving || !canMoveUp}
+              aria-label={`${checklist.title} 앞으로 이동`}
+            >
+              <ArrowUp className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full"
+              onClick={onMoveDown}
+              disabled={isSaving || !canMoveDown}
+              aria-label={`${checklist.title} 뒤로 이동`}
+            >
+              <ArrowDown className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : null
+      }
       onRemoveList={isEditing ? onRemoveChecklist : undefined}
       onAdd={onAdd}
       onToggle={onToggle}
