@@ -141,6 +141,7 @@ function placeToDraft(place: Place): PlaceDraft {
     cuisine: place.cuisine,
     menu: place.menu,
     description: place.description,
+    googleMapsNote: place.googleMapsNote,
     address: place.address,
     googleMapsUrl: place.googleMapsUrl,
     latitude: place.latitude,

@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Images, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { travelLabel } from '@/constants/travel';
+import { getGoogleMapsNoteLabel } from '@/lib/place-utils';
 import { cn } from '@/lib/utils';
 import type { CategoryId, CategoryOption, NearbyPlace, PhotoState, Place } from '@/types/travel';
 import { CategoryMoveSelect } from './CategoryMoveSelect';
@@ -244,6 +245,11 @@ export function PlaceGallery({
             <div className="grid min-w-0 gap-1 text-xs sm:gap-1.5 sm:text-sm">
               <div className="font-semibold">대표 항목</div>
               <div className="line-clamp-1 leading-5 text-muted-foreground sm:line-clamp-none">{activePlace.menu}</div>
+            </div>
+
+            <div className="grid min-w-0 gap-1 text-xs sm:gap-1.5 sm:text-sm">
+              <div className="font-semibold">Google Maps 메모</div>
+              <div className="line-clamp-2 leading-5 text-muted-foreground">{getGoogleMapsNoteLabel(activePlace)}</div>
             </div>
 
             <div className="grid min-w-0 gap-1 text-xs sm:gap-1.5 sm:text-sm">

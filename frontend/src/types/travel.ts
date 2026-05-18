@@ -17,6 +17,7 @@ export type Place = {
   cuisine: string;
   menu: string;
   description: string;
+  googleMapsNote: string | null;
   address: string;
   googleMapsUrl: string;
   latitude: number;

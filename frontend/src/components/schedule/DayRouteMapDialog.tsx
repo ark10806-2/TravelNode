@@ -4,6 +4,7 @@ import { ModalFrame } from '@/components/dialogs/ModalFrame';
 import { Badge } from '@/components/ui/badge';
 import { googleMapsApiKey } from '@/config/env';
 import { createPlaceMarkerIcon, describeError, getPlaceMapStyles, loadGoogleMaps } from '@/lib/google-maps';
+import { getGoogleMapsNoteLabel } from '@/lib/place-utils';
 import type { Place } from '@/types/travel';
 
 type DayRouteMapDialogProps = {
@@ -215,6 +216,9 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
                       <span className="min-w-0">
                         <span className="block truncate text-[15px] font-semibold">{place.name}</span>
                         <span className="mt-1.5 block line-clamp-2 text-sm leading-5 text-muted-foreground">{place.menu}</span>
+                        <span className="mt-1 block line-clamp-2 text-xs leading-5 text-muted-foreground">
+                          메모: {getGoogleMapsNoteLabel(place)}
+                        </span>
                       </span>
                     </button>
                   </li>

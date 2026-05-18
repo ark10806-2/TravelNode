@@ -13,6 +13,7 @@ export const hotelSchedulePlace: Place = {
   cuisine: '숙소',
   menu: '숙소',
   description: '여행 시작과 종료 기준이 되는 숙소입니다.',
+  googleMapsNote: null,
   address: hotel.name,
   googleMapsUrl: '',
   latitude: hotel.latitude,

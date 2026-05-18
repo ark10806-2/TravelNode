@@ -57,6 +57,7 @@ class GoogleMapsPreviewService(
         cuisine = cuisine,
         menu = cuisine,
         description = "${name}의 Google Maps 링크에서 가져온 초안입니다. 대표 항목과 설명은 저장 전에 확인해주세요.",
+        googleMapsNote = null,
         address = place?.address ?: linkInfo.query ?: "주소 확인 필요",
         googleMapsUrl = place?.googleMapsUrl ?: buildPlaceSearchUrl(name, place?.address ?: linkInfo.query),
         latitude = location.latitude,

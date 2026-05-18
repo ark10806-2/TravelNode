@@ -31,7 +31,7 @@ export function AccommodationSelectorDialog({
     return places
       .filter((place) => {
         if (!normalizedQuery) return true;
-        return [place.name, place.menu, place.description, place.address, place.cuisine]
+        return [place.name, place.menu, place.description, place.googleMapsNote, place.address, place.cuisine]
           .join(' ')
           .toLowerCase()
           .includes(normalizedQuery);

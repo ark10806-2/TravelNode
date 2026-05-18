@@ -1,7 +1,7 @@
 import { ChevronDown, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { getCategoryBadgeClass } from '@/lib/place-utils';
+import { getCategoryBadgeClass, getGoogleMapsNoteLabel } from '@/lib/place-utils';
 import { cn } from '@/lib/utils';
 import type { CategoryId, CategoryOption, NearbyPlace, PhotoState, Place } from '@/types/travel';
 import { PlaceExpandedDetails } from './PlaceExpandedDetails';
@@ -69,6 +69,9 @@ export function PlaceExpandableRow({
             </span>
           </div>
           <h3 className="mt-1.5 line-clamp-2 text-base font-bold leading-snug sm:truncate">{place.name}</h3>
+          <div className="mt-1 line-clamp-1 text-xs font-medium text-muted-foreground">
+            메모: {getGoogleMapsNoteLabel(place)}
+          </div>
         </div>
 
         <SummaryCell className="col-span-3 sm:col-auto" label="대표 항목" value={place.menu} />

@@ -1,7 +1,7 @@
 import { ExternalLink, Loader2, Map, Navigation, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { googleMapsApiKey } from '@/config/env';
-import { getHotelToPlaceEmbedUrl, getPlaceInfoUrl, haversineKm } from '@/lib/place-utils';
+import { getGoogleMapsNoteLabel, getHotelToPlaceEmbedUrl, getPlaceInfoUrl, haversineKm } from '@/lib/place-utils';
 import type { CategoryId, CategoryOption, NearbyPlace, PhotoState, Place } from '@/types/travel';
 import { CategoryMoveSelect } from './CategoryMoveSelect';
 import { PhotoBundlePreview } from './PhotoBundlePreview';
@@ -54,6 +54,11 @@ export function PlaceExpandedDetails({
         <section className="rounded-xl border bg-muted/20 p-3">
           <div className="text-sm font-semibold">설명</div>
           <p className="mt-2 leading-6 text-muted-foreground">{place.description}</p>
+        </section>
+
+        <section className="rounded-xl border bg-muted/20 p-3">
+          <div className="text-sm font-semibold">Google Maps 메모</div>
+          <p className="mt-2 leading-6 text-muted-foreground">{getGoogleMapsNoteLabel(place)}</p>
         </section>
       </div>
 

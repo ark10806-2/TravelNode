@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Check, Plus, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getCategoryBadgeClass, getCategoryOption, getEmbedMapUrl } from '@/lib/place-utils';
+import { getCategoryBadgeClass, getCategoryOption, getEmbedMapUrl, getGoogleMapsNoteLabel } from '@/lib/place-utils';
 import type { CategoryId, CategoryOption, Place } from '@/types/travel';
 
 type PlacePickerDialogProps = {
@@ -35,7 +35,7 @@ export function PlacePickerDialog({
       .filter((place) => categoryId === 'all' || place.category === categoryId)
       .filter((place) => {
         if (!normalizedQuery) return true;
-        return [place.name, place.menu, place.description, place.address, place.cuisine]
+        return [place.name, place.menu, place.description, place.googleMapsNote, place.address, place.cuisine]
           .join(' ')
           .toLowerCase()
           .includes(normalizedQuery);
@@ -149,6 +149,9 @@ export function PlacePickerDialog({
                           <div className="line-clamp-2 text-base font-bold leading-snug">{place.name}</div>
                           <div className="mt-1 line-clamp-2 text-sm text-muted-foreground">{place.menu}</div>
                           <div className="mt-2 line-clamp-3 text-sm leading-5 text-foreground/80">{place.description}</div>
+                          <div className="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">
+                            메모: {getGoogleMapsNoteLabel(place)}
+                          </div>
                         </div>
                         <div
                           className={`grid h-9 w-9 shrink-0 place-items-center rounded-md ${
@@ -195,6 +198,9 @@ export function PlacePickerDialog({
                   <div className="text-sm font-bold">{focusedPlace.name}</div>
                   <div className="mt-1 text-xs text-muted-foreground">{focusedPlace.address}</div>
                   <div className="mt-2 line-clamp-2 text-sm leading-5 text-foreground/80 lg:line-clamp-4">{focusedPlace.description}</div>
+                  <div className="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">
+                    메모: {getGoogleMapsNoteLabel(focusedPlace)}
+                  </div>
                 </div>
               ) : null}
             </div>

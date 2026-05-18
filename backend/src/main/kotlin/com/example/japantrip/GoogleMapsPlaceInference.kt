@@ -50,9 +50,7 @@ object GoogleMapsPlaceInference {
 
   fun description(name: String, note: String, listTitle: String?): String {
     val prefix = listTitle?.takeIf { it.isNotBlank() }?.let { "$it 목록" } ?: "Google Maps 즐겨찾기"
-    val sourceDescription = "${name}은 ${prefix}에서 가져온 장소입니다. 방문 전 영업시간과 휴무일을 확인해주세요."
-    val memo = note.trim().takeIf { it.isNotBlank() } ?: return sourceDescription
-    return "Google Maps 메모: $memo\n$sourceDescription"
+    return "${name}은 ${prefix}에서 가져온 장소입니다. 방문 전 영업시간과 휴무일을 확인해주세요."
   }
 
   fun containsSeafoodKeyword(name: String): Boolean {

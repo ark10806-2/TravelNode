@@ -49,6 +49,10 @@ export function getPlaceInfoUrl(place: Pick<Place, 'name' | 'address'>) {
   return `https://www.google.com/maps/search/?api=1&query=${query}`;
 }
 
+export function getGoogleMapsNoteLabel(place: Pick<Place, 'googleMapsNote'>) {
+  return place.googleMapsNote?.trim() || '빈 메모';
+}
+
 export function getEmbedMapUrl(target: Pick<Place, 'latitude' | 'longitude'> | typeof hotel) {
   return `https://www.google.com/maps?q=${target.latitude},${target.longitude}&z=15&output=embed`;
 }
@@ -76,6 +80,7 @@ export function createEmptyDraft(category: CategoryId): PlaceDraft {
     cuisine: category === 'dessert' ? '디저트 카페' : category === 'sightseeing' ? '관광 명소' : '음식점',
     menu: '',
     description: '',
+    googleMapsNote: null,
     address: '',
     googleMapsUrl: '',
     latitude: hotel.latitude,

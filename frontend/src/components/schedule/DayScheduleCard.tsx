@@ -3,7 +3,7 @@ import { ArrowDown, ArrowUp, Building2, MapPinPlus, MapPinned, RefreshCw, Sparkl
 import { AccommodationSelectorDialog } from '@/components/dialogs/AccommodationSelectorDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { getCategoryBadgeClass, getCategoryOption } from '@/lib/place-utils';
+import { getCategoryBadgeClass, getCategoryOption, getGoogleMapsNoteLabel } from '@/lib/place-utils';
 import { getScheduleHotelPlace, maxStopsPerDay, routeLegKey } from '@/lib/schedule-utils';
 import type { RouteLeg, ScheduleDay } from '@/types/schedule';
 import type { CategoryOption, Place } from '@/types/travel';
@@ -201,6 +201,9 @@ export function DayScheduleCard({
                             </button>
                             <div className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground sm:line-clamp-1">{place.menu}</div>
                             <div className="mt-1 line-clamp-2 text-sm leading-5 text-foreground/75">{place.description}</div>
+                            <div className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
+                              메모: {getGoogleMapsNoteLabel(place)}
+                            </div>
                           </div>
                           <div className="flex flex-wrap items-center justify-start gap-1 md:justify-end">
                             {isEditing ? (

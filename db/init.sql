@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS restaurants (
   cuisine text NOT NULL,
   menu text NOT NULL,
   description text NOT NULL,
+  google_maps_note text,
   address text NOT NULL,
   google_maps_url text NOT NULL,
   latitude double precision NOT NULL,
@@ -48,6 +49,16 @@ ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS place_status text NOT NULL DEFA
 ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS google_sync_key text;
 ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS google_sync_source_url text;
 ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS google_synced_at timestamptz;
+ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS google_maps_note text;
+
+UPDATE restaurants
+SET google_maps_note = btrim(replace(split_part(description, E'\n', 1), 'Google Maps 메모:', ''))
+WHERE (google_maps_note IS NULL OR btrim(google_maps_note) = '')
+  AND description LIKE 'Google Maps 메모:%';
+
+UPDATE restaurants
+SET description = btrim(regexp_replace(description, '^Google Maps 메모:.*(\r?\n)?', ''))
+WHERE description LIKE 'Google Maps 메모:%';
 
 DO $$
 BEGIN
