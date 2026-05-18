@@ -58,7 +58,16 @@ Toriton Tokyo Skytree Town Solamachi
 2026. 5. 22. 18:30
 예약번호: ABC12345
 https://example.com/booking
-요청사항: 창가 좌석`;
+요청사항: 창가 좌석
+
+또는 Google Maps 예약 상세 복사:
+5월 26일
+예약 내역
+화 · 오후 2:30 (JST) · 2명
+쓰키시마 몬자야키 고보레야
+4.8 (3,112)
+몬자야키 전문점
+3-chōme-16-9 Tsukishima, Chuo City, Tokyo 104-0052 일본`;
 
 export function ReservationPage({ places, isEditing }: ReservationPageProps) {
   const [scheduleDayCount, setScheduleDayCount] = useState(1);
@@ -828,6 +837,9 @@ function parseGoogleReservationBlock(block: string, places: Place[], dayCount: n
     .filter(Boolean);
   if (!lines.length) return null;
 
+  const googleMapsDraft = parseGoogleMapsReservationBlock(block, lines, places, dayCount);
+  if (googleMapsDraft) return googleMapsDraft;
+
   const matchedPlace = findMatchingPlace(block, places);
   const title = matchedPlace?.name ?? findTitleLine(lines);
   if (!title) return null;
@@ -855,6 +867,92 @@ function parseGoogleReservationBlock(block: string, places: Place[], dayCount: n
     notes,
     attachments: []
   };
+}
+
+function parseGoogleMapsReservationBlock(
+  block: string,
+  lines: string[],
+  places: Place[],
+  dayCount: number
+): ReservationDraft | null {
+  const detailIndex = lines.findIndex((line) => /^(예약\s*내역|reservation details)$/i.test(line));
+  if (detailIndex < 0) return null;
+
+  const dateLine = [...lines.slice(0, detailIndex)]
+    .reverse()
+    .find((line) => /(?:[0-9]{1,2}\s*월\s*)?[0-9]{1,2}\s*일|[0-9]{4}[./-]\s*[0-9]{1,2}[./-]\s*[0-9]{1,2}/.test(line)) ?? '';
+  const detailLines = lines.slice(detailIndex + 1);
+  const summaryLine = detailLines.find(isGoogleReservationSummaryLine) ?? '';
+  const titleLine = detailLines.find((line) => isLikelyGoogleReservationTitle(line, summaryLine)) ?? '';
+
+  if (!titleLine) return null;
+
+  const matchedPlace = findMatchingPlace([titleLine, block].join('\n'), places);
+  const addressLine = findGoogleReservationAddressLine(detailLines);
+  const categoryLine = findGoogleReservationCategoryLine(detailLines, titleLine, summaryLine, addressLine);
+  const partyLabel = summaryLine.match(/(?:^|·)\s*([0-9]+\s*명)\s*(?:$|·)/)?.[1] ?? '';
+  const notes = [
+    categoryLine ? `유형: ${categoryLine}` : '',
+    partyLabel ? `인원: ${partyLabel}` : '',
+    addressLine ? `주소: ${addressLine}` : ''
+  ]
+    .filter(Boolean)
+    .join('\n')
+    .slice(0, 1000);
+
+  return {
+    ...emptyDraft,
+    reservationType: inferReservationType([titleLine, categoryLine, block].filter(Boolean).join('\n'), matchedPlace),
+    title: (matchedPlace?.name ?? titleLine).slice(0, 120),
+    dayIndex: parseDayIndex(block, dayCount),
+    placeId: matchedPlace?.id ?? null,
+    timeLabel: formatGoogleReservationTimeLabel(dateLine, summaryLine),
+    referenceNumber: parseReferenceNumber(block),
+    linkUrl: parseFirstUrl(block),
+    notes,
+    attachments: []
+  };
+}
+
+function isGoogleReservationSummaryLine(line: string) {
+  return /(?:오전|오후|AM|PM|[0-2]?[0-9]:[0-5][0-9])/i.test(line) && /(?:·|\s)/.test(line);
+}
+
+function isLikelyGoogleReservationTitle(line: string, summaryLine: string) {
+  if (!line || line === summaryLine) return false;
+  if (/^(예약\s*내역|판매자\s*위치|merchant location|seller location)$/i.test(line)) return false;
+  if (/^(?:[0-9]{1,2}\s*월\s*)?[0-9]{1,2}\s*일$/.test(line)) return false;
+  if (/^[0-9]{1,2}\s*월$/.test(line)) return false;
+  if (/^[0-9](?:\.[0-9])?\s*\([0-9,]+\)/.test(line)) return false;
+  if (isGoogleReservationAddressLine(line)) return false;
+  return true;
+}
+
+function findGoogleReservationAddressLine(lines: string[]) {
+  const locationIndex = lines.findIndex((line) => /^(판매자\s*위치|merchant location|seller location)$/i.test(line));
+  if (locationIndex > 0 && isGoogleReservationAddressLine(lines[locationIndex - 1])) {
+    return lines[locationIndex - 1];
+  }
+
+  return lines.find(isGoogleReservationAddressLine) ?? '';
+}
+
+function isGoogleReservationAddressLine(line: string) {
+  return /(?:일본|Japan|Tokyo|Osaka|Kyoto|〒|[0-9]+-chōme|[0-9]+-chome|City|Ward)/i.test(line);
+}
+
+function findGoogleReservationCategoryLine(lines: string[], titleLine: string, summaryLine: string, addressLine: string) {
+  return lines.find((line) => {
+    if (!line || line === titleLine || line === summaryLine || line === addressLine) return false;
+    if (/^(예약\s*내역|판매자\s*위치|merchant location|seller location)$/i.test(line)) return false;
+    if (/^[0-9](?:\.[0-9])?\s*\([0-9,]+\)/.test(line)) return false;
+    if (isGoogleReservationAddressLine(line)) return false;
+    return /(?:전문점|음식점|레스토랑|카페|bar|restaurant|cafe|shop|store|museum|hotel)/i.test(line);
+  }) ?? '';
+}
+
+function formatGoogleReservationTimeLabel(dateLine: string, summaryLine: string) {
+  return [dateLine, summaryLine].filter(Boolean).join(' · ').replace(/\s+/g, ' ').slice(0, 80);
 }
 
 type GoogleBookingCsvRow = Record<string, string>;
