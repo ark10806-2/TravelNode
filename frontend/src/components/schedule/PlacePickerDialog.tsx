@@ -68,7 +68,7 @@ export function PlacePickerDialog({
       }}
     >
       <div
-        className="flex h-[calc(100dvh-1rem)] min-h-0 w-full max-w-6xl flex-col overflow-hidden rounded-md border bg-background shadow-xl lg:h-auto lg:max-h-[90vh]"
+        className="flex h-[calc(100dvh-1rem)] min-h-0 w-full max-w-6xl flex-col overflow-hidden rounded-md border bg-background shadow-xl sm:h-[90vh]"
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="shrink-0 flex items-start justify-between gap-4 border-b px-5 py-4">

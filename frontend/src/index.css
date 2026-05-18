@@ -48,7 +48,6 @@
   body,
   #root {
     min-height: 100%;
-    overscroll-behavior-y: none;
   }
 
   html,
@@ -103,6 +102,12 @@
 }
 
 @media (max-width: 767px) {
+  html,
+  body,
+  #root {
+    overscroll-behavior-y: none;
+  }
+
   input:not([type="checkbox"]):not([type="radio"]),
   textarea,
   select,
