@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { FormEvent, useEffect, useMemo, useState, type DragEvent, type ReactNode } from 'react';
 import {
   CalendarClock,
   DownloadCloud,
@@ -343,6 +343,7 @@ function GoogleReservationImportDialog({
   const [csvText, setCsvText] = useState('');
   const [csvFileName, setCsvFileName] = useState('');
   const [csvError, setCsvError] = useState('');
+  const [isCsvDragging, setIsCsvDragging] = useState(false);
   const parsedTextDrafts = useMemo(() => parseGoogleReservationText(rawText, places, dayCount), [dayCount, places, rawText]);
   const parsedCsvDrafts = useMemo(() => parseGoogleBookingsCsv(csvText, places, dayCount), [csvText, dayCount, places]);
   const parsedDrafts = useMemo(() => [...parsedCsvDrafts, ...parsedTextDrafts], [parsedCsvDrafts, parsedTextDrafts]);
@@ -382,6 +383,26 @@ function GoogleReservationImportDialog({
     }
   }
 
+  function handleCsvDrag(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!disabled) setIsCsvDragging(true);
+  }
+
+  function handleCsvDragLeave(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsCsvDragging(false);
+  }
+
+  function handleCsvDrop(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsCsvDragging(false);
+    if (disabled) return;
+    void importCsvFile(event.dataTransfer.files?.[0] ?? null);
+  }
+
   return (
     <ModalFrame title="Google 예약 가져오기" maxWidth="max-w-4xl" scroll onClose={onClose}>
       <div className="grid gap-5 p-5">
@@ -393,10 +414,21 @@ function GoogleReservationImportDialog({
 
         <Field label="예약내역 CSV 업로드">
           <div className="grid gap-2">
-            <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed bg-muted/20 px-3 py-4 text-center text-sm text-muted-foreground transition hover:border-primary hover:bg-primary/5">
+            <label
+              className={cn(
+                'flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed bg-muted/20 px-3 py-4 text-center text-sm text-muted-foreground transition hover:border-primary hover:bg-primary/5',
+                isCsvDragging && 'border-primary bg-primary/10 text-foreground ring-2 ring-primary/20',
+                disabled && 'cursor-not-allowed opacity-60'
+              )}
+              onDragEnter={handleCsvDrag}
+              onDragOver={handleCsvDrag}
+              onDragLeave={handleCsvDragLeave}
+              onDrop={handleCsvDrop}
+              aria-disabled={disabled}
+            >
               <UploadCloud className="h-5 w-5" />
               <span className="font-semibold text-foreground">Google 예약 내보내기 CSV 선택</span>
-              <span className="text-xs">Bookings.csv 파일을 업로드하면 예약 후보를 자동으로 구성합니다.</span>
+              <span className="text-xs">Bookings.csv 파일을 클릭하거나 끌어다 놓으면 예약 후보를 자동으로 구성합니다.</span>
               <input
                 className="sr-only"
                 type="file"
