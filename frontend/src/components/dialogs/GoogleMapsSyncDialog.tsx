@@ -233,7 +233,9 @@ function PreviewPlaceCard({
           </div>
         </div>
         <div className="mt-2 line-clamp-2 text-sm text-muted-foreground">{place.menu}</div>
-        <div className="mt-1 line-clamp-2 text-sm leading-5 text-foreground/75">{place.description}</div>
+        <div className="mt-1 line-clamp-3 whitespace-pre-line text-sm leading-5 text-foreground/75">
+          {place.description}
+        </div>
         <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
           <MapPin className="h-3.5 w-3.5 shrink-0" />
           <span className="truncate">{place.address}</span>

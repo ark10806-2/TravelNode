@@ -152,6 +152,35 @@ export function useTodos(dayCount: number, canPersist = false) {
     });
   }
 
+  function moveSectionItem(section: TodoSectionId, itemId: string, direction: -1 | 1) {
+    updateTodos((current) => ({
+      ...current,
+      [section]: moveTodoItem(current[section], itemId, direction)
+    }));
+  }
+
+  function moveDayItem(dayIndex: number, itemId: string, direction: -1 | 1) {
+    updateTodos((current) => ({
+      ...current,
+      days: current.days.map((day) =>
+        day.dayIndex === dayIndex
+          ? { ...day, items: moveTodoItem(day.items, itemId, direction) }
+          : day
+      )
+    }));
+  }
+
+  function moveCustomItem(checklistId: string, itemId: string, direction: -1 | 1) {
+    updateTodos((current) => ({
+      ...current,
+      custom: current.custom.map((checklist) =>
+        checklist.id === checklistId
+          ? { ...checklist, items: moveTodoItem(checklist.items, itemId, direction) }
+          : checklist
+      )
+    }));
+  }
+
   function addCustomItem(checklistId: string, text: string) {
     const trimmedText = text.trim();
     if (!trimmedText) return;
@@ -237,6 +266,9 @@ export function useTodos(dayCount: number, canPersist = false) {
     addCustomChecklist,
     removeCustomChecklist,
     moveCustomChecklist,
+    moveSectionItem,
+    moveDayItem,
+    moveCustomItem,
     addCustomItem,
     toggleItem,
     toggleDayItem,
@@ -288,6 +320,17 @@ function normalizeItems(items: TodoItem[]) {
       text: item.text.trim(),
       done: Boolean(item.done)
     }));
+}
+
+function moveTodoItem(items: TodoItem[], itemId: string, direction: -1 | 1) {
+  const fromIndex = items.findIndex((item) => item.id === itemId);
+  const toIndex = fromIndex + direction;
+  if (fromIndex < 0 || toIndex < 0 || toIndex >= items.length) return items;
+
+  const nextItems = [...items];
+  const [movedItem] = nextItems.splice(fromIndex, 1);
+  nextItems.splice(toIndex, 0, movedItem);
+  return nextItems;
 }
 
 function createTodoItem(text: string): TodoItem {

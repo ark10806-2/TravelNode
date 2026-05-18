@@ -25,6 +25,9 @@ export function TodoPage({ isEditing }: TodoPageProps) {
     addCustomChecklist,
     removeCustomChecklist,
     moveCustomChecklist,
+    moveSectionItem,
+    moveDayItem,
+    moveCustomItem,
     addCustomItem,
     toggleItem,
     toggleDayItem,
@@ -90,6 +93,7 @@ export function TodoPage({ isEditing }: TodoPageProps) {
           onAdd={(text) => addSectionItem('before', text)}
           onToggle={(itemId) => toggleItem('before', itemId)}
           onRemove={(itemId) => removeSectionItem('before', itemId)}
+          onMove={(itemId, direction) => moveSectionItem('before', itemId, direction)}
         />
 
         <section className="soft-panel overflow-hidden rounded-xl">
@@ -131,6 +135,7 @@ export function TodoPage({ isEditing }: TodoPageProps) {
                 onAdd={(text) => addDayItem(day.dayIndex, text)}
                 onToggle={(itemId) => toggleDayItem(day.dayIndex, itemId)}
                 onRemove={(itemId) => removeDayItem(day.dayIndex, itemId)}
+                onMove={(itemId, direction) => moveDayItem(day.dayIndex, itemId, direction)}
               />
             ))}
           </div>
@@ -147,6 +152,7 @@ export function TodoPage({ isEditing }: TodoPageProps) {
           onAdd={(text) => addSectionItem('after', text)}
           onToggle={(itemId) => toggleItem('after', itemId)}
           onRemove={(itemId) => removeSectionItem('after', itemId)}
+          onMove={(itemId, direction) => moveSectionItem('after', itemId, direction)}
         />
       </div>
 
@@ -172,6 +178,7 @@ export function TodoPage({ isEditing }: TodoPageProps) {
                 onAdd={(text) => addCustomItem(checklist.id, text)}
                 onToggle={(itemId) => toggleCustomItem(checklist.id, itemId)}
                 onRemoveItem={(itemId) => removeCustomItem(checklist.id, itemId)}
+                onMoveItem={(itemId, direction) => moveCustomItem(checklist.id, itemId, direction)}
                 onRemoveChecklist={() => removeCustomChecklist(checklist.id)}
               />
             ))}
@@ -194,7 +201,8 @@ function TodoSectionCard({
   onRemoveList,
   onAdd,
   onToggle,
-  onRemove
+  onRemove,
+  onMove
 }: {
   title: string;
   description: string;
@@ -208,6 +216,7 @@ function TodoSectionCard({
   onAdd: (text: string) => void;
   onToggle: (itemId: string) => void;
   onRemove: (itemId: string) => void;
+  onMove?: (itemId: string, direction: -1 | 1) => void;
 }) {
   const doneCount = items.filter((item) => item.done).length;
 
@@ -253,6 +262,7 @@ function TodoSectionCard({
           emptyText="아직 등록된 항목이 없습니다."
           onToggle={onToggle}
           onRemove={onRemove}
+          onMove={onMove}
         />
         {isEditing ? <AddTodoForm disabled={isSaving} onAdd={onAdd} /> : null}
       </div>
@@ -271,6 +281,7 @@ function CustomChecklistCard({
   onAdd,
   onToggle,
   onRemoveItem,
+  onMoveItem,
   onRemoveChecklist
 }: {
   checklist: TodoCustomChecklist;
@@ -283,6 +294,7 @@ function CustomChecklistCard({
   onAdd: (text: string) => void;
   onToggle: (itemId: string) => void;
   onRemoveItem: (itemId: string) => void;
+  onMoveItem: (itemId: string, direction: -1 | 1) => void;
   onRemoveChecklist: () => void;
 }) {
   return (
@@ -324,6 +336,7 @@ function CustomChecklistCard({
       onAdd={onAdd}
       onToggle={onToggle}
       onRemove={onRemoveItem}
+      onMove={onMoveItem}
     />
   );
 }
@@ -373,7 +386,8 @@ function TodoDayCard({
   isSaving,
   onAdd,
   onToggle,
-  onRemove
+  onRemove,
+  onMove
 }: {
   dayIndex: number;
   items: TodoItem[];
@@ -382,6 +396,7 @@ function TodoDayCard({
   onAdd: (text: string) => void;
   onToggle: (itemId: string) => void;
   onRemove: (itemId: string) => void;
+  onMove: (itemId: string, direction: -1 | 1) => void;
 }) {
   const doneCount = items.filter((item) => item.done).length;
 
@@ -402,6 +417,7 @@ function TodoDayCard({
         emptyText="이 DAY에 등록된 할 일이 없습니다."
         onToggle={onToggle}
         onRemove={onRemove}
+        onMove={onMove}
       />
       {isEditing ? <AddTodoForm className="mt-3" disabled={isSaving} onAdd={onAdd} /> : null}
     </article>
@@ -414,7 +430,8 @@ function TodoItems({
   isSaving,
   emptyText,
   onToggle,
-  onRemove
+  onRemove,
+  onMove
 }: {
   items: TodoItem[];
   isEditing: boolean;
@@ -422,6 +439,7 @@ function TodoItems({
   emptyText: string;
   onToggle: (itemId: string) => void;
   onRemove: (itemId: string) => void;
+  onMove?: (itemId: string, direction: -1 | 1) => void;
 }) {
   if (!items.length) {
     return (
@@ -433,7 +451,7 @@ function TodoItems({
 
   return (
     <ul className="grid gap-2">
-      {items.map((item) => (
+      {items.map((item, index) => (
         <li key={item.id} className="flex items-start gap-3 rounded-lg border bg-muted/15 p-3">
           <input
             className="mt-1 h-4 w-4 shrink-0 accent-primary"
@@ -447,16 +465,42 @@ function TodoItems({
             {item.text}
           </span>
           {isEditing ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
-              onClick={() => onRemove(item.id)}
-              disabled={isSaving}
-              aria-label={`${item.text} 삭제`}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <div className="flex shrink-0 items-center gap-1">
+              {onMove ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full"
+                    onClick={() => onMove(item.id, -1)}
+                    disabled={isSaving || index === 0}
+                    aria-label={`${item.text} 위로 이동`}
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full"
+                    onClick={() => onMove(item.id, 1)}
+                    disabled={isSaving || index === items.length - 1}
+                    aria-label={`${item.text} 아래로 이동`}
+                  >
+                    <ArrowDown className="h-4 w-4" />
+                  </Button>
+                </>
+              ) : null}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => onRemove(item.id)}
+                disabled={isSaving}
+                aria-label={`${item.text} 삭제`}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           ) : null}
         </li>
       ))}
