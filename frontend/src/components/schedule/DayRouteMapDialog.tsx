@@ -147,10 +147,10 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
     }
 
     if (path.length > 1) {
-      mapInstanceRef.current.fitBounds(bounds, 72);
+      mapInstanceRef.current.fitBounds(bounds, routeMapBoundsPadding());
     } else if (path.length === 1) {
       mapInstanceRef.current.setCenter(path[0]);
-      mapInstanceRef.current.setZoom(15);
+      mapInstanceRef.current.setZoom(16);
     }
   }, [anchorPlace, isDarkMode, markerPlaces, orderedPlaces, pathPlaces, selectedPlaceId, status]);
 
@@ -223,4 +223,9 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
       </div>
     </ModalFrame>
   );
+}
+
+function routeMapBoundsPadding() {
+  const isMobile = window.matchMedia('(max-width: 767px)').matches;
+  return isMobile ? 20 : 28;
 }
