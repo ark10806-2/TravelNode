@@ -1,18 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AddCategoryDialog } from '@/components/dialogs/AddCategoryDialog';
-import { AddPlaceDialog } from '@/components/dialogs/AddPlaceDialog';
-import { EditPlaceDialog } from '@/components/dialogs/EditPlaceDialog';
-import { GoogleMapsSyncDialog } from '@/components/dialogs/GoogleMapsSyncDialog';
-import { PlacePhotoDialog } from '@/components/dialogs/PlacePhotoDialog';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { AppHeader } from '@/components/place/AppHeader';
 import { CategoryFilterBar } from '@/components/place/CategoryFilterBar';
-import { PlaceTable, type PlaceListViewMode } from '@/components/place/PlaceTable';
+import { PlaceList, type PlaceListViewMode } from '@/components/place/PlaceList';
+import { PlacesPageDialogs } from '@/components/place/PlacesPageDialogs';
 import { SelectedPlacePanel } from '@/components/place/SelectedPlacePanel';
 import { TravelMap } from '@/components/place/TravelMap';
-import { hotel } from '@/constants/travel';
 import type { TravelPlacesState } from '@/hooks/useTravelPlaces';
-import { haversineKm } from '@/lib/place-utils';
+import { toHotelDistancePlaces } from '@/lib/place-utils';
 import type { CategoryId, NearbyPlace, PhotoState, Place } from '@/types/travel';
 
 const emptyPhotoState: PhotoState = {
@@ -61,16 +56,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
   const [isGoogleSyncDialogOpen, setIsGoogleSyncDialogOpen] = useState(false);
   const [placeListViewMode, setPlaceListViewMode] = useState<PlaceListViewMode>('table');
   const canModify = isEditing && canEdit;
-  const mobilePlaces = useMemo<NearbyPlace[]>(
-    () =>
-      visiblePlaces
-        .map((place) => ({
-          ...place,
-          distanceFromSelectedKm: haversineKm(hotel, place)
-        }))
-        .sort((a, b) => a.distanceFromSelectedKm - b.distanceFromSelectedKm),
-    [visiblePlaces]
-  );
+  const mobilePlaces = useMemo<NearbyPlace[]>(() => toHotelDistancePlaces(visiblePlaces), [visiblePlaces]);
 
   const selectPlace = useCallback(
     (place: Place) => {
@@ -147,7 +133,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
           />
 
           <div className="md:hidden">
-            <PlaceTable
+            <PlaceList
               title={`${selectedCategory.emoji} ${selectedCategory.label} 전체 장소`}
               places={mobilePlaces}
               viewMode="table"
@@ -167,7 +153,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
           </div>
 
           <div className="hidden md:block">
-            <PlaceTable
+            <PlaceList
               title={`선택한 장소 근처 ${selectedCategory.emoji} ${selectedCategory.label}`}
               places={nearbyPlaces}
               viewMode={placeListViewMode}
@@ -187,40 +173,28 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
         </section>
       </PageContainer>
 
-      {addPlaceCategory ? (
-        <AddPlaceDialog
-          category={addPlaceCategory}
-          categories={categories}
-          onClose={() => setAddPlaceCategory(null)}
-          onCreated={addPlace}
-        />
-      ) : null}
-      {isCategoryDialogOpen ? (
-        <AddCategoryDialog onClose={() => setIsCategoryDialogOpen(false)} onCreated={addCategory} />
-      ) : null}
-      {editTarget ? (
-        <EditPlaceDialog
-          place={editTarget}
-          categories={categories}
-          onClose={() => setEditTarget(null)}
-          onSaved={(place) => {
-            updatePlace(place);
-            setEditTarget(null);
-          }}
-        />
-      ) : null}
-      {isGoogleSyncDialogOpen ? (
-        <GoogleMapsSyncDialog onClose={() => setIsGoogleSyncDialogOpen(false)} onSynced={() => void refreshPlaces()} />
-      ) : null}
-      {photoTarget ? (
-        <PlacePhotoDialog
-          place={photoTarget}
-          categories={categories}
-          photoState={photoCache[photoTarget.id] ?? emptyPhotoState}
-          onClose={() => setPhotoTarget(null)}
-          onRetry={() => void loadPhotos(photoTarget, true)}
-        />
-      ) : null}
+      <PlacesPageDialogs
+        addPlaceCategory={addPlaceCategory}
+        isCategoryDialogOpen={isCategoryDialogOpen}
+        editTarget={editTarget}
+        photoTarget={photoTarget}
+        isGoogleSyncDialogOpen={isGoogleSyncDialogOpen}
+        categories={categories}
+        photoCache={photoCache}
+        onCloseAddPlace={() => setAddPlaceCategory(null)}
+        onPlaceCreated={addPlace}
+        onCloseCategoryDialog={() => setIsCategoryDialogOpen(false)}
+        onCategoryCreated={addCategory}
+        onCloseEditPlace={() => setEditTarget(null)}
+        onPlaceSaved={(place) => {
+          updatePlace(place);
+          setEditTarget(null);
+        }}
+        onCloseGoogleSync={() => setIsGoogleSyncDialogOpen(false)}
+        onGoogleSynced={() => void refreshPlaces()}
+        onClosePhotos={() => setPhotoTarget(null)}
+        onRetryPhotos={(place) => void loadPhotos(place, true)}
+      />
     </>
   );
 }

@@ -1,5 +1,5 @@
 import { defaultCategoryOptions, hotel } from '@/constants/travel';
-import type { CategoryId, CategoryOption, Place, PlaceDraft } from '@/types/travel';
+import type { CategoryId, CategoryOption, NearbyPlace, Place, PlaceDraft } from '@/types/travel';
 
 export function haversineKm(a: Pick<Place, 'latitude' | 'longitude'>, b: Pick<Place, 'latitude' | 'longitude'>) {
   const radiusKm = 6371;
@@ -85,4 +85,13 @@ export function createEmptyDraft(category: CategoryId): PlaceDraft {
 
 export function normalizeCategories(categories: CategoryOption[]) {
   return categories.length ? categories : defaultCategoryOptions;
+}
+
+export function toHotelDistancePlaces(places: Place[]): NearbyPlace[] {
+  return places
+    .map((place) => ({
+      ...place,
+      distanceFromSelectedKm: haversineKm(hotel, place)
+    }))
+    .sort((a, b) => a.distanceFromSelectedKm - b.distanceFromSelectedKm);
 }

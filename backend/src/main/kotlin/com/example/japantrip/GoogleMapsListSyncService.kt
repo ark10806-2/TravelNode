@@ -11,7 +11,6 @@ import java.net.http.HttpResponse
 import java.nio.charset.StandardCharsets
 import java.time.Duration
 import kotlin.math.atan2
-import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -238,9 +237,9 @@ class GoogleMapsListSyncService(
     val latitude = location.path(2).asNullableDouble() ?: return null
     val longitude = location.path(3).asNullableDouble() ?: return null
     val syncKey = buildSyncKey(placeNode, name, latitude, longitude)
-    val category = inferCategory(name, note)
-    val cuisine = inferCuisine(name, category)
-    val menu = inferMenu(name, note, category)
+    val category = GoogleMapsPlaceInference.category(name, note)
+    val cuisine = GoogleMapsPlaceInference.cuisine(name, category)
+    val menu = GoogleMapsPlaceInference.menu(name, note, category)
     val distanceKm = haversineKm(HotelLocation, Coordinate(latitude, longitude))
     val travelMode = if (distanceKm <= 2.0) "walk" else "transit"
 
@@ -254,15 +253,15 @@ class GoogleMapsListSyncService(
         category = category,
         cuisine = cuisine,
         menu = menu,
-        description = buildDescription(name, note, listTitle),
+        description = GoogleMapsPlaceInference.description(name, note, listTitle),
         address = address.ifBlank { "주소 확인 필요" },
         googleMapsUrl = buildPlaceSearchUrl(name, address),
         latitude = latitude,
         longitude = longitude,
         travelMode = travelMode,
-        travelMinutes = estimateTravelMinutes(distanceKm, travelMode),
+        travelMinutes = GoogleMapsPlaceInference.estimateTravelMinutes(distanceKm, travelMode),
         distanceLabel = if (distanceKm < 1) "${(distanceKm * 1000).toInt()}m" else "%.1fkm".format(distanceKm),
-        noSeafood = !containsSeafoodKeyword(name)
+        noSeafood = !GoogleMapsPlaceInference.containsSeafoodKeyword(name)
       ),
       syncKey = syncKey,
       sourceUrl = sourceUrl,
@@ -282,70 +281,6 @@ class GoogleMapsListSyncService(
     if (internalIds != null) return "google-maps-list:$internalIds"
 
     return "google-maps-list:${name.lowercase()}:${"%.6f".format(latitude)}:${"%.6f".format(longitude)}"
-  }
-
-  private fun inferCategory(name: String, note: String): String {
-    val text = "$name $note".lowercase()
-    return when {
-      DessertKeywords.any { it in text } -> "dessert"
-      SightseeingKeywords.any { it in text } -> "sightseeing"
-      else -> "meal"
-    }
-  }
-
-  private fun inferCuisine(name: String, category: String): String {
-    val text = name.lowercase()
-    return when {
-      category == "dessert" -> "디저트 / 카페"
-      category == "sightseeing" -> "관광 / 쇼핑"
-      "우동" in text || "うどん" in text -> "우동"
-      "라멘" in text || "ramen" in text -> "라멘"
-      "돈카츠" in text || "とんかつ" in text || "카츠" in text -> "돈카츠"
-      "야키니쿠" in text || "焼肉" in text || "chikamitsu" in text -> "야키니쿠"
-      "샤부" in text || "しゃぶ" in text -> "샤부샤부"
-      "호르몬" in text || "horumon" in text -> "호르몬야키"
-      "몬자" in text -> "몬자야키"
-      "맥주" in text || "bar" in text -> "바 / 맥주"
-      else -> "음식점"
-    }
-  }
-
-  private fun inferMenu(name: String, note: String, category: String): String {
-    if (note.isNotBlank()) return note
-
-    val text = name.lowercase()
-    return when {
-      category == "dessert" -> "대표 디저트 / 음료"
-      category == "sightseeing" -> "방문 후보"
-      "우동" in text || "うどん" in text -> "우동"
-      "라멘" in text || "ramen" in text -> "라멘"
-      "돈카츠" in text || "とんかつ" in text || "카츠" in text -> "돈카츠"
-      "야키니쿠" in text || "焼肉" in text || "chikamitsu" in text -> "야키니쿠"
-      "샤부" in text || "しゃぶ" in text -> "샤부샤부"
-      "호르몬" in text || "horumon" in text -> "호르몬야키"
-      "몬자" in text -> "몬자야키"
-      "맥주" in text || "bar" in text -> "맥주 / 음료"
-      else -> "대표 메뉴 확인 필요"
-    }
-  }
-
-  private fun buildDescription(name: String, note: String, listTitle: String?): String {
-    val prefix = listTitle?.takeIf { it.isNotBlank() }?.let { "$it 목록" } ?: "Google Maps 즐겨찾기"
-    val memo = note.takeIf { it.isNotBlank() }?.let { " 저장된 메모: $it" }.orEmpty()
-    return "${name}은 ${prefix}에서 가져온 장소입니다.$memo 방문 전 영업시간과 휴무일을 확인해주세요."
-  }
-
-  private fun containsSeafoodKeyword(name: String): Boolean {
-    val text = name.lowercase()
-    return SeafoodKeywords.any { it in text }
-  }
-
-  private fun estimateTravelMinutes(distanceKm: Double, travelMode: String): Int {
-    return if (travelMode == "walk") {
-      ceil(distanceKm / 0.08).toInt().coerceAtLeast(1)
-    } else {
-      ceil(distanceKm * 3 + 12).toInt().coerceIn(15, 60)
-    }
   }
 
   private fun haversineKm(a: Coordinate, b: Coordinate): Double {
@@ -470,56 +405,5 @@ class GoogleMapsListSyncService(
     val HotelLocation = Coordinate(35.668862, 139.773098)
     const val BrowserUserAgent =
       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36"
-    val DessertKeywords = listOf(
-      "cafe",
-      "카페",
-      "커피",
-      "coffee",
-      "초콜릿",
-      "chocolate",
-      "하브스",
-      "harbs",
-      "크레페",
-      "クレープ",
-      "espresso",
-      "에스프레ッソ",
-      "パン",
-      "팡 ",
-      "bakery",
-      "bread",
-      "cha "
-    )
-    val SightseeingKeywords = listOf(
-      "museum",
-      "뮤지엄",
-      "미술관",
-      "박물관",
-      "aquarium",
-      "아쿠아리움",
-      "디즈니",
-      "disney",
-      "루미네",
-      "lumine",
-      "bshop",
-      "도버 스트리트",
-      "market",
-      "쇼핑",
-      "호텔"
-    )
-    val SeafoodKeywords = listOf(
-      "스시",
-      "sushi",
-      "초밥",
-      "장어",
-      "うなぎ",
-      "unagi",
-      "긴다코",
-      "gindaco",
-      "문어",
-      "타코야키",
-      "takoyaki",
-      "생선",
-      "fish"
-    )
   }
 }
