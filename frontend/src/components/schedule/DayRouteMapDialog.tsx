@@ -168,16 +168,16 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
       onClose={onClose}
       eyebrow={<Badge variant="outline">{orderedPlaces.length}곳</Badge>}
     >
-      <div className="grid max-h-[calc(94vh-76px)] min-h-0 gap-0 overflow-hidden lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="relative min-h-[420px] bg-muted lg:min-h-[640px]">
-          {status !== 'error' ? <div ref={mapRef} className="h-full min-h-[420px] w-full lg:min-h-[640px]" /> : null}
+      <div className="grid max-h-[calc(94vh-76px)] min-h-0 gap-0 overflow-hidden lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="relative min-h-[320px] bg-muted sm:min-h-[360px] lg:min-h-[540px]">
+          {status !== 'error' ? <div ref={mapRef} className="h-full min-h-[320px] w-full sm:min-h-[360px] lg:min-h-[540px]" /> : null}
           {status === 'loading' ? (
             <div className="absolute inset-0 grid place-items-center bg-background/80">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : null}
           {status === 'error' ? (
-            <div className="grid h-full min-h-[420px] place-items-center p-6 text-center lg:min-h-[640px]">
+            <div className="grid h-full min-h-[320px] place-items-center p-6 text-center sm:min-h-[360px] lg:min-h-[540px]">
               <div>
                 <MapPinned className="mx-auto h-10 w-10 text-muted-foreground" />
                 <p className="mt-3 font-semibold">동선 지도를 표시할 수 없습니다.</p>
@@ -187,10 +187,10 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
           ) : null}
         </div>
 
-        <aside className="max-h-[44vh] overflow-y-auto border-t bg-background p-4 lg:max-h-none lg:border-l lg:border-t-0">
-          <div className="mb-3 text-sm font-semibold text-muted-foreground">방문 순서</div>
+        <aside className="max-h-[52vh] overflow-y-auto border-t bg-background p-4 sm:p-5 lg:max-h-[540px] lg:border-l lg:border-t-0">
+          <div className="mb-4 text-base font-semibold text-foreground">방문 순서</div>
           {orderedPlaces.length ? (
-            <ol className="grid gap-3">
+            <ol className="grid gap-3.5">
               {orderedPlaces.map((place, index) => {
                 const isSelected = place.id === selectedPlaceId;
 
@@ -198,7 +198,7 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
                   <li key={`${place.id}-${index}`}>
                     <button
                       type="button"
-                      className={`flex w-full gap-3 rounded-md border p-3 text-left transition ${
+                      className={`flex w-full gap-3 rounded-md border p-4 text-left transition ${
                         isSelected
                           ? 'border-primary/40 bg-primary/10 shadow-sm'
                           : 'border-border bg-muted/20 hover:bg-muted/35'
@@ -206,15 +206,15 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
                       onClick={() => setSelectedPlaceId(place.id)}
                     >
                       <span
-                        className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-bold ${
+                        className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold ${
                           isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
                         }`}
                       >
                         {index + 1}
                       </span>
                       <span className="min-w-0">
-                        <span className="block truncate text-sm font-semibold">{place.name}</span>
-                        <span className="mt-1 block line-clamp-2 text-xs text-muted-foreground">{place.menu}</span>
+                        <span className="block truncate text-[15px] font-semibold">{place.name}</span>
+                        <span className="mt-1.5 block line-clamp-2 text-sm leading-5 text-muted-foreground">{place.menu}</span>
                       </span>
                     </button>
                   </li>

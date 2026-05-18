@@ -1,19 +1,38 @@
 import { FormEvent, useEffect, useState, type ReactNode } from 'react';
-import { ArrowDown, ArrowUp, CalendarCheck2, ClipboardList, Home, PlaneTakeoff, Plus, Trash2, type LucideIcon } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  CalendarCheck2,
+  ChevronDown,
+  ClipboardList,
+  Home,
+  PlaneTakeoff,
+  Plus,
+  Trash2,
+  type LucideIcon
+} from 'lucide-react';
 import { fetchSchedule } from '@/api/schedule';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useTodos } from '@/hooks/useTodos';
 import { cn } from '@/lib/utils';
-import type { TodoCustomChecklist, TodoItem } from '@/types/todo';
+import type { TodoCustomChecklist, TodoDay, TodoItem, TodoSectionId } from '@/types/todo';
 
 type TodoPageProps = {
   isEditing: boolean;
 };
 
+type DefaultTodoBoxId = TodoSectionId | 'days';
+
+const defaultTodoBoxIds: DefaultTodoBoxId[] = ['before', 'days', 'after'];
+const todoBoxOrderStorageKey = 'travel-node.todo.default-box-order.v1';
+const todoBoxCollapseStorageKey = 'travel-node.todo.collapsed-boxes.v1';
+
 export function TodoPage({ isEditing }: TodoPageProps) {
   const [scheduleDayCount, setScheduleDayCount] = useState(1);
+  const [defaultBoxOrder, setDefaultBoxOrder] = useState<DefaultTodoBoxId[]>(loadDefaultTodoBoxOrder);
+  const [collapsedBoxIds, setCollapsedBoxIds] = useState<Set<string>>(loadCollapsedTodoBoxIds);
   const {
     todos,
     status,
@@ -55,6 +74,105 @@ export function TodoPage({ isEditing }: TodoPageProps) {
     };
   }, []);
 
+  useEffect(() => {
+    writeLocalStorage(todoBoxOrderStorageKey, JSON.stringify(defaultBoxOrder));
+  }, [defaultBoxOrder]);
+
+  useEffect(() => {
+    writeLocalStorage(todoBoxCollapseStorageKey, JSON.stringify(Array.from(collapsedBoxIds)));
+  }, [collapsedBoxIds]);
+
+  function moveDefaultBox(boxId: DefaultTodoBoxId, direction: -1 | 1) {
+    setDefaultBoxOrder((current) => moveOrderedValue(current, boxId, direction));
+  }
+
+  function toggleCollapsedBox(boxId: string) {
+    setCollapsedBoxIds((current) => {
+      const next = new Set(current);
+      if (next.has(boxId)) next.delete(boxId);
+      else next.add(boxId);
+      return next;
+    });
+  }
+
+  function defaultBoxMoveActions(boxId: DefaultTodoBoxId, label: string) {
+    const boxIndex = defaultBoxOrder.indexOf(boxId);
+    return isEditing ? (
+      <TodoBoxMoveActions
+        label={label}
+        canMoveUp={boxIndex > 0}
+        canMoveDown={boxIndex >= 0 && boxIndex < defaultBoxOrder.length - 1}
+        isSaving={isSaving}
+        onMoveUp={() => moveDefaultBox(boxId, -1)}
+        onMoveDown={() => moveDefaultBox(boxId, 1)}
+      />
+    ) : null;
+  }
+
+  function renderDefaultBox(boxId: DefaultTodoBoxId) {
+    switch (boxId) {
+      case 'before':
+        return (
+          <TodoSectionCard
+            key="before"
+            title="여행전 체크리스트"
+            description="출발 전에 빠뜨리면 곤란한 준비물을 정리합니다."
+            icon={PlaneTakeoff}
+            items={todos.before}
+            isCollapsed={collapsedBoxIds.has('before')}
+            isEditing={isEditing}
+            isSaving={isSaving}
+            accentClassName="bg-sky-500/10 text-sky-700 dark:text-sky-300"
+            headerActions={defaultBoxMoveActions('before', '여행전 체크리스트')}
+            onToggleCollapsed={() => toggleCollapsedBox('before')}
+            onAdd={(text) => addSectionItem('before', text)}
+            onToggle={(itemId) => toggleItem('before', itemId)}
+            onRemove={(itemId) => removeSectionItem('before', itemId)}
+            onMove={(itemId, direction) => moveSectionItem('before', itemId, direction)}
+          />
+        );
+      case 'days':
+        return (
+          <TodoDaySectionCard
+            key="days"
+            days={todos.days}
+            isCollapsed={collapsedBoxIds.has('days')}
+            isEditing={isEditing}
+            isSaving={isSaving}
+            headerActions={defaultBoxMoveActions('days', 'DAY 별 할 일 목록')}
+            onToggleCollapsed={() => toggleCollapsedBox('days')}
+            onAddDay={addDay}
+            onAddItem={addDayItem}
+            onToggleItem={toggleDayItem}
+            onRemoveItem={removeDayItem}
+            onMoveItem={moveDayItem}
+          />
+        );
+      case 'after':
+        return (
+          <TodoSectionCard
+            key="after"
+            title="여행후 체크리스트"
+            description="귀국 후 정산, 백업, 후기 정리를 잊지 않게 남깁니다."
+            icon={Home}
+            items={todos.after}
+            isCollapsed={collapsedBoxIds.has('after')}
+            isEditing={isEditing}
+            isSaving={isSaving}
+            accentClassName="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+            headerActions={defaultBoxMoveActions('after', '여행후 체크리스트')}
+            onToggleCollapsed={() => toggleCollapsedBox('after')}
+            onAdd={(text) => addSectionItem('after', text)}
+            onToggle={(itemId) => toggleItem('after', itemId)}
+            onRemove={(itemId) => removeSectionItem('after', itemId)}
+            onMove={(itemId, direction) => moveSectionItem('after', itemId, direction)}
+          />
+        );
+      default:
+        return null;
+    }
+  }
+
   return (
     <PageContainer className="grid gap-5 px-3 py-4 sm:gap-6 sm:px-4 sm:py-5">
       <header className="flex flex-col gap-3 border-b border-border/70 pb-4 sm:gap-4 sm:pb-5 lg:flex-row lg:items-end lg:justify-between">
@@ -81,80 +199,7 @@ export function TodoPage({ isEditing }: TodoPageProps) {
         </div>
       ) : null}
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)_minmax(0,0.9fr)]">
-        <TodoSectionCard
-          title="여행전 체크리스트"
-          description="출발 전에 빠뜨리면 곤란한 준비물을 정리합니다."
-          icon={PlaneTakeoff}
-          items={todos.before}
-          isEditing={isEditing}
-          isSaving={isSaving}
-          accentClassName="bg-sky-500/10 text-sky-700 dark:text-sky-300"
-          onAdd={(text) => addSectionItem('before', text)}
-          onToggle={(itemId) => toggleItem('before', itemId)}
-          onRemove={(itemId) => removeSectionItem('before', itemId)}
-          onMove={(itemId, direction) => moveSectionItem('before', itemId, direction)}
-        />
-
-        <section className="soft-panel overflow-hidden rounded-xl">
-          <div className="border-b bg-secondary/80 px-4 py-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="grid h-9 w-9 place-items-center rounded-md bg-primary/10 text-primary">
-                    <CalendarCheck2 className="h-5 w-5" />
-                  </span>
-                  <div>
-                    <h2 className="text-lg font-bold">DAY 별 할 일 목록</h2>
-                    <p className="mt-0.5 text-sm text-muted-foreground">각 날짜에 챙길 예약, 티켓, 쇼핑, 이동 전 확인을 기록합니다.</p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="rounded-full bg-background">
-                  {todos.days.length}일
-                </Badge>
-                {isEditing ? (
-                  <Button className="rounded-full" size="sm" variant="outline" onClick={addDay} disabled={isSaving}>
-                    <Plus className="h-4 w-4" />
-                    DAY 추가
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-3 p-3 sm:p-4">
-            {todos.days.map((day) => (
-              <TodoDayCard
-                key={day.dayIndex}
-                dayIndex={day.dayIndex}
-                items={day.items}
-                isEditing={isEditing}
-                isSaving={isSaving}
-                onAdd={(text) => addDayItem(day.dayIndex, text)}
-                onToggle={(itemId) => toggleDayItem(day.dayIndex, itemId)}
-                onRemove={(itemId) => removeDayItem(day.dayIndex, itemId)}
-                onMove={(itemId, direction) => moveDayItem(day.dayIndex, itemId, direction)}
-              />
-            ))}
-          </div>
-        </section>
-
-        <TodoSectionCard
-          title="여행후 체크리스트"
-          description="귀국 후 정산, 백업, 후기 정리를 잊지 않게 남깁니다."
-          icon={Home}
-          items={todos.after}
-          isEditing={isEditing}
-          isSaving={isSaving}
-          accentClassName="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-          onAdd={(text) => addSectionItem('after', text)}
-          onToggle={(itemId) => toggleItem('after', itemId)}
-          onRemove={(itemId) => removeSectionItem('after', itemId)}
-          onMove={(itemId, direction) => moveSectionItem('after', itemId, direction)}
-        />
-      </div>
+      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">{defaultBoxOrder.map(renderDefaultBox)}</div>
 
       {todos.custom.length ? (
         <section className="grid gap-3">
@@ -173,8 +218,10 @@ export function TodoPage({ isEditing }: TodoPageProps) {
                 canMoveDown={index < todos.custom.length - 1}
                 isEditing={isEditing}
                 isSaving={isSaving}
+                isCollapsed={collapsedBoxIds.has(`custom:${checklist.id}`)}
                 onMoveUp={() => moveCustomChecklist(checklist.id, -1)}
                 onMoveDown={() => moveCustomChecklist(checklist.id, 1)}
+                onToggleCollapsed={() => toggleCollapsedBox(`custom:${checklist.id}`)}
                 onAdd={(text) => addCustomItem(checklist.id, text)}
                 onToggle={(itemId) => toggleCustomItem(checklist.id, itemId)}
                 onRemoveItem={(itemId) => removeCustomItem(checklist.id, itemId)}
@@ -194,11 +241,13 @@ function TodoSectionCard({
   description,
   icon: Icon,
   items,
+  isCollapsed,
   isEditing,
   isSaving,
   accentClassName,
   headerActions,
   onRemoveList,
+  onToggleCollapsed,
   onAdd,
   onToggle,
   onRemove,
@@ -208,11 +257,13 @@ function TodoSectionCard({
   description: string;
   icon: LucideIcon;
   items: TodoItem[];
+  isCollapsed: boolean;
   isEditing: boolean;
   isSaving: boolean;
   accentClassName: string;
   headerActions?: ReactNode;
   onRemoveList?: () => void;
+  onToggleCollapsed: () => void;
   onAdd: (text: string) => void;
   onToggle: (itemId: string) => void;
   onRemove: (itemId: string) => void;
@@ -223,7 +274,7 @@ function TodoSectionCard({
   return (
     <section className="soft-panel overflow-hidden rounded-xl">
       <div className="border-b bg-secondary/80 px-4 py-4">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
             <span className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-md', accentClassName)}>
               <Icon className="h-5 w-5" />
@@ -233,11 +284,12 @@ function TodoSectionCard({
               <p className="mt-1 text-sm leading-5 text-muted-foreground">{description}</p>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
             <Badge variant="outline" className="rounded-full bg-background">
               {doneCount}/{items.length}
             </Badge>
             {headerActions}
+            <CollapseButton isCollapsed={isCollapsed} label={title} onToggle={onToggleCollapsed} />
             {onRemoveList ? (
               <Button
                 variant="ghost"
@@ -254,18 +306,20 @@ function TodoSectionCard({
         </div>
       </div>
 
-      <div className="grid gap-3 p-3 sm:p-4">
-        <TodoItems
-          items={items}
-          isEditing={isEditing}
-          isSaving={isSaving}
-          emptyText="아직 등록된 항목이 없습니다."
-          onToggle={onToggle}
-          onRemove={onRemove}
-          onMove={onMove}
-        />
-        {isEditing ? <AddTodoForm disabled={isSaving} onAdd={onAdd} /> : null}
-      </div>
+      {!isCollapsed ? (
+        <div className="grid gap-3 p-3 sm:p-4">
+          <TodoItems
+            items={items}
+            isEditing={isEditing}
+            isSaving={isSaving}
+            emptyText="아직 등록된 항목이 없습니다."
+            onToggle={onToggle}
+            onRemove={onRemove}
+            onMove={onMove}
+          />
+          {isEditing ? <AddTodoForm disabled={isSaving} onAdd={onAdd} /> : null}
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -274,10 +328,12 @@ function CustomChecklistCard({
   checklist,
   canMoveUp,
   canMoveDown,
+  isCollapsed,
   isEditing,
   isSaving,
   onMoveUp,
   onMoveDown,
+  onToggleCollapsed,
   onAdd,
   onToggle,
   onRemoveItem,
@@ -287,10 +343,12 @@ function CustomChecklistCard({
   checklist: TodoCustomChecklist;
   canMoveUp: boolean;
   canMoveDown: boolean;
+  isCollapsed: boolean;
   isEditing: boolean;
   isSaving: boolean;
   onMoveUp: () => void;
   onMoveDown: () => void;
+  onToggleCollapsed: () => void;
   onAdd: (text: string) => void;
   onToggle: (itemId: string) => void;
   onRemoveItem: (itemId: string) => void;
@@ -303,41 +361,93 @@ function CustomChecklistCard({
       description="사용자가 추가한 체크리스트입니다."
       icon={ClipboardList}
       items={checklist.items}
+      isCollapsed={isCollapsed}
       isEditing={isEditing}
       isSaving={isSaving}
       accentClassName="bg-violet-500/10 text-violet-700 dark:text-violet-300"
       headerActions={
         isEditing ? (
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 rounded-full"
-              onClick={onMoveUp}
-              disabled={isSaving || !canMoveUp}
-              aria-label={`${checklist.title} 앞으로 이동`}
-            >
-              <ArrowUp className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 rounded-full"
-              onClick={onMoveDown}
-              disabled={isSaving || !canMoveDown}
-              aria-label={`${checklist.title} 뒤로 이동`}
-            >
-              <ArrowDown className="h-4 w-4" />
-            </Button>
-          </div>
+          <TodoBoxMoveActions
+            label={checklist.title}
+            canMoveUp={canMoveUp}
+            canMoveDown={canMoveDown}
+            isSaving={isSaving}
+            onMoveUp={onMoveUp}
+            onMoveDown={onMoveDown}
+          />
         ) : null
       }
       onRemoveList={isEditing ? onRemoveChecklist : undefined}
+      onToggleCollapsed={onToggleCollapsed}
       onAdd={onAdd}
       onToggle={onToggle}
       onRemove={onRemoveItem}
       onMove={onMoveItem}
     />
+  );
+}
+
+function TodoBoxMoveActions({
+  label,
+  canMoveUp,
+  canMoveDown,
+  isSaving,
+  onMoveUp,
+  onMoveDown
+}: {
+  label: string;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  isSaving: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-1">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 rounded-full"
+        onClick={onMoveUp}
+        disabled={isSaving || !canMoveUp}
+        aria-label={`${label} 앞으로 이동`}
+      >
+        <ArrowUp className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 rounded-full"
+        onClick={onMoveDown}
+        disabled={isSaving || !canMoveDown}
+        aria-label={`${label} 뒤로 이동`}
+      >
+        <ArrowDown className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
+function CollapseButton({
+  isCollapsed,
+  label,
+  onToggle
+}: {
+  isCollapsed: boolean;
+  label: string;
+  onToggle: () => void;
+}) {
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="h-8 w-8 rounded-full"
+      onClick={onToggle}
+      aria-label={isCollapsed ? `${label} 펼치기` : `${label} 접기`}
+      aria-expanded={!isCollapsed}
+    >
+      <ChevronDown className={cn('h-4 w-4 transition-transform', isCollapsed && '-rotate-90')} />
+    </Button>
   );
 }
 
@@ -376,6 +486,91 @@ function CreateChecklistForm({
         생성
       </Button>
     </form>
+  );
+}
+
+function TodoDaySectionCard({
+  days,
+  isCollapsed,
+  isEditing,
+  isSaving,
+  headerActions,
+  onToggleCollapsed,
+  onAddDay,
+  onAddItem,
+  onToggleItem,
+  onRemoveItem,
+  onMoveItem
+}: {
+  days: TodoDay[];
+  isCollapsed: boolean;
+  isEditing: boolean;
+  isSaving: boolean;
+  headerActions?: ReactNode;
+  onToggleCollapsed: () => void;
+  onAddDay: () => void;
+  onAddItem: (dayIndex: number, text: string) => void;
+  onToggleItem: (dayIndex: number, itemId: string) => void;
+  onRemoveItem: (dayIndex: number, itemId: string) => void;
+  onMoveItem: (dayIndex: number, itemId: string, direction: -1 | 1) => void;
+}) {
+  const totalCount = days.reduce((sum, day) => sum + day.items.length, 0);
+  const doneCount = days.reduce((sum, day) => sum + day.items.filter((item) => item.done).length, 0);
+
+  return (
+    <section className="soft-panel overflow-hidden rounded-xl">
+      <div className="border-b bg-secondary/80 px-4 py-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-start gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+                <CalendarCheck2 className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <h2 className="text-lg font-bold">DAY 별 할 일 목록</h2>
+                <p className="mt-1 text-sm leading-5 text-muted-foreground">
+                  각 날짜에 챙길 예약, 티켓, 쇼핑, 이동 전 확인을 기록합니다.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+            <Badge variant="outline" className="rounded-full bg-background">
+              {days.length}일
+            </Badge>
+            <Badge variant="outline" className="rounded-full bg-background">
+              {doneCount}/{totalCount}
+            </Badge>
+            {headerActions}
+            {isEditing ? (
+              <Button className="h-8 rounded-full" size="sm" variant="outline" onClick={onAddDay} disabled={isSaving}>
+                <Plus className="h-4 w-4" />
+                DAY 추가
+              </Button>
+            ) : null}
+            <CollapseButton isCollapsed={isCollapsed} label="DAY 별 할 일 목록" onToggle={onToggleCollapsed} />
+          </div>
+        </div>
+      </div>
+
+      {!isCollapsed ? (
+        <div className="grid gap-3 p-3 sm:p-4">
+          {days.map((day) => (
+            <TodoDayCard
+              key={day.dayIndex}
+              dayIndex={day.dayIndex}
+              items={day.items}
+              isEditing={isEditing}
+              isSaving={isSaving}
+              onAdd={(text) => onAddItem(day.dayIndex, text)}
+              onToggle={(itemId) => onToggleItem(day.dayIndex, itemId)}
+              onRemove={(itemId) => onRemoveItem(day.dayIndex, itemId)}
+              onMove={(itemId, direction) => onMoveItem(day.dayIndex, itemId, direction)}
+            />
+          ))}
+        </div>
+      ) : null}
+    </section>
   );
 }
 
@@ -543,4 +738,74 @@ function AddTodoForm({
       </Button>
     </form>
   );
+}
+
+function loadDefaultTodoBoxOrder(): DefaultTodoBoxId[] {
+  const rawOrder = readLocalStorage(todoBoxOrderStorageKey);
+  if (!rawOrder) return defaultTodoBoxIds;
+
+  try {
+    return normalizeDefaultTodoBoxOrder(JSON.parse(rawOrder));
+  } catch {
+    return defaultTodoBoxIds;
+  }
+}
+
+function normalizeDefaultTodoBoxOrder(value: unknown): DefaultTodoBoxId[] {
+  if (!Array.isArray(value)) return defaultTodoBoxIds;
+
+  const orderedIds: DefaultTodoBoxId[] = [];
+  value.forEach((item) => {
+    if (isDefaultTodoBoxId(item) && !orderedIds.includes(item)) orderedIds.push(item);
+  });
+
+  defaultTodoBoxIds.forEach((boxId) => {
+    if (!orderedIds.includes(boxId)) orderedIds.push(boxId);
+  });
+
+  return orderedIds;
+}
+
+function isDefaultTodoBoxId(value: unknown): value is DefaultTodoBoxId {
+  return value === 'before' || value === 'days' || value === 'after';
+}
+
+function loadCollapsedTodoBoxIds() {
+  const rawIds = readLocalStorage(todoBoxCollapseStorageKey);
+  if (!rawIds) return new Set<string>();
+
+  try {
+    const parsedIds = JSON.parse(rawIds);
+    if (!Array.isArray(parsedIds)) return new Set<string>();
+    return new Set(parsedIds.filter((value): value is string => typeof value === 'string' && value.length > 0));
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function moveOrderedValue<T>(items: T[], value: T, direction: -1 | 1) {
+  const fromIndex = items.indexOf(value);
+  const toIndex = fromIndex + direction;
+  if (fromIndex < 0 || toIndex < 0 || toIndex >= items.length) return items;
+
+  const nextItems = [...items];
+  const [movedItem] = nextItems.splice(fromIndex, 1);
+  nextItems.splice(toIndex, 0, movedItem);
+  return nextItems;
+}
+
+function readLocalStorage(key: string) {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeLocalStorage(key: string, value: string) {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Local UI preferences are optional; ignore storage failures.
+  }
 }
