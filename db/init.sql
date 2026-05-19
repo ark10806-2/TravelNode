@@ -220,6 +220,29 @@ CREATE TABLE IF NOT EXISTS reservations (
 
 ALTER TABLE reservations ADD COLUMN IF NOT EXISTS attachments jsonb NOT NULL DEFAULT '[]'::jsonb;
 
+CREATE TABLE IF NOT EXISTS api_usage_daily (
+  usage_date date NOT NULL,
+  service_id text NOT NULL,
+  service_name text NOT NULL,
+  request_count integer NOT NULL DEFAULT 0 CHECK (request_count >= 0),
+  cache_hit_count integer NOT NULL DEFAULT 0 CHECK (cache_hit_count >= 0),
+  cache_miss_count integer NOT NULL DEFAULT 0 CHECK (cache_miss_count >= 0),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (usage_date, service_id)
+);
+
+ALTER TABLE api_usage_daily ADD COLUMN IF NOT EXISTS cache_hit_count integer NOT NULL DEFAULT 0;
+ALTER TABLE api_usage_daily ADD COLUMN IF NOT EXISTS cache_miss_count integer NOT NULL DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS api_usage_limits (
+  service_id text PRIMARY KEY,
+  service_name text NOT NULL,
+  daily_limit integer NOT NULL CHECK (daily_limit > 0),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
 DO $$
 BEGIN
   IF EXISTS (

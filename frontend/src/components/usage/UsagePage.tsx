@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, BarChart3, Car, ExternalLink, Footprints, RefreshCw, Save, Train } from 'lucide-react';
-import { fetchApiUsage, updateApiUsage, type ApiUsageItem, type ApiUsageSummary } from '@/api/usage';
+import { fetchApiUsage, updateApiUsage, type ApiUsageChart, type ApiUsageItem, type ApiUsageSummary } from '@/api/usage';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -203,6 +203,28 @@ export function UsagePage({ isEditing }: UsagePageProps) {
       <div className="rounded-md border bg-background p-4 shadow-sm">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
+            <h2 className="text-lg font-bold">일별 요청 / 캐시 적중률</h2>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
+              각 API별 실제 Google 요청 수와 캐시 hit-rate를 한 차트에 겹쳐 봅니다. 캐시가 없는 API는 요청 추이만 표시합니다.
+            </p>
+          </div>
+          <Badge variant="outline">월간 일별 지표</Badge>
+        </div>
+        <div className="mt-4 grid gap-3 xl:grid-cols-2">
+          {(summary?.charts ?? []).map((chart) => (
+            <UsageChartCard key={chart.serviceId} chart={chart} />
+          ))}
+          {!summary ? (
+            <div className="grid min-h-56 place-items-center rounded-md border border-dashed text-sm text-muted-foreground xl:col-span-2">
+              차트 데이터를 불러오는 중입니다.
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="rounded-md border bg-background p-4 shadow-sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
             <h2 className="text-lg font-bold">이동 수단 표시 및 계산</h2>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
               선택한 이동 수단만 일정 화면에 보이고 경로 계산 대상이 됩니다. 꺼진 이동 수단은 백그라운드에서도 Routes API를 호출하지 않습니다.
@@ -269,6 +291,129 @@ const routeModeOptions: Array<{
     icon: Car
   }
 ];
+
+function UsageChartCard({ chart }: { chart: ApiUsageChart }) {
+  const chartWidth = 640;
+  const chartHeight = 240;
+  const padding = { top: 18, right: 28, bottom: 34, left: 46 };
+  const plotWidth = chartWidth - padding.left - padding.right;
+  const plotHeight = chartHeight - padding.top - padding.bottom;
+  const maxRequests = Math.max(1, ...chart.points.map((point) => point.requestCount));
+  const hitRatePoints = chart.points
+    .map((point, index) => {
+      if (point.hitRate == null) return null;
+      return {
+        x: xForIndex(index, chart.points.length, padding.left, plotWidth),
+        y: padding.top + plotHeight - (Math.min(point.hitRate, 100) / 100) * plotHeight
+      };
+    })
+    .filter((point): point is ChartPointPosition => point !== null);
+  const barWidth = Math.max(3, Math.min(12, plotWidth / Math.max(chart.points.length, 1) * 0.42));
+  const labelIndexes = chart.points.length ? uniqueNumbers([0, Math.floor((chart.points.length - 1) / 2), chart.points.length - 1]) : [];
+  const hasHitRate = chart.hitRate != null;
+
+  return (
+    <div className="rounded-lg border bg-muted/10 p-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="truncate text-sm font-bold">{chart.name}</div>
+          <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
+            <span>요청 {formatNumber(chart.totalRequests)}</span>
+            <span>Hit {formatNumber(chart.totalCacheHits)}</span>
+            <span>Miss {formatNumber(chart.totalCacheMisses)}</span>
+          </div>
+        </div>
+        <Badge className={cn('shrink-0', hasHitRate ? 'bg-primary/10 text-primary hover:bg-primary/10' : 'bg-muted text-muted-foreground hover:bg-muted')}>
+          {hasHitRate ? `Hit-rate ${formatPercent(chart.hitRate ?? 0)}` : '캐시 없음'}
+        </Badge>
+      </div>
+
+      <div className="mt-3 overflow-hidden rounded-md border bg-background/80">
+        <svg className="h-auto w-full" viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label={`${chart.name} 요청 및 캐시 적중률 그래프`}>
+          <rect x="0" y="0" width={chartWidth} height={chartHeight} fill="transparent" />
+          {[0, 0.5, 1].map((ratio) => {
+            const y = padding.top + plotHeight * ratio;
+            return (
+              <line
+                key={ratio}
+                x1={padding.left}
+                x2={chartWidth - padding.right}
+                y1={y}
+                y2={y}
+                stroke="currentColor"
+                className="text-border"
+                strokeDasharray={ratio === 1 ? '0' : '4 6'}
+              />
+            );
+          })}
+          {chart.points.map((point, index) => {
+            const x = xForIndex(index, chart.points.length, padding.left, plotWidth);
+            const height = (point.requestCount / maxRequests) * plotHeight;
+            return (
+              <rect
+                key={point.date}
+                x={x - barWidth / 2}
+                y={padding.top + plotHeight - height}
+                width={barWidth}
+                height={Math.max(1, height)}
+                rx="3"
+                fill="#008489"
+                opacity="0.28"
+              />
+            );
+          })}
+          {hitRatePoints.length >= 2 ? (
+            <polyline
+              points={hitRatePoints.map((point) => `${point.x},${point.y}`).join(' ')}
+              fill="none"
+              stroke="#ff385c"
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          ) : null}
+          {hitRatePoints.map((point) => (
+            <circle key={`${point.x}-${point.y}`} cx={point.x} cy={point.y} r="4.5" fill="#ff385c" stroke="white" strokeWidth="2" />
+          ))}
+          <text x={padding.left - 8} y={padding.top + 4} textAnchor="end" className="fill-muted-foreground text-[18px]">
+            {formatNumber(maxRequests)}
+          </text>
+          <text x={padding.left - 8} y={padding.top + plotHeight + 4} textAnchor="end" className="fill-muted-foreground text-[18px]">
+            0
+          </text>
+          <text x={chartWidth - 8} y={padding.top + 4} textAnchor="end" className="fill-muted-foreground text-[18px]">
+            100%
+          </text>
+          <text x={chartWidth - 8} y={padding.top + plotHeight + 4} textAnchor="end" className="fill-muted-foreground text-[18px]">
+            0%
+          </text>
+          {labelIndexes.map((index) => (
+            <text
+              key={index}
+              x={xForIndex(index, chart.points.length, padding.left, plotWidth)}
+              y={chartHeight - 11}
+              textAnchor="middle"
+              className="fill-muted-foreground text-[18px]"
+            >
+              {formatShortDate(chart.points[index].date)}
+            </text>
+          ))}
+        </svg>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2 w-5 rounded-full bg-[#008489]/35" />
+          Request
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2 w-5 rounded-full bg-[#ff385c]" />
+          Hit-rate
+        </span>
+      </div>
+    </div>
+  );
+}
 
 function UsageRow({
   service,
@@ -371,6 +516,30 @@ function ProgressBar({
 
 function formatPercent(value: number) {
   return `${Math.round(value)}%`;
+}
+
+type ChartPointPosition = {
+  x: number;
+  y: number;
+};
+
+function xForIndex(index: number, total: number, left: number, width: number) {
+  if (total <= 1) return left + width / 2;
+  return left + (index / (total - 1)) * width;
+}
+
+function uniqueNumbers(values: number[]) {
+  return Array.from(new Set(values));
+}
+
+function formatNumber(value: number) {
+  return new Intl.NumberFormat('ko-KR').format(value);
+}
+
+function formatShortDate(date: string) {
+  const [, month, day] = date.split('-');
+  if (!month || !day) return date;
+  return `${Number(month)}/${Number(day)}`;
 }
 
 function toDrafts(summary: ApiUsageSummary): Record<string, DraftValue> {

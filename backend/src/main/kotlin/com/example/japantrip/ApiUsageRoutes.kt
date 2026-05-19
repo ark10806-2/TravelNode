@@ -17,14 +17,19 @@ fun Route.apiUsageRoutes(repository: ApiUsageRepository, authRepository: AuthRep
 
     post("events") {
       val request = call.receive<ApiUsageEventRequest>()
-      val errors = listOfNotNull(repository.validateServiceId(request.serviceId))
+      val errors = listOfNotNull(repository.validateServiceId(request.serviceId)) + repository.validateEvent(request)
 
       if (errors.isNotEmpty()) {
         call.respondErrors(HttpStatusCode.BadRequest, errors)
         return@post
       }
 
-      repository.increment(request.serviceId!!, request.count ?: 1)
+      repository.increment(
+        serviceId = request.serviceId!!,
+        count = request.count ?: 1,
+        cacheHitCount = request.cacheHitCount ?: 0,
+        cacheMissCount = request.cacheMissCount ?: 0
+      )
       call.respond(HttpStatusCode.Created, DataResponse(repository.summary()))
     }
 

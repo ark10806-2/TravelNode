@@ -22,6 +22,7 @@ fun Route.apiRoutes(services: AppServices, config: AppConfig, appLog: Logger) {
     services.restaurantRepository,
     services.restaurantPhotoRepository,
     services.googleMapsPhotoService,
+    services.apiUsageRepository,
     services.authRepository,
     config.publicBaseUrl,
     appLog

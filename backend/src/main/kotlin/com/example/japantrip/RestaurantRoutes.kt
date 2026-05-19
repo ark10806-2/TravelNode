@@ -20,6 +20,7 @@ fun Route.restaurantRoutes(
   repository: RestaurantRepository,
   photoRepository: RestaurantPhotoRepository,
   googleMapsPhotoService: GoogleMapsPhotoService,
+  apiUsageRepository: ApiUsageRepository,
   authRepository: AuthRepository,
   publicBaseUrl: String,
   appLog: Logger
@@ -121,16 +122,19 @@ fun Route.restaurantRoutes(
 
       val cachedPhotos = photoRepository.findByRestaurantId(restaurant.id)
       if (cachedPhotos.isNotEmpty()) {
+        apiUsageRepository.increment(ApiUsageServiceIds.PlacesPhoto, count = 0, cacheHitCount = 1)
         call.respond(DataResponse(cachedPhotos.map { it.toResponse(publicBaseUrl) }))
         return@get
       }
 
       if (photoRepository.isCacheFresh(restaurant.id)) {
+        apiUsageRepository.increment(ApiUsageServiceIds.PlacesPhoto, count = 0, cacheHitCount = 1)
         call.respond(DataResponse(emptyList<RestaurantPhotoResponse>()))
         return@get
       }
 
       val photos = try {
+        apiUsageRepository.increment(ApiUsageServiceIds.PlacesPhoto, count = 0, cacheMissCount = 1)
         val downloadedPhotos = googleMapsPhotoService.photosFor(restaurant)
         photoRepository.replaceForRestaurant(restaurant.id, downloadedPhotos)
       } catch (cause: Exception) {

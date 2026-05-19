@@ -22,7 +22,13 @@ export async function fetchRouteLeg(from: Place, to: Place, options: FetchRouteL
   if (!options.forceRefresh) {
     const cachedLeg = await fetchCachedRouteLeg(fromCacheKey, to.id).catch(() => null);
     leg = pickModes(cachedLeg ?? {}, requestedModes);
+    recordRouteCacheUsage(
+      requestedModes.filter((mode) => isReadyModeLeg(leg[mode])).length,
+      requestedModes.filter((mode) => !isReadyModeLeg(leg[mode])).length
+    );
     if (hasAllModes(leg, requestedModes)) return leg;
+  } else {
+    recordRouteCacheUsage(0, requestedModes.length);
   }
 
   const missingModes = requestedModes.filter((mode) => !isReadyModeLeg(leg[mode]));
@@ -81,6 +87,11 @@ function isReadyModeLeg(leg: RouteModeLeg | undefined) {
 
 function cacheableModes(leg: RouteLeg) {
   return Object.fromEntries(routeModes.flatMap((mode) => (isReadyModeLeg(leg[mode]) ? [[mode, leg[mode]]] : []))) as RouteLeg;
+}
+
+function recordRouteCacheUsage(cacheHitCount: number, cacheMissCount: number) {
+  if (cacheHitCount <= 0 && cacheMissCount <= 0) return;
+  void recordApiUsage('routes', 0, { cacheHitCount, cacheMissCount }).catch(() => undefined);
 }
 
 function estimateModes(from: Place, to: Place, modes: RouteMode[]) {

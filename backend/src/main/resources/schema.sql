@@ -298,10 +298,43 @@ CREATE TABLE IF NOT EXISTS api_usage_daily (
   service_id text NOT NULL,
   service_name text NOT NULL,
   request_count integer NOT NULL DEFAULT 0 CHECK (request_count >= 0),
+  cache_hit_count integer NOT NULL DEFAULT 0 CHECK (cache_hit_count >= 0),
+  cache_miss_count integer NOT NULL DEFAULT 0 CHECK (cache_miss_count >= 0),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (usage_date, service_id)
 );
+
+ALTER TABLE api_usage_daily ADD COLUMN IF NOT EXISTS cache_hit_count integer NOT NULL DEFAULT 0;
+ALTER TABLE api_usage_daily ADD COLUMN IF NOT EXISTS cache_miss_count integer NOT NULL DEFAULT 0;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conrelid = 'api_usage_daily'::regclass
+      AND conname = 'api_usage_daily_cache_hit_count_check'
+  ) THEN
+    ALTER TABLE api_usage_daily
+      ADD CONSTRAINT api_usage_daily_cache_hit_count_check
+      CHECK (cache_hit_count >= 0);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conrelid = 'api_usage_daily'::regclass
+      AND conname = 'api_usage_daily_cache_miss_count_check'
+  ) THEN
+    ALTER TABLE api_usage_daily
+      ADD CONSTRAINT api_usage_daily_cache_miss_count_check
+      CHECK (cache_miss_count >= 0);
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS api_usage_limits (
   service_id text PRIMARY KEY,
