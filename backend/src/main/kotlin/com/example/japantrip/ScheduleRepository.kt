@@ -13,10 +13,12 @@ class ScheduleRepository(
       SELECT
         d.id AS day_id,
         d.selected_return_route_mode AS selected_return_route_mode,
+        d.departure_time_minutes AS day_departure_time_minutes,
         d.hotel_place_id AS hotel_place_id,
         s.id AS stop_id,
         s.restaurant_id AS place_id,
-        s.selected_route_mode AS selected_route_mode
+        s.selected_route_mode AS selected_route_mode,
+        s.departure_time_minutes AS stop_departure_time_minutes
       FROM schedule_days d
       LEFT JOIN schedule_stops s ON s.day_id = d.id
       ORDER BY d.sort_order, s.sort_order
@@ -31,6 +33,7 @@ class ScheduleRepository(
             val day = days.getOrPut(dayId) {
               ScheduleDayAccumulator(
                 selectedReturnRouteMode = rows.getString("selected_return_route_mode"),
+                departureTimeMinutes = rows.getNullableInt("day_departure_time_minutes"),
                 hotelPlaceId = rows.getObject("hotel_place_id", UUID::class.java)?.toString(),
                 stops = mutableListOf()
               )
@@ -46,7 +49,8 @@ class ScheduleRepository(
               id = dayId,
               stops = day.stops,
               selectedReturnRouteMode = day.selectedReturnRouteMode,
-              hotelPlaceId = day.hotelPlaceId
+              hotelPlaceId = day.hotelPlaceId,
+              departureTimeMinutes = day.departureTimeMinutes
             )
           }
         }
@@ -57,12 +61,12 @@ class ScheduleRepository(
   fun replaceAll(request: ScheduleSaveRequest): List<ScheduleDayResponse> {
     val requestedDays = request.days.orEmpty()
     val insertDaySql = """
-      INSERT INTO schedule_days (id, sort_order, selected_return_route_mode, hotel_place_id)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO schedule_days (id, sort_order, selected_return_route_mode, hotel_place_id, departure_time_minutes)
+      VALUES (?, ?, ?, ?, ?)
     """.trimIndent()
     val insertStopSql = """
-      INSERT INTO schedule_stops (id, day_id, restaurant_id, sort_order, selected_route_mode)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO schedule_stops (id, day_id, restaurant_id, sort_order, selected_route_mode, departure_time_minutes)
+      VALUES (?, ?, ?, ?, ?, ?)
     """.trimIndent()
 
     dataSource.connection.use { connection ->
@@ -84,6 +88,11 @@ class ScheduleRepository(
             } else {
               statement.setObject(4, UUID.fromString(hotelPlaceId))
             }
+            if (day.departureTimeMinutes == null) {
+              statement.setNull(5, Types.INTEGER)
+            } else {
+              statement.setInt(5, day.departureTimeMinutes)
+            }
             statement.addBatch()
           }
           statement.executeBatch()
@@ -97,6 +106,11 @@ class ScheduleRepository(
               statement.setObject(3, UUID.fromString(stop.placeId!!.trim()))
               statement.setInt(4, stopIndex)
               statement.setString(5, stop.selectedRouteMode?.trim()?.takeIf { it.isNotBlank() })
+              if (stop.departureTimeMinutes == null) {
+                statement.setNull(6, Types.INTEGER)
+              } else {
+                statement.setInt(6, stop.departureTimeMinutes)
+              }
               statement.addBatch()
             }
           }
@@ -116,12 +130,19 @@ class ScheduleRepository(
   private fun ResultSet.toStop() = ScheduleStopResponse(
     id = getString("stop_id"),
     placeId = getObject("place_id", UUID::class.java).toString(),
-    selectedRouteMode = getString("selected_route_mode")
+    selectedRouteMode = getString("selected_route_mode"),
+    departureTimeMinutes = getNullableInt("stop_departure_time_minutes")
   )
+
+  private fun ResultSet.getNullableInt(column: String): Int? {
+    val value = getInt(column)
+    return if (wasNull()) null else value
+  }
 
   private data class ScheduleDayAccumulator(
     val selectedReturnRouteMode: String?,
     val hotelPlaceId: String?,
+    val departureTimeMinutes: Int?,
     val stops: MutableList<ScheduleStopResponse>
   )
 }

@@ -1,5 +1,5 @@
 import { Car, Footprints, Loader2, Train } from 'lucide-react';
-import { buildPlaceDirectionsUrl, routeModes } from '@/lib/schedule-utils';
+import { buildPlaceDirectionsUrl, formatDepartureTime, routeModes } from '@/lib/schedule-utils';
 import { cn } from '@/lib/utils';
 import type { RouteLeg, RouteMode } from '@/types/schedule';
 import type { Place } from '@/types/travel';
@@ -9,6 +9,7 @@ type RouteLegRowProps = {
   to: Place;
   leg?: RouteLeg;
   selectedMode?: RouteMode | null;
+  departureTimeMinutes?: number | null;
 };
 
 const modeMeta: Record<RouteMode, { label: string; icon: typeof Car }> = {
@@ -17,7 +18,7 @@ const modeMeta: Record<RouteMode, { label: string; icon: typeof Car }> = {
   walking: { label: '도보', icon: Footprints }
 };
 
-export function RouteLegRow({ from, to, leg, selectedMode }: RouteLegRowProps) {
+export function RouteLegRow({ from, to, leg, selectedMode, departureTimeMinutes }: RouteLegRowProps) {
   return (
     <div className="grid grid-cols-[2rem_minmax(0,1fr)] px-2 sm:grid-cols-[2.25rem_minmax(0,1fr)] sm:px-3">
       <div className="flex min-h-16 justify-center sm:min-h-14">
@@ -25,7 +26,10 @@ export function RouteLegRow({ from, to, leg, selectedMode }: RouteLegRowProps) {
       </div>
       <div className="relative flex min-h-16 min-w-0 items-center py-2 sm:min-h-14">
         <div className="absolute inset-x-0 top-1/2 h-px bg-border/45" />
-        <div className="relative mr-auto grid w-full max-w-[34rem] grid-cols-3 items-stretch gap-1 bg-background px-2 text-[10px] text-muted-foreground/60 sm:items-center sm:gap-2 sm:text-[11px]">
+        <div className="relative mr-auto grid w-full max-w-[34rem] grid-cols-3 items-stretch gap-1 bg-background px-2 pt-4 text-[10px] text-muted-foreground/60 sm:items-center sm:gap-2 sm:pt-0 sm:text-[11px]">
+          <span className="absolute left-2 top-0 rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground/70 sm:-top-3">
+            {departureTimeMinutes == null ? '현재 기준' : `기준 ${formatDepartureTime(departureTimeMinutes)}`}
+          </span>
           {routeModes.map((mode) => {
             const modeLeg = leg?.[mode];
             const isLoading = !modeLeg || modeLeg.status === 'loading';

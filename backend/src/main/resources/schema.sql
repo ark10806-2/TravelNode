@@ -140,6 +140,7 @@ CREATE TABLE IF NOT EXISTS schedule_days (
   id text PRIMARY KEY,
   sort_order integer NOT NULL,
   selected_return_route_mode text CHECK (selected_return_route_mode IN ('driving', 'transit', 'walking')),
+  departure_time_minutes integer CHECK (departure_time_minutes >= 0 AND departure_time_minutes < 1440 AND departure_time_minutes % 30 = 0),
   hotel_place_id uuid REFERENCES restaurants(id) ON DELETE SET NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
@@ -147,6 +148,7 @@ CREATE TABLE IF NOT EXISTS schedule_days (
 
 ALTER TABLE schedule_days ADD COLUMN IF NOT EXISTS selected_return_route_mode text;
 ALTER TABLE schedule_days ADD COLUMN IF NOT EXISTS hotel_place_id uuid REFERENCES restaurants(id) ON DELETE SET NULL;
+ALTER TABLE schedule_days ADD COLUMN IF NOT EXISTS departure_time_minutes integer;
 
 DO $$
 BEGIN
@@ -162,12 +164,27 @@ BEGIN
   END IF;
 END $$;
 
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conrelid = 'schedule_days'::regclass
+      AND conname = 'schedule_days_departure_time_minutes_check'
+  ) THEN
+    ALTER TABLE schedule_days
+      ADD CONSTRAINT schedule_days_departure_time_minutes_check
+      CHECK (departure_time_minutes IS NULL OR (departure_time_minutes >= 0 AND departure_time_minutes < 1440 AND departure_time_minutes % 30 = 0));
+  END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS schedule_stops (
   id text PRIMARY KEY,
   day_id text NOT NULL REFERENCES schedule_days(id) ON DELETE CASCADE,
   restaurant_id uuid NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
   sort_order integer NOT NULL,
   selected_route_mode text CHECK (selected_route_mode IN ('driving', 'transit', 'walking')),
+  departure_time_minutes integer CHECK (departure_time_minutes >= 0 AND departure_time_minutes < 1440 AND departure_time_minutes % 30 = 0),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (day_id, restaurant_id),
@@ -175,6 +192,7 @@ CREATE TABLE IF NOT EXISTS schedule_stops (
 );
 
 ALTER TABLE schedule_stops ADD COLUMN IF NOT EXISTS selected_route_mode text;
+ALTER TABLE schedule_stops ADD COLUMN IF NOT EXISTS departure_time_minutes integer;
 
 DO $$
 BEGIN
@@ -187,6 +205,20 @@ BEGIN
     ALTER TABLE schedule_stops
       ADD CONSTRAINT schedule_stops_selected_route_mode_check
       CHECK (selected_route_mode IN ('driving', 'transit', 'walking'));
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conrelid = 'schedule_stops'::regclass
+      AND conname = 'schedule_stops_departure_time_minutes_check'
+  ) THEN
+    ALTER TABLE schedule_stops
+      ADD CONSTRAINT schedule_stops_departure_time_minutes_check
+      CHECK (departure_time_minutes IS NULL OR (departure_time_minutes >= 0 AND departure_time_minutes < 1440 AND departure_time_minutes % 30 = 0));
   END IF;
 END $$;
 
@@ -331,7 +363,10 @@ BEGIN
     WHERE from_place_id = NEW.id OR to_place_id = NEW.id;
 
     DELETE FROM route_cache_entries
-    WHERE from_place_key = NEW.id::text OR to_place_key = NEW.id::text;
+    WHERE from_place_key = NEW.id::text
+      OR from_place_key LIKE NEW.id::text || ':%'
+      OR to_place_key = NEW.id::text
+      OR to_place_key LIKE NEW.id::text || ':%';
   END IF;
 
   RETURN NEW;

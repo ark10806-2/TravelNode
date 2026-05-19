@@ -6,6 +6,8 @@ import type { Place } from '@/types/travel';
 export const scheduleStorageKey = 'japan-trip-schedule-v1';
 export const maxStopsPerDay = 20;
 export const routeModes: RouteMode[] = ['driving', 'transit', 'walking'];
+export const departureTimeStepMinutes = 30;
+export const defaultDayDepartureTimeMinutes = 9 * 60;
 export const hotelSchedulePlace: Place = {
   id: 'hotel',
   name: hotel.name,
@@ -35,8 +37,35 @@ export function buildPlaceDirectionsUrl(from: Place, to: Place, mode: RouteMode 
   return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=${mode}&hl=ko`;
 }
 
-export function routeLegKey(from: Place, to: Place) {
-  return `${from.id}:${to.id}`;
+export function routeLegKey(from: Place, to: Place, departureTimeMinutes?: number | null) {
+  return `${routeCacheOriginKey(from, departureTimeMinutes)}:${to.id}`;
+}
+
+export function routeCacheOriginKey(place: Place, departureTimeMinutes?: number | null) {
+  const normalized = normalizeDepartureTimeMinutes(departureTimeMinutes);
+  if (normalized == null) return place.id;
+  return `${place.id}:m${String(normalized).padStart(4, '0')}`;
+}
+
+export function normalizeDepartureTimeMinutes(value: unknown) {
+  if (typeof value !== 'number' || !Number.isInteger(value)) return null;
+  if (value < 0 || value >= 24 * 60 || value % departureTimeStepMinutes !== 0) return null;
+  return value;
+}
+
+export function departureTimeOptions() {
+  return Array.from({ length: (24 * 60) / departureTimeStepMinutes }, (_, index) => index * departureTimeStepMinutes);
+}
+
+export function formatDepartureTime(minutes: number | null | undefined) {
+  const normalized = normalizeDepartureTimeMinutes(minutes);
+  if (normalized == null) return '현재 기준';
+
+  const hour = Math.floor(normalized / 60);
+  const minute = normalized % 60;
+  const period = hour < 12 ? '오전' : '오후';
+  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+  return `${period} ${displayHour}:${String(minute).padStart(2, '0')}`;
 }
 
 export function getScheduleHotelPlace(day: Pick<ScheduleDay, 'hotelPlaceId'>, placesById: Map<string, Place>) {

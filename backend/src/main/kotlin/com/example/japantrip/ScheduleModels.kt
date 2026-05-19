@@ -3,14 +3,16 @@ package com.example.japantrip
 data class ScheduleStopResponse(
   val id: String,
   val placeId: String,
-  val selectedRouteMode: String? = null
+  val selectedRouteMode: String? = null,
+  val departureTimeMinutes: Int? = null
 )
 
 data class ScheduleDayResponse(
   val id: String,
   val stops: List<ScheduleStopResponse>,
   val selectedReturnRouteMode: String? = null,
-  val hotelPlaceId: String? = null
+  val hotelPlaceId: String? = null,
+  val departureTimeMinutes: Int? = null
 )
 
 data class ScheduleSaveRequest(
@@ -21,13 +23,15 @@ data class ScheduleDayRequest(
   val id: String? = null,
   val stops: List<ScheduleStopRequest>? = emptyList(),
   val selectedReturnRouteMode: String? = null,
-  val hotelPlaceId: String? = null
+  val hotelPlaceId: String? = null,
+  val departureTimeMinutes: Int? = null
 )
 
 data class ScheduleStopRequest(
   val id: String? = null,
   val placeId: String? = null,
-  val selectedRouteMode: String? = null
+  val selectedRouteMode: String? = null,
+  val departureTimeMinutes: Int? = null
 )
 
 fun ScheduleSaveRequest.validate(): List<String> {
@@ -64,6 +68,8 @@ fun ScheduleSaveRequest.validate(): List<String> {
       validateUuid("days[$dayIndex].hotelPlaceId", hotelPlaceId)?.let { errors += it }
     }
 
+    validateDepartureTimeMinutes("days[$dayIndex].departureTimeMinutes", day.departureTimeMinutes)?.let { errors += it }
+
     val stops = day.stops.orEmpty()
     if (stops.size > MaxScheduleStopsPerDay) {
       errors += "days[$dayIndex].stops must have $MaxScheduleStopsPerDay items or fewer"
@@ -91,6 +97,8 @@ fun ScheduleSaveRequest.validate(): List<String> {
       if (selectedRouteMode != null && selectedRouteMode !in allowedRouteModes) {
         errors += "days[$dayIndex].stops[$stopIndex].selectedRouteMode must be driving, transit, or walking"
       }
+
+      validateDepartureTimeMinutes("days[$dayIndex].stops[$stopIndex].departureTimeMinutes", stop.departureTimeMinutes)?.let { errors += it }
     }
   }
 
@@ -99,6 +107,13 @@ fun ScheduleSaveRequest.validate(): List<String> {
 
 private fun isValidScheduleId(value: String?) =
   value != null && value.length <= 120 && value.matches(ScheduleIdPattern)
+
+private fun validateDepartureTimeMinutes(field: String, value: Int?) =
+  when {
+    value == null -> null
+    value < 0 || value >= 1440 || value % 30 != 0 -> "$field must be a 30-minute value between 0 and 1410"
+    else -> null
+  }
 
 private val ScheduleIdPattern = Regex("^[A-Za-z0-9_-]+$")
 const val MaxScheduleDays = 30

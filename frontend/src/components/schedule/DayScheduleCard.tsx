@@ -4,10 +4,11 @@ import { AccommodationSelectorDialog } from '@/components/dialogs/AccommodationS
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getCategoryBadgeClass, getCategoryOption, getGoogleMapsNoteLabel } from '@/lib/place-utils';
-import { getScheduleHotelPlace, maxStopsPerDay, routeLegKey } from '@/lib/schedule-utils';
+import { formatDepartureTime, getScheduleHotelPlace, maxStopsPerDay, routeLegKey } from '@/lib/schedule-utils';
 import type { RouteLeg, ScheduleDay } from '@/types/schedule';
 import type { CategoryOption, Place } from '@/types/travel';
 import { DayRouteMapDialog } from './DayRouteMapDialog';
+import { DepartureTimePicker } from './DepartureTimePicker';
 import { PlacePickerDialog } from './PlacePickerDialog';
 import { RouteLegRow } from './RouteLegRow';
 
@@ -25,6 +26,8 @@ type DayScheduleCardProps = {
   onRemoveStop: (dayId: string, stopId: string) => void;
   onMoveStop: (dayId: string, stopId: string, direction: -1 | 1) => void;
   onSetDayHotel: (dayId: string, placeId: string | null) => void;
+  onSetDayDepartureTime: (dayId: string, departureTimeMinutes: number | null) => void;
+  onSetStopDepartureTime: (dayId: string, stopId: string, departureTimeMinutes: number | null) => void;
   isOptimizingRoutes: boolean;
   onOptimizeRoutes: () => void;
   isRefreshingRoutes: boolean;
@@ -47,6 +50,8 @@ export function DayScheduleCard({
   onRemoveStop,
   onMoveStop,
   onSetDayHotel,
+  onSetDayDepartureTime,
+  onSetStopDepartureTime,
   isOptimizingRoutes,
   onOptimizeRoutes,
   isRefreshingRoutes,
@@ -66,9 +71,10 @@ export function DayScheduleCard({
   const dayLabel = `DAY ${dayIndex + 1}`;
   const hotelPlace = useMemo(() => getScheduleHotelPlace(day, placesById), [day, placesById]);
   const lastScheduledPlace = scheduledPlaces[scheduledPlaces.length - 1] ?? null;
+  const lastStop = day.stops[day.stops.length - 1] ?? null;
   const returnLeg =
     lastScheduledPlace && lastScheduledPlace.id !== hotelPlace.id
-      ? routeLegs[routeLegKey(lastScheduledPlace, hotelPlace)]
+      ? routeLegs[routeLegKey(lastScheduledPlace, hotelPlace, lastStop?.departureTimeMinutes)]
       : undefined;
 
   function addPlaces(selectedPlaces: Place[]) {
@@ -96,6 +102,21 @@ export function DayScheduleCard({
             <span className="shrink-0">숙소</span>
             <span className="truncate font-semibold text-foreground">{hotelPlace.name}</span>
           </div>
+          {isEditing ? (
+            <div className="mt-3 max-w-xl">
+              <DepartureTimePicker
+                label="숙소 출발 기준"
+                value={day.departureTimeMinutes}
+                description="첫 장소로 이동할 때 사용할 기준 시간입니다."
+                compact
+                onChange={(value) => onSetDayDepartureTime(day.id, value)}
+              />
+            </div>
+          ) : day.departureTimeMinutes != null ? (
+            <div className="mt-2 inline-flex rounded-full bg-background px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+              숙소 출발 {formatDepartureTime(day.departureTimeMinutes)}
+            </div>
+          ) : null}
         </div>
         {scheduledPlaces.length > 0 || isEditing ? (
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
@@ -170,14 +191,26 @@ export function DayScheduleCard({
             <>
               {day.stops.map((stop, index) => {
                 const place = placesById.get(stop.placeId);
+                const previousStop = index > 0 ? day.stops[index - 1] : null;
                 const previousPlace = index > 0 ? placesById.get(day.stops[index - 1].placeId) : null;
                 const edgeFrom = previousPlace ?? hotelPlace;
-                const leg = place && edgeFrom.id !== place.id ? routeLegs[routeLegKey(edgeFrom, place)] : undefined;
+                const edgeDepartureTimeMinutes = previousStop
+                  ? previousStop.departureTimeMinutes ?? null
+                  : day.departureTimeMinutes ?? null;
+                const leg = place && edgeFrom.id !== place.id
+                  ? routeLegs[routeLegKey(edgeFrom, place, edgeDepartureTimeMinutes)]
+                  : undefined;
 
                 return (
                   <div key={stop.id}>
                     {place && edgeFrom.id !== place.id ? (
-                      <RouteLegRow from={edgeFrom} to={place} leg={leg} selectedMode={stop.selectedRouteMode} />
+                      <RouteLegRow
+                        from={edgeFrom}
+                        to={place}
+                        leg={leg}
+                        selectedMode={stop.selectedRouteMode}
+                        departureTimeMinutes={edgeDepartureTimeMinutes}
+                      />
                     ) : null}
                     <div className="grid grid-cols-[1.75rem_minmax(0,1fr)] items-start gap-2 rounded-lg px-1.5 py-3 transition hover:bg-muted/25 sm:grid-cols-[2.25rem_minmax(0,1fr)] sm:items-center sm:gap-3 sm:px-3">
                       <div className="mt-0.5 grid h-7 w-7 place-items-center rounded-full bg-foreground text-sm font-bold text-background sm:mt-0 sm:h-8 sm:w-8">
@@ -204,6 +237,21 @@ export function DayScheduleCard({
                             <div className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
                               메모: {getGoogleMapsNoteLabel(place)}
                             </div>
+                            {isEditing ? (
+                              <div className="mt-3">
+                                <DepartureTimePicker
+                                  label="이 장소 출발 기준"
+                                  value={stop.departureTimeMinutes}
+                                  description="이 장소에서 다음 목적지로 이동할 때 반영합니다."
+                                  compact
+                                  onChange={(value) => onSetStopDepartureTime(day.id, stop.id, value)}
+                                />
+                              </div>
+                            ) : stop.departureTimeMinutes != null ? (
+                              <div className="mt-2 inline-flex rounded-full bg-secondary px-2 py-1 text-xs font-semibold text-muted-foreground">
+                                출발 기준 {formatDepartureTime(stop.departureTimeMinutes)}
+                              </div>
+                            ) : null}
                           </div>
                           <div className="flex flex-wrap items-center justify-start gap-1 md:justify-end">
                             {isEditing ? (
@@ -266,6 +314,7 @@ export function DayScheduleCard({
                   to={hotelPlace}
                   leg={returnLeg}
                   selectedMode={day.selectedReturnRouteMode}
+                  departureTimeMinutes={lastStop?.departureTimeMinutes ?? null}
                 />
               ) : null}
             </>

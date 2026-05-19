@@ -4,6 +4,7 @@ export type ScheduleStop = {
   id: string;
   placeId: string;
   selectedRouteMode?: RouteMode | null;
+  departureTimeMinutes?: number | null;
 };
 
 export type ScheduleDay = {
@@ -11,6 +12,7 @@ export type ScheduleDay = {
   stops: ScheduleStop[];
   selectedReturnRouteMode?: RouteMode | null;
   hotelPlaceId?: string | null;
+  departureTimeMinutes?: number | null;
 };
 
 export type RouteMode = 'driving' | 'transit' | 'walking';

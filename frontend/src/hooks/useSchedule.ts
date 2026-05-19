@@ -13,11 +13,22 @@ import {
   withFallbackDay
 } from '@/lib/schedule-state';
 import { fetchRouteLeg } from '@/lib/transit';
-import { createId, createLoadingRouteLeg, getScheduleHotelPlace, maxStopsPerDay, routeLegKey } from '@/lib/schedule-utils';
+import {
+  createId,
+  createLoadingRouteLeg,
+  getScheduleHotelPlace,
+  maxStopsPerDay,
+  normalizeDepartureTimeMinutes,
+  routeLegKey
+} from '@/lib/schedule-utils';
 import type { RouteLeg, ScheduleDay, ScheduleStop } from '@/types/schedule';
 import type { Place } from '@/types/travel';
 
 type ScheduleStatus = 'loading' | 'ready' | 'error';
+type RouteRequestOptions = {
+  forceRefresh?: boolean;
+  departureTimeMinutes?: number | null;
+};
 
 function isResolvedRouteLeg(leg?: RouteLeg) {
   return Boolean(leg) && Object.values(leg!).every((mode) => mode.status !== 'loading');
@@ -90,7 +101,7 @@ export function useSchedule(places: Place[], canPersist = false) {
   useEffect(() => {
     const pairs = days.flatMap((day) => scheduleRoutePairs(day, placesById));
 
-    pairs.forEach(({ from, to, key }) => {
+    pairs.forEach(({ from, to, key, departureTimeMinutes }) => {
       if (routeLegsRef.current[key]) return;
 
       const loadingLeg = createLoadingRouteLeg();
@@ -103,7 +114,7 @@ export function useSchedule(places: Place[], canPersist = false) {
         [key]: loadingLeg
       }));
 
-      void requestRouteLeg(from, to, key).then((leg) => setRouteLegValue(key, leg));
+      void requestRouteLeg(from, to, key, { departureTimeMinutes }).then((leg) => setRouteLegValue(key, leg));
     });
   }, [days, placesById]);
 
@@ -118,7 +129,7 @@ export function useSchedule(places: Place[], canPersist = false) {
     }));
   }
 
-  function requestRouteLeg(from: Place, to: Place, key: string, options: { forceRefresh?: boolean } = {}) {
+  function requestRouteLeg(from: Place, to: Place, key: string, options: RouteRequestOptions = {}) {
     if (!options.forceRefresh && routeLegRequestsRef.current[key]) {
       return routeLegRequestsRef.current[key];
     }
@@ -170,7 +181,16 @@ export function useSchedule(places: Place[], canPersist = false) {
   }
 
   function addDay() {
-    updateDays((current) => [...current, { id: createId('day'), stops: [], selectedReturnRouteMode: null, hotelPlaceId: null }]);
+    updateDays((current) => [
+      ...current,
+      {
+        id: createId('day'),
+        stops: [],
+        selectedReturnRouteMode: null,
+        hotelPlaceId: null,
+        departureTimeMinutes: null
+      }
+    ]);
   }
 
   function removeDay(dayId: string) {
@@ -197,7 +217,12 @@ export function useSchedule(places: Place[], canPersist = false) {
           selectedReturnRouteMode: null,
           stops: clearSelectedRouteModes([
             ...day.stops,
-            ...nextPlaceIds.map((placeId) => ({ id: createId('stop'), placeId, selectedRouteMode: null }))
+            ...nextPlaceIds.map((placeId) => ({
+              id: createId('stop'),
+              placeId,
+              selectedRouteMode: null,
+              departureTimeMinutes: null
+            }))
           ])
         };
       })
@@ -239,29 +264,85 @@ export function useSchedule(places: Place[], canPersist = false) {
     );
   }
 
+  function setDayDepartureTime(dayId: string, departureTimeMinutes: number | null) {
+    updateDays((current) =>
+      current.map((day) =>
+        day.id === dayId
+          ? clearDayRouteSelection({
+              ...day,
+              departureTimeMinutes: normalizeDepartureTimeMinutes(departureTimeMinutes)
+            })
+          : day
+      )
+    );
+  }
+
+  function setStopDepartureTime(dayId: string, stopId: string, departureTimeMinutes: number | null) {
+    updateDays((current) =>
+      current.map((day) =>
+        day.id === dayId
+          ? clearDayRouteSelection({
+              ...day,
+              stops: day.stops.map((stop) =>
+                stop.id === stopId
+                  ? {
+                      ...stop,
+                      departureTimeMinutes: normalizeDepartureTimeMinutes(departureTimeMinutes)
+                    }
+                  : stop
+              )
+            })
+          : day
+      )
+    );
+  }
+
   async function optimizeDayRoutes(dayId: string) {
     const day = days.find((candidate) => candidate.id === dayId);
     if (!day || day.stops.length < 1) return;
 
-    const dayPlaces = day.stops
-      .map((stop) => placesById.get(stop.placeId))
-      .filter((place): place is Place => Boolean(place));
+    const scheduledStops = day.stops
+      .map((stop) => {
+        const place = placesById.get(stop.placeId);
+        return place ? { stop, place } : null;
+      })
+      .filter((entry): entry is { stop: ScheduleStop; place: Place } => Boolean(entry));
+    const dayPlaces = scheduledStops.map(({ place }) => place);
     if (dayPlaces.length < 1) return;
 
     const hotelPlace = getScheduleHotelPlace(day, placesById);
+    const departureByPlaceId = new Map(
+      scheduledStops.map(({ stop, place }) => [place.id, normalizeDepartureTimeMinutes(stop.departureTimeMinutes)])
+    );
+    const departureForOrigin = (place: Place) =>
+      place.id === hotelPlace.id
+        ? normalizeDepartureTimeMinutes(day.departureTimeMinutes)
+        : departureByPlaceId.get(place.id) ?? null;
+    const keyForEdge = (from: Place, to: Place) => routeLegKey(from, to, departureForOrigin(from));
     const pairs = [
       ...dayPlaces.map((place) => ({
         from: hotelPlace,
         to: place,
-        key: routeLegKey(hotelPlace, place)
+        departureTimeMinutes: departureForOrigin(hotelPlace),
+        key: keyForEdge(hotelPlace, place)
       })),
       ...dayPlaces.map((place) => ({
         from: place,
         to: hotelPlace,
-        key: routeLegKey(place, hotelPlace)
+        departureTimeMinutes: departureForOrigin(place),
+        key: keyForEdge(place, hotelPlace)
       })),
       ...dayPlaces.flatMap((from) =>
-        dayPlaces.flatMap((to) => (from.id === to.id ? [] : [{ from, to, key: routeLegKey(from, to) }]))
+        dayPlaces.flatMap((to) =>
+          from.id === to.id
+            ? []
+            : [{
+                from,
+                to,
+                departureTimeMinutes: departureForOrigin(from),
+                key: keyForEdge(from, to)
+              }]
+        )
       )
     ].filter(({ from, to }) => from.id !== to.id);
     const missingPairs = pairs.filter(({ key }) => !isResolvedRouteLeg(routeLegsRef.current[key]));
@@ -278,12 +359,12 @@ export function useSchedule(places: Place[], canPersist = false) {
       }));
     }
 
-    await mapWithConcurrency(missingPairs, 4, async ({ from, to, key }) => {
-      const leg = await requestRouteLeg(from, to, key);
+    await mapWithConcurrency(missingPairs, 4, async ({ from, to, key, departureTimeMinutes }) => {
+      const leg = await requestRouteLeg(from, to, key, { departureTimeMinutes });
       setRouteLegValue(key, leg);
     });
 
-    const optimized = optimizePlaceOrder(dayPlaces, routeLegsRef.current, hotelPlace, hotelPlace);
+    const optimized = optimizePlaceOrder(dayPlaces, routeLegsRef.current, hotelPlace, hotelPlace, { keyForEdge });
     if (!optimized) {
       setScheduleStatus('error');
       setScheduleError('동선 최적화에 필요한 이동 시간을 계산하지 못했습니다.');
@@ -327,8 +408,8 @@ export function useSchedule(places: Place[], canPersist = false) {
     }));
 
     await Promise.all(
-      pairs.map(async ({ from, to, key }) => {
-        const leg = await requestRouteLeg(from, to, key, { forceRefresh: true });
+      pairs.map(async ({ from, to, key, departureTimeMinutes }) => {
+        const leg = await requestRouteLeg(from, to, key, { forceRefresh: true, departureTimeMinutes });
         setRouteLegValue(key, leg);
       })
     );
@@ -347,6 +428,8 @@ export function useSchedule(places: Place[], canPersist = false) {
     removeStop,
     moveStop,
     setDayHotel,
+    setDayDepartureTime,
+    setStopDepartureTime,
     optimizeDayRoutes,
     refreshDayRoutes
   };

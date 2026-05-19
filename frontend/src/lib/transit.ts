@@ -2,17 +2,21 @@ import { fetchCachedRouteLeg, saveRouteLegCache } from '@/api/routes';
 import { recordApiUsage } from '@/api/usage';
 import { googleMapsApiKey } from '@/config/env';
 import { loadGoogleMaps } from '@/lib/google-maps';
-import { estimateRouteModeLeg, routeModes } from '@/lib/schedule-utils';
+import { estimateRouteModeLeg, normalizeDepartureTimeMinutes, routeCacheOriginKey, routeModes } from '@/lib/schedule-utils';
 import type { RouteLeg, RouteMode, RouteModeLeg } from '@/types/schedule';
 import type { Place } from '@/types/travel';
 
 type FetchRouteLegOptions = {
   forceRefresh?: boolean;
+  departureTimeMinutes?: number | null;
 };
 
 export async function fetchRouteLeg(from: Place, to: Place, options: FetchRouteLegOptions = {}): Promise<RouteLeg> {
+  const departureTimeMinutes = normalizeDepartureTimeMinutes(options.departureTimeMinutes);
+  const fromCacheKey = routeCacheOriginKey(from, departureTimeMinutes);
+
   if (!options.forceRefresh) {
-    const cachedLeg = await fetchCachedRouteLeg(from.id, to.id).catch(() => null);
+    const cachedLeg = await fetchCachedRouteLeg(fromCacheKey, to.id).catch(() => null);
     if (cachedLeg) return cachedLeg;
   }
 
@@ -24,11 +28,14 @@ export async function fetchRouteLeg(from: Place, to: Place, options: FetchRouteL
     const maps = await loadGoogleMaps(googleMapsApiKey);
     const routes = (await maps.importLibrary('routes')) as google.maps.RoutesLibrary;
     const entries = await Promise.all(
-      routeModes.map(async (mode) => [mode, await fetchRouteModeLeg(maps, routes.Route, from, to, mode)] as const)
+      routeModes.map(async (mode) => [
+        mode,
+        await fetchRouteModeLeg(maps, routes.Route, from, to, mode, departureTimeMinutes)
+      ] as const)
     );
     const leg = Object.fromEntries(entries) as RouteLeg;
     if (isCacheableRouteLeg(leg)) {
-      void saveRouteLegCache(from.id, to.id, leg).catch(() => undefined);
+      void saveRouteLegCache(fromCacheKey, to.id, leg).catch(() => undefined);
     }
 
     return leg;
@@ -47,10 +54,11 @@ async function fetchRouteModeLeg(
   Route: typeof google.maps.routes.Route,
   from: Place,
   to: Place,
-  mode: RouteMode
+  mode: RouteMode,
+  departureTimeMinutes: number | null
 ): Promise<RouteModeLeg> {
   try {
-    const result = await fetchUsableRouteResult(maps, Route, from, to, mode);
+    const result = await fetchUsableRouteResult(maps, Route, from, to, mode, departureTimeMinutes);
     const labels = getRouteLabels(result);
 
     if (!labels) {
@@ -81,17 +89,18 @@ async function fetchUsableRouteResult(
   Route: typeof google.maps.routes.Route,
   from: Place,
   to: Place,
-  mode: RouteMode
+  mode: RouteMode,
+  departureTimeMinutes: number | null
 ) {
   let lastError: unknown = null;
-  const enhancedResult = await routeModeLeg(maps, Route, from, to, mode, true).catch((error) => {
+  const enhancedResult = await routeModeLeg(maps, Route, from, to, mode, true, departureTimeMinutes).catch((error) => {
     lastError = error;
     return null;
   });
 
   if (getRouteLabels(enhancedResult)) return enhancedResult;
 
-  const basicResult = await routeModeLeg(maps, Route, from, to, mode, false).catch((error) => {
+  const basicResult = await routeModeLeg(maps, Route, from, to, mode, false, departureTimeMinutes).catch((error) => {
     lastError = error;
     return null;
   });
@@ -108,7 +117,8 @@ function routeModeLeg(
   from: Place,
   to: Place,
   mode: RouteMode,
-  includeLiveOptions: boolean
+  includeLiveOptions: boolean,
+  departureTimeMinutes: number | null
 ) {
   const request: google.maps.routes.ComputeRoutesRequest = {
     origin: { lat: from.latitude, lng: from.longitude },
@@ -126,13 +136,13 @@ function routeModeLeg(
   };
 
   if (mode === 'driving' && includeLiveOptions) {
-    request.departureTime = new Date();
+    request.departureTime = createDepartureDate(departureTimeMinutes);
     request.routingPreference = google.maps.routes.RoutingPreference.TRAFFIC_AWARE_OPTIMAL;
     request.trafficModel = maps.TrafficModel.BEST_GUESS;
   }
 
   if (mode === 'transit' && includeLiveOptions) {
-    request.departureTime = new Date();
+    request.departureTime = createDepartureDate(departureTimeMinutes);
   }
 
   return Route.computeRoutes(request);
@@ -197,6 +207,20 @@ function formatDistanceMeters(distanceMeters: number | null | undefined) {
   if (distanceMeters == null || !Number.isFinite(distanceMeters)) return null;
   if (distanceMeters < 1000) return `${Math.round(distanceMeters)}m`;
   return `${(distanceMeters / 1000).toFixed(1)}km`;
+}
+
+function createDepartureDate(departureTimeMinutes: number | null) {
+  const now = new Date();
+  if (departureTimeMinutes == null) return now;
+
+  const candidate = new Date(now);
+  candidate.setHours(Math.floor(departureTimeMinutes / 60), departureTimeMinutes % 60, 0, 0);
+
+  if (candidate.getTime() < now.getTime() + 5 * 60 * 1000) {
+    candidate.setDate(candidate.getDate() + 1);
+  }
+
+  return candidate;
 }
 
 function describeRouteError(error: unknown) {

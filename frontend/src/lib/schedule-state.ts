@@ -1,4 +1,4 @@
-import { createId, getScheduleHotelPlace, routeLegKey, scheduleStorageKey } from '@/lib/schedule-utils';
+import { createId, getScheduleHotelPlace, normalizeDepartureTimeMinutes, routeLegKey, scheduleStorageKey } from '@/lib/schedule-utils';
 import type { RouteMode, ScheduleDay, ScheduleStop } from '@/types/schedule';
 import type { Place } from '@/types/travel';
 
@@ -14,13 +14,15 @@ export function loadStoredDays() {
       id: typeof day.id === 'string' ? day.id : createId('day'),
       selectedReturnRouteMode: isRouteMode(day.selectedReturnRouteMode) ? day.selectedReturnRouteMode : null,
       hotelPlaceId: typeof day.hotelPlaceId === 'string' && day.hotelPlaceId.trim() ? day.hotelPlaceId : null,
+      departureTimeMinutes: normalizeDepartureTimeMinutes(day.departureTimeMinutes),
       stops: Array.isArray(day.stops)
         ? day.stops
             .filter((stop) => typeof stop?.placeId === 'string')
             .map((stop) => ({
               id: typeof stop.id === 'string' ? stop.id : createId('stop'),
               placeId: stop.placeId,
-              selectedRouteMode: isRouteMode(stop.selectedRouteMode) ? stop.selectedRouteMode : null
+              selectedRouteMode: isRouteMode(stop.selectedRouteMode) ? stop.selectedRouteMode : null,
+              departureTimeMinutes: normalizeDepartureTimeMinutes(stop.departureTimeMinutes)
             }))
         : []
     }));
@@ -54,22 +56,45 @@ export function clearDayRouteSelection(day: ScheduleDay): ScheduleDay {
 }
 
 export function scheduleRoutePairs(day: ScheduleDay, placesById: Map<string, Place>) {
-  const dayPlaces = day.stops
-    .map((stop) => placesById.get(stop.placeId))
-    .filter((place): place is Place => Boolean(place));
+  const scheduledStops = day.stops
+    .map((stop) => {
+      const place = placesById.get(stop.placeId);
+      return place ? { stop, place } : null;
+    })
+    .filter((entry): entry is { stop: ScheduleStop; place: Place } => Boolean(entry));
+  const dayPlaces = scheduledStops.map(({ place }) => place);
 
   if (!dayPlaces.length) return [];
   const hotelPlace = getScheduleHotelPlace(day, placesById);
-  const firstPlace = dayPlaces[0];
-  const lastPlace = dayPlaces[dayPlaces.length - 1];
+  const first = scheduledStops[0];
+  const last = scheduledStops[scheduledStops.length - 1];
 
   return [
-    ...(hotelPlace.id === firstPlace.id ? [] : [{ from: hotelPlace, to: firstPlace, key: routeLegKey(hotelPlace, firstPlace) }]),
-    ...dayPlaces.slice(1).map((place, index) => {
-      const from = dayPlaces[index];
-      return { from, to: place, key: routeLegKey(from, place) };
+    ...(hotelPlace.id === first.place.id
+      ? []
+      : [{
+          from: hotelPlace,
+          to: first.place,
+          departureTimeMinutes: day.departureTimeMinutes ?? null,
+          key: routeLegKey(hotelPlace, first.place, day.departureTimeMinutes)
+        }]),
+    ...scheduledStops.slice(1).map(({ place }, index) => {
+      const previous = scheduledStops[index];
+      return {
+        from: previous.place,
+        to: place,
+        departureTimeMinutes: previous.stop.departureTimeMinutes ?? null,
+        key: routeLegKey(previous.place, place, previous.stop.departureTimeMinutes)
+      };
     }),
-    ...(lastPlace.id === hotelPlace.id ? [] : [{ from: lastPlace, to: hotelPlace, key: routeLegKey(lastPlace, hotelPlace) }])
+    ...(last.place.id === hotelPlace.id
+      ? []
+      : [{
+          from: last.place,
+          to: hotelPlace,
+          departureTimeMinutes: last.stop.departureTimeMinutes ?? null,
+          key: routeLegKey(last.place, hotelPlace, last.stop.departureTimeMinutes)
+        }])
   ];
 }
 
@@ -91,7 +116,8 @@ function createEmptyScheduleDays(): ScheduleDay[] {
       id: createId('day'),
       stops: [],
       selectedReturnRouteMode: null,
-      hotelPlaceId: null
+      hotelPlaceId: null,
+      departureTimeMinutes: null
     }
   ];
 }
