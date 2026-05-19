@@ -50,8 +50,9 @@ const emptyTodos: TodoList = {
 };
 
 export function TripBookletDialog({ snapshot, photoCache, onClose }: TripBookletDialogProps) {
-  function printBooklet() {
-    window.setTimeout(() => window.print(), 50);
+  async function printBooklet() {
+    await waitForBookletImages(document.querySelector('.trip-booklet-print-root'));
+    window.print();
   }
 
   return (
@@ -84,11 +85,37 @@ export function TripBookletDialog({ snapshot, photoCache, onClose }: TripBooklet
         </div>
       </ModalFrame>
 
-      <div className="trip-booklet-print-root">
+      <div className="trip-booklet-print-root" aria-hidden="true">
         <BookletArticle snapshot={snapshot} photoCache={photoCache} />
       </div>
     </>
   );
+}
+
+async function waitForBookletImages(root: Element | null) {
+  if (!root) return;
+
+  const images = Array.from(root.querySelectorAll('img'));
+  if (!images.length) return;
+
+  await Promise.race([
+    Promise.all(images.map(waitForImage)),
+    new Promise((resolve) => window.setTimeout(resolve, 3500))
+  ]);
+}
+
+async function waitForImage(image: HTMLImageElement) {
+  if (!image.complete) {
+    await new Promise<void>((resolve) => {
+      const finish = () => resolve();
+      image.addEventListener('load', finish, { once: true });
+      image.addEventListener('error', finish, { once: true });
+    });
+  }
+
+  if (typeof image.decode === 'function') {
+    await image.decode().catch(() => undefined);
+  }
 }
 
 function BookletArticle({
@@ -414,6 +441,7 @@ function ReservationBookletCard({
               className="h-24 w-full rounded-md border object-cover"
               src={attachment.dataUrl}
               alt={attachment.fileName}
+              loading="eager"
             />
           ))}
         </div>
@@ -485,7 +513,7 @@ function PlaceBookletCard({
   return (
     <article className="booklet-avoid-break grid grid-cols-[72px_minmax(0,1fr)] gap-3 rounded-xl border border-neutral-200 p-3">
       {photoUrl ? (
-        <img className="h-[72px] w-[72px] rounded-lg object-cover" src={photoUrl} alt={place.name} />
+        <img className="h-[72px] w-[72px] rounded-lg object-cover" src={photoUrl} alt={place.name} loading="eager" />
       ) : (
         <div className="grid h-[72px] w-[72px] place-items-center rounded-lg bg-neutral-100 text-xl">{category.emoji}</div>
       )}

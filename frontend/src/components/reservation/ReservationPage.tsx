@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState, type DragEvent, type ReactNode } from 'react';
 import {
   CalendarClock,
+  ChevronDown,
   DownloadCloud,
   ExternalLink,
   FileText,
@@ -308,6 +309,8 @@ function ReservationCard({
   onSave: (draft: ReservationDraft) => void;
   onRemove: () => void;
 }) {
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
   if (isEditingThis) {
     return (
       <article className="soft-panel overflow-hidden rounded-xl">
@@ -333,6 +336,7 @@ function ReservationCard({
   const meta = reservationTypeMeta[reservation.reservationType];
   const Icon = meta.icon;
   const normalizedLink = normalizeLink(reservation.linkUrl);
+  const hasDetails = Boolean(reservation.notes || reservation.attachments.length);
 
   return (
     <article className="soft-panel overflow-hidden rounded-xl">
@@ -390,10 +394,6 @@ function ReservationCard({
             <div className="mt-1 break-all font-semibold">{reservation.referenceNumber}</div>
           </div>
         ) : null}
-        {reservation.notes ? <MarkdownText text={reservation.notes} /> : null}
-        {reservation.attachments.length ? (
-          <ReservationAttachmentGrid attachments={reservation.attachments} />
-        ) : null}
         {normalizedLink ? (
           <Button asChild variant="outline" className="rounded-full">
             <a href={normalizedLink} target="_blank" rel="noreferrer">
@@ -401,6 +401,46 @@ function ReservationCard({
               <ExternalLink className="h-4 w-4" />
             </a>
           </Button>
+        ) : null}
+        {hasDetails ? (
+          <div className="grid gap-2 border-t pt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-9 justify-between rounded-lg px-3 text-sm font-semibold"
+              aria-expanded={isDetailsOpen}
+              onClick={() => setIsDetailsOpen((current) => !current)}
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="shrink-0">상세정보</span>
+                <span className="truncate text-xs font-medium text-muted-foreground">
+                  {[
+                    reservation.notes ? '메모' : '',
+                    reservation.attachments.length ? `파일 ${reservation.attachments.length}개` : ''
+                  ].filter(Boolean).join(' · ')}
+                </span>
+              </span>
+              <ChevronDown className={cn('h-4 w-4 shrink-0 transition-transform', isDetailsOpen && 'rotate-180')} />
+            </Button>
+
+            {isDetailsOpen ? (
+              <div className="grid gap-3 rounded-lg border bg-muted/20 p-3">
+                {reservation.notes ? (
+                  <section className="grid gap-1">
+                    <div className="text-xs font-semibold text-muted-foreground">메모</div>
+                    <MarkdownText text={reservation.notes} />
+                  </section>
+                ) : null}
+                {reservation.attachments.length ? (
+                  <section className="grid gap-2">
+                    <div className="text-xs font-semibold text-muted-foreground">첨부파일</div>
+                    <ReservationAttachmentGrid attachments={reservation.attachments} />
+                  </section>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         ) : null}
       </div>
     </article>

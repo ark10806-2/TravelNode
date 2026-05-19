@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { fetchReservations } from '@/api/reservations';
 import { fetchSchedule } from '@/api/schedule';
 import { fetchTodos } from '@/api/todos';
-import { fetchCategories, fetchPlaces } from '@/api/travel';
+import { fetchCategories, fetchPlacePhotos, fetchPlaces } from '@/api/travel';
 import { AuthDialog } from '@/components/dialogs/AuthDialog';
 import { TripBookletDialog, type TripBookletSnapshot } from '@/components/export/TripBookletDialog';
 import { AppTabs } from '@/components/layout/AppTabs';
@@ -16,6 +16,7 @@ import { usePersistedState } from '@/hooks/usePersistedState';
 import { useTheme } from '@/hooks/useTheme';
 import { useTravelPlaces } from '@/hooks/useTravelPlaces';
 import type { AppTab } from '@/types/schedule';
+import type { PhotoState, Place } from '@/types/travel';
 
 const activeTabStorageKey = 'japan-trip-active-tab';
 
@@ -30,6 +31,7 @@ function App() {
   const [activeTab, setActiveTab] = usePersistedState<AppTab>(activeTabStorageKey, 'places', isAppTab);
   const [authDialogMode, setAuthDialogMode] = useState<'login' | 'change' | null>(null);
   const [bookletSnapshot, setBookletSnapshot] = useState<TripBookletSnapshot | null>(null);
+  const [bookletPhotoCache, setBookletPhotoCache] = useState<Record<string, PhotoState>>({});
   const [isBookletLoading, setIsBookletLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editAfterLogin, setEditAfterLogin] = useState(false);
@@ -82,6 +84,7 @@ function App() {
         fetchReservations(),
         fetchTodos()
       ]);
+      const nextPhotoCache = await loadBookletPhotos(places, travelPlaces.photoCache);
 
       setBookletSnapshot({
         generatedAt: new Date().toISOString(),
@@ -91,6 +94,7 @@ function App() {
         reservations,
         todos
       });
+      setBookletPhotoCache(nextPhotoCache);
     } catch (bookletError) {
       window.alert(bookletError instanceof Error ? bookletError.message : 'PDF 책자 데이터를 불러오지 못했습니다.');
     } finally {
@@ -157,12 +161,48 @@ function App() {
       {bookletSnapshot ? (
         <TripBookletDialog
           snapshot={bookletSnapshot}
-          photoCache={travelPlaces.photoCache}
+          photoCache={bookletPhotoCache}
           onClose={() => setBookletSnapshot(null)}
         />
       ) : null}
     </main>
   );
+}
+
+async function loadBookletPhotos(places: Place[], currentPhotoCache: Record<string, PhotoState>) {
+  const nextPhotoCache: Record<string, PhotoState> = { ...currentPhotoCache };
+  const missingPlaces = places.filter((place) => {
+    const state = nextPhotoCache[place.id];
+    return state?.status !== 'ready' || state.photos.length === 0;
+  });
+
+  await mapWithConcurrency(missingPlaces, 4, async (place) => {
+    try {
+      const photos = await fetchPlacePhotos(place.id);
+      nextPhotoCache[place.id] = { status: 'ready', photos };
+    } catch (error) {
+      nextPhotoCache[place.id] = {
+        status: 'error',
+        photos: nextPhotoCache[place.id]?.photos ?? [],
+        error: error instanceof Error ? error.message : '사진을 불러오지 못했습니다.'
+      };
+    }
+  });
+
+  return nextPhotoCache;
+}
+
+async function mapWithConcurrency<T>(items: T[], concurrency: number, task: (item: T) => Promise<void>) {
+  let index = 0;
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (index < items.length) {
+      const item = items[index];
+      index += 1;
+      await task(item);
+    }
+  });
+
+  await Promise.all(workers);
 }
 
 export default App;

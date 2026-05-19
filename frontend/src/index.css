@@ -142,7 +142,15 @@
 }
 
 .trip-booklet-print-root {
-  display: none;
+  position: fixed;
+  left: -200vw;
+  top: 0;
+  z-index: -1;
+  display: block;
+  width: 920px;
+  max-width: 920px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 @media (max-width: 767px) {
@@ -207,7 +215,11 @@
     left: 0 !important;
     top: 0 !important;
     display: block !important;
+    z-index: auto !important;
     width: 100% !important;
+    max-width: none !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
     background: #fff !important;
     color: #111827 !important;
   }
