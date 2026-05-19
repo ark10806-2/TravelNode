@@ -73,8 +73,8 @@ export function PlaceList({
   }, [expandedPlaceId, places]);
 
   function togglePlace(place: NearbyPlace) {
+    onSelectPlace?.(place);
     if (!enableExpandedDetails) {
-      onSelectPlace?.(place);
       return;
     }
     setExpandedPlaceId((current) => (current === place.id ? null : place.id));

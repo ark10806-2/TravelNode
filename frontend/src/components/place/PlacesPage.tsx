@@ -76,9 +76,19 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
     () => (referencePlaceId ? places.find((place) => place.id === referencePlaceId) ?? hotelSchedulePlace : hotelSchedulePlace),
     [places, referencePlaceId]
   );
-  const referencePlaces = useMemo<NearbyPlace[]>(
-    () => toHotelDistancePlaces(visiblePlaces.filter((place) => place.id !== referencePlace.id), referencePlace),
-    [referencePlace, visiblePlaces]
+  const listReferencePlace = selectedPlace ?? referencePlace;
+  const selectedNearbyPlaces = useMemo<NearbyPlace[]>(
+    () => {
+      const sortedPlaces = toHotelDistancePlaces(visiblePlaces, listReferencePlace);
+      if (!selectedPlace) return sortedPlaces;
+
+      return sortedPlaces.sort((a, b) => {
+        if (a.id === selectedPlace.id) return -1;
+        if (b.id === selectedPlace.id) return 1;
+        return a.distanceFromSelectedKm - b.distanceFromSelectedKm;
+      });
+    },
+    [listReferencePlace, selectedPlace, visiblePlaces]
   );
 
   const selectPlace = useCallback(
@@ -161,9 +171,9 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
 
           <div className="md:hidden">
             <PlaceList
-              title={`${selectedCategory.emoji} ${selectedCategory.label} 기준점 근처`}
-              places={referencePlaces}
-              referencePlace={referencePlace}
+              title={`${selectedCategory.emoji} ${selectedCategory.label} 선택 장소 주변`}
+              places={selectedNearbyPlaces}
+              referencePlace={listReferencePlace}
               viewMode={mobilePlaceListViewMode}
               onViewModeChange={setMobilePlaceListViewMode}
               isEditing={canModify}
@@ -183,9 +193,9 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
 
           <div className="hidden md:block">
             <PlaceList
-              title={`기준점 근처 ${selectedCategory.emoji} ${selectedCategory.label}`}
-              places={referencePlaces}
-              referencePlace={referencePlace}
+              title={`선택 장소 주변 ${selectedCategory.emoji} ${selectedCategory.label}`}
+              places={selectedNearbyPlaces}
+              referencePlace={listReferencePlace}
               viewMode={placeListViewMode}
               onViewModeChange={setPlaceListViewMode}
               isEditing={canModify}
