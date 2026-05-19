@@ -30,7 +30,10 @@ class GoogleMapsListSyncService(
   fun preview(request: GoogleMapsListPreviewRequest): GoogleMapsListPreviewResponse {
     val warnings = mutableListOf<String>()
     val parsed = readList(request.googleMapsUrl, warnings)
-    val places = parsed.restaurants.map { it.toPreviewPlace(loadThumbnailUrl(it)) }
+    val places = parsed.restaurants.map {
+      val metadata = loadPlaceMetadata(it, includeThumbnail = true)
+      it.withPlacesMetadata(metadata).toPreviewPlace(metadata?.thumbnailUrl)
+    }
 
     if (parsed.failedCount > 0) {
       warnings += "목록 항목 ${parsed.failedCount}개는 이름이나 좌표가 없어 건너뛰었습니다."
@@ -60,7 +63,14 @@ class GoogleMapsListSyncService(
     val importTargets = selectedSyncKeys?.let { keys ->
       parsed.restaurants.filter { it.syncKey in keys }
     } ?: parsed.restaurants
-    val importResult = restaurantRepository.importSynced(importTargets)
+    val enrichedImportTargets = importTargets.map { synced ->
+      if (isPlaceTypeCandidate(synced.restaurant.description, emptySet())) {
+        synced
+      } else {
+        synced.withPlacesMetadata(loadPlaceMetadata(synced, includeThumbnail = false))
+      }
+    }
+    val importResult = restaurantRepository.importSynced(enrichedImportTargets)
 
     if (parsed.failedCount > 0) {
       warnings += "목록 항목 ${parsed.failedCount}개는 이름이나 좌표가 없어 건너뛰었습니다."
@@ -245,7 +255,7 @@ class GoogleMapsListSyncService(
     val syncKey = buildSyncKey(placeNode, name, latitude, longitude)
     val category = GoogleMapsPlaceInference.category(name, inferenceText)
     val cuisine = GoogleMapsPlaceInference.cuisine(name, category)
-    val menu = GoogleMapsPlaceInference.menu(name, favoriteNote.ifBlank { placeTypeNote.orEmpty() }, category)
+    val menu = GoogleMapsPlaceInference.menu(name, favoriteNote, category)
     val distanceKm = haversineKm(HotelLocation, Coordinate(latitude, longitude))
     val travelMode = if (distanceKm <= 2.0) "walk" else "transit"
 
@@ -390,7 +400,7 @@ class GoogleMapsListSyncService(
     return "https://www.google.com/maps/search/?api=1&query=$encodedQuery"
   }
 
-  private fun loadThumbnailUrl(values: GoogleMapsSyncedRestaurantValues): String? {
+  private fun loadPlaceMetadata(values: GoogleMapsSyncedRestaurantValues, includeThumbnail: Boolean): GoogleMapsPlaceMetadata? {
     val key = apiKey?.takeIf { it.isNotBlank() } ?: return null
     val restaurant = values.restaurant
     val body = mapper.writeValueAsString(
@@ -409,13 +419,16 @@ class GoogleMapsListSyncService(
       )
     )
 
-    val photoName = try {
+    val firstPlace = try {
       val request = HttpRequest.newBuilder(URI("https://places.googleapis.com/v1/places:searchText"))
         .timeout(Duration.ofSeconds(8))
         .header("Content-Type", "application/json")
         .header("Referer", referer)
         .header("X-Goog-Api-Key", key)
-        .header("X-Goog-FieldMask", "places.photos")
+        .header(
+          "X-Goog-FieldMask",
+          if (includeThumbnail) "places.primaryTypeDisplayName,places.photos" else "places.primaryTypeDisplayName"
+        )
         .POST(HttpRequest.BodyPublishers.ofString(body))
         .build()
       val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
@@ -424,32 +437,58 @@ class GoogleMapsListSyncService(
       mapper.readTree(response.body())
         .path("places")
         .firstOrNull()
-        ?.path("photos")
-        ?.firstOrNull()
-        ?.path("name")
-        ?.asText(null)
         ?: return null
     } catch (_: Exception) {
       return null
     }
 
-    return try {
-      val encodedName = photoName.split("/")
-        .joinToString("/") { URLEncoder.encode(it, StandardCharsets.UTF_8) }
-      val request = HttpRequest.newBuilder(
-        URI("https://places.googleapis.com/v1/$encodedName/media?maxWidthPx=240&maxHeightPx=180&skipHttpRedirect=true&key=$key")
-      )
-        .timeout(Duration.ofSeconds(8))
-        .header("Referer", referer)
-        .GET()
-        .build()
-      val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
-      if (response.statusCode() !in 200..299) return null
-      apiUsageRepository?.increment(ApiUsageServiceIds.PlacesPhoto)
-      mapper.readTree(response.body()).path("photoUri").asText(null)
-    } catch (_: Exception) {
+    val primaryType = firstPlace
+      .path("primaryTypeDisplayName")
+      .path("text")
+      .asTrimmedText()
+
+    val photoName = if (includeThumbnail) {
+      firstPlace
+        .path("photos")
+        ?.firstOrNull()
+        ?.path("name")
+        ?.asText(null)
+    } else {
       null
     }
+
+    val thumbnailUrl = photoName?.let { sourcePhotoName ->
+      val encodedName = sourcePhotoName.split("/")
+        .joinToString("/") { URLEncoder.encode(it, StandardCharsets.UTF_8) }
+      try {
+        val request = HttpRequest.newBuilder(
+          URI("https://places.googleapis.com/v1/$encodedName/media?maxWidthPx=240&maxHeightPx=180&skipHttpRedirect=true&key=$key")
+        )
+          .timeout(Duration.ofSeconds(8))
+          .header("Referer", referer)
+          .GET()
+          .build()
+        val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+        if (response.statusCode() !in 200..299) null
+        else {
+          apiUsageRepository?.increment(ApiUsageServiceIds.PlacesPhoto)
+          mapper.readTree(response.body()).path("photoUri").asText(null)
+        }
+      } catch (_: Exception) {
+        null
+      }
+    }
+
+    return GoogleMapsPlaceMetadata(primaryType = primaryType, thumbnailUrl = thumbnailUrl)
+  }
+
+  private fun GoogleMapsSyncedRestaurantValues.withPlacesMetadata(metadata: GoogleMapsPlaceMetadata?): GoogleMapsSyncedRestaurantValues {
+    val primaryType = metadata?.primaryType?.trim()?.takeIf { it.isNotBlank() } ?: return this
+    return copy(
+      restaurant = restaurant.copy(
+        description = primaryType
+      )
+    )
   }
 
   private fun GoogleMapsSyncedRestaurantValues.toPreviewPlace(thumbnailUrl: String?) = GoogleMapsListPreviewPlace(
@@ -483,6 +522,11 @@ class GoogleMapsListSyncService(
     .takeIf { it.isNotBlank() }
 
   private data class Coordinate(val latitude: Double, val longitude: Double)
+
+  private data class GoogleMapsPlaceMetadata(
+    val primaryType: String?,
+    val thumbnailUrl: String?
+  )
 
   private data class FetchedPage(val resolvedUrl: String, val body: String)
 
