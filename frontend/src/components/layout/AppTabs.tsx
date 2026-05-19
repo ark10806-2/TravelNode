@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Activity, CalendarDays, Check, KeyRound, ListChecks, LogOut, MapPinned, Pencil, Plane, TicketCheck } from 'lucide-react';
+import { Activity, CalendarDays, Check, FileDown, KeyRound, ListChecks, Loader2, LogOut, MapPinned, Pencil, Plane, TicketCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { AppTab } from '@/types/schedule';
@@ -14,8 +14,10 @@ type AppTabsProps = {
   onTabChange: (tab: AppTab) => void;
   onEditToggle: () => void;
   onThemeChange: (theme: ThemeMode) => void;
+  onBookletClick: () => void;
   onLogout: () => void;
   onChangePasswordClick: () => void;
+  isBookletLoading?: boolean;
 };
 
 const tabs = [
@@ -34,8 +36,10 @@ export function AppTabs({
   onTabChange,
   onEditToggle,
   onThemeChange,
+  onBookletClick,
   onLogout,
-  onChangePasswordClick
+  onChangePasswordClick,
+  isBookletLoading
 }: AppTabsProps) {
   const introRef = useRef<HTMLDivElement | null>(null);
   const isCompactRef = useRef(false);
@@ -83,9 +87,19 @@ export function AppTabs({
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-            <div className="flex w-full items-center gap-1 sm:w-auto sm:flex-nowrap">
+            <div className="flex w-full flex-wrap items-center gap-1 sm:w-auto sm:flex-nowrap">
               <ThemeToggle theme={theme} onThemeChange={onThemeChange} />
-              <div className="flex flex-1 gap-1 rounded-full border bg-background p-1 sm:flex-none">
+              <Button
+                className="flex-1 rounded-full sm:flex-none"
+                variant="outline"
+                size="sm"
+                onClick={onBookletClick}
+                disabled={isBookletLoading}
+              >
+                {isBookletLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+                PDF
+              </Button>
+              <div className="flex flex-1 basis-full gap-1 rounded-full border bg-background p-1 sm:basis-auto sm:flex-none">
                 <Button
                   className="flex-1 sm:flex-none"
                   variant={isEditing ? 'default' : 'ghost'}

@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react';
+import { fetchReservations } from '@/api/reservations';
+import { fetchSchedule } from '@/api/schedule';
+import { fetchTodos } from '@/api/todos';
+import { fetchCategories, fetchPlaces } from '@/api/travel';
 import { AuthDialog } from '@/components/dialogs/AuthDialog';
+import { TripBookletDialog, type TripBookletSnapshot } from '@/components/export/TripBookletDialog';
 import { AppTabs } from '@/components/layout/AppTabs';
 import { PlacesPage } from '@/components/place/PlacesPage';
 import { ReservationPage } from '@/components/reservation/ReservationPage';
@@ -24,6 +29,8 @@ function App() {
   const { theme, resolvedTheme, setTheme } = useTheme();
   const [activeTab, setActiveTab] = usePersistedState<AppTab>(activeTabStorageKey, 'places', isAppTab);
   const [authDialogMode, setAuthDialogMode] = useState<'login' | 'change' | null>(null);
+  const [bookletSnapshot, setBookletSnapshot] = useState<TripBookletSnapshot | null>(null);
+  const [isBookletLoading, setIsBookletLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editAfterLogin, setEditAfterLogin] = useState(false);
 
@@ -64,6 +71,33 @@ function App() {
     auth.logout();
   }
 
+  async function openTripBooklet() {
+    setIsBookletLoading(true);
+
+    try {
+      const [categories, places, scheduleDays, reservations, todos] = await Promise.all([
+        fetchCategories(),
+        fetchPlaces(),
+        fetchSchedule(),
+        fetchReservations(),
+        fetchTodos()
+      ]);
+
+      setBookletSnapshot({
+        generatedAt: new Date().toISOString(),
+        categories,
+        places,
+        scheduleDays,
+        reservations,
+        todos
+      });
+    } catch (bookletError) {
+      window.alert(bookletError instanceof Error ? bookletError.message : 'PDF 책자 데이터를 불러오지 못했습니다.');
+    } finally {
+      setIsBookletLoading(false);
+    }
+  }
+
   return (
     <main className="app-background min-h-[100dvh] overflow-x-hidden">
       <AppTabs
@@ -74,8 +108,10 @@ function App() {
         onTabChange={setActiveTab}
         onEditToggle={toggleEditMode}
         onThemeChange={setTheme}
+        onBookletClick={openTripBooklet}
         onLogout={logout}
         onChangePasswordClick={() => setAuthDialogMode('change')}
+        isBookletLoading={isBookletLoading}
       />
       {activeTab === 'places' ? (
         <PlacesPage
@@ -116,6 +152,13 @@ function App() {
           onClose={closeAuthDialog}
           onLogin={login}
           onChangePassword={auth.changePassword}
+        />
+      ) : null}
+      {bookletSnapshot ? (
+        <TripBookletDialog
+          snapshot={bookletSnapshot}
+          photoCache={travelPlaces.photoCache}
+          onClose={() => setBookletSnapshot(null)}
         />
       ) : null}
     </main>
