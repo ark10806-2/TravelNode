@@ -32,8 +32,8 @@ const exactOptimizationLimit = 12;
 export function selectBestRouteMode(leg?: RouteLeg): EdgeChoice | null {
   if (!leg) return null;
 
-  const transitMinutes = routeModeMinutes(leg.transit.durationLabel, leg.transit.status === 'loading');
-  const walkingMinutes = routeModeMinutes(leg.walking.durationLabel, leg.walking.status === 'loading');
+  const transitMinutes = leg.transit ? routeModeMinutes(leg.transit.durationLabel, leg.transit.status === 'loading') : null;
+  const walkingMinutes = leg.walking ? routeModeMinutes(leg.walking.durationLabel, leg.walking.status === 'loading') : null;
 
   if (transitMinutes == null && walkingMinutes == null) return null;
   if (walkingMinutes == null) return { mode: 'transit', minutes: transitMinutes! };

@@ -118,23 +118,39 @@ CREATE TABLE IF NOT EXISTS route_cache_entries (
   from_place_key text NOT NULL,
   to_place_key text NOT NULL,
   calculation_version integer NOT NULL DEFAULT 1,
-  driving_status text NOT NULL CHECK (driving_status IN ('ready', 'estimated', 'error')),
-  driving_duration_label text NOT NULL,
-  driving_distance_label text NOT NULL,
+  driving_status text CHECK (driving_status IN ('ready', 'estimated', 'error')),
+  driving_duration_label text,
+  driving_distance_label text,
   driving_error text,
-  transit_status text NOT NULL CHECK (transit_status IN ('ready', 'estimated', 'error')),
-  transit_duration_label text NOT NULL,
-  transit_distance_label text NOT NULL,
+  driving_updated_at timestamptz,
+  transit_status text CHECK (transit_status IN ('ready', 'estimated', 'error')),
+  transit_duration_label text,
+  transit_distance_label text,
   transit_error text,
-  walking_status text NOT NULL CHECK (walking_status IN ('ready', 'estimated', 'error')),
-  walking_duration_label text NOT NULL,
-  walking_distance_label text NOT NULL,
+  transit_updated_at timestamptz,
+  walking_status text CHECK (walking_status IN ('ready', 'estimated', 'error')),
+  walking_duration_label text,
+  walking_distance_label text,
   walking_error text,
+  walking_updated_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (from_place_key, to_place_key),
   CHECK (from_place_key <> to_place_key)
 );
+
+ALTER TABLE route_cache_entries ALTER COLUMN driving_status DROP NOT NULL;
+ALTER TABLE route_cache_entries ALTER COLUMN driving_duration_label DROP NOT NULL;
+ALTER TABLE route_cache_entries ALTER COLUMN driving_distance_label DROP NOT NULL;
+ALTER TABLE route_cache_entries ALTER COLUMN transit_status DROP NOT NULL;
+ALTER TABLE route_cache_entries ALTER COLUMN transit_duration_label DROP NOT NULL;
+ALTER TABLE route_cache_entries ALTER COLUMN transit_distance_label DROP NOT NULL;
+ALTER TABLE route_cache_entries ALTER COLUMN walking_status DROP NOT NULL;
+ALTER TABLE route_cache_entries ALTER COLUMN walking_duration_label DROP NOT NULL;
+ALTER TABLE route_cache_entries ALTER COLUMN walking_distance_label DROP NOT NULL;
+ALTER TABLE route_cache_entries ADD COLUMN IF NOT EXISTS driving_updated_at timestamptz;
+ALTER TABLE route_cache_entries ADD COLUMN IF NOT EXISTS transit_updated_at timestamptz;
+ALTER TABLE route_cache_entries ADD COLUMN IF NOT EXISTS walking_updated_at timestamptz;
 
 CREATE TABLE IF NOT EXISTS schedule_days (
   id text PRIMARY KEY,

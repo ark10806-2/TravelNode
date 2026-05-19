@@ -1,6 +1,6 @@
 import { apiBaseUrl } from '@/config/env';
 import { readData } from './client';
-import type { RouteLeg } from '@/types/schedule';
+import type { RouteLeg, RouteMode } from '@/types/schedule';
 
 export async function fetchCachedRouteLeg(fromPlaceId: string, toPlaceId: string) {
   const fromKey = encodeURIComponent(fromPlaceId);
@@ -9,7 +9,7 @@ export async function fetchCachedRouteLeg(fromPlaceId: string, toPlaceId: string
 
   if (response.status === 404) return null;
 
-  return readData<RouteLeg>(response, '이동 경로 캐시를 불러오지 못했습니다.');
+  return normalizeRouteLeg(await readData<RouteLeg>(response, '이동 경로 캐시를 불러오지 못했습니다.'));
 }
 
 export async function saveRouteLegCache(fromPlaceId: string, toPlaceId: string, leg: RouteLeg) {
@@ -19,5 +19,11 @@ export async function saveRouteLegCache(fromPlaceId: string, toPlaceId: string, 
     body: JSON.stringify({ fromPlaceId, toPlaceId, ...leg })
   });
 
-  return readData<RouteLeg>(response, '이동 경로 캐시를 저장하지 못했습니다.');
+  return normalizeRouteLeg(await readData<RouteLeg>(response, '이동 경로 캐시를 저장하지 못했습니다.'));
+}
+
+const routeModes: RouteMode[] = ['driving', 'transit', 'walking'];
+
+function normalizeRouteLeg(leg: RouteLeg) {
+  return Object.fromEntries(routeModes.flatMap((mode) => (leg[mode] ? [[mode, leg[mode]]] : []))) as RouteLeg;
 }

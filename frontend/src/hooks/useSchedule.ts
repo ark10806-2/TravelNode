@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getAuthToken } from '@/api/auth';
 import { fetchSchedule, saveSchedule } from '@/api/schedule';
+import { haversineKm } from '@/lib/place-utils';
 import { optimizePlaceOrder } from '@/lib/route-optimizer';
+import { defaultEnabledRouteModes } from '@/lib/route-preferences';
 import {
   alignDayDepartureTimes,
   clearDayRouteSelection,
@@ -17,25 +19,38 @@ import { fetchRouteLeg } from '@/lib/transit';
 import {
   createId,
   createLoadingRouteLeg,
+  estimateRouteModeLeg,
   getScheduleHotelPlace,
   maxStopsPerDay,
   normalizeDepartureTimeMinutes,
   routeLegKey
 } from '@/lib/schedule-utils';
-import type { RouteLeg, ScheduleDay, ScheduleStop } from '@/types/schedule';
+import type { RouteLeg, RouteMode, ScheduleDay, ScheduleStop } from '@/types/schedule';
 import type { Place } from '@/types/travel';
 
 type ScheduleStatus = 'loading' | 'ready' | 'error';
 type RouteRequestOptions = {
   forceRefresh?: boolean;
   departureTimeMinutes?: number | null;
+  modes?: RouteMode[];
+  precise?: boolean;
 };
 
-function isResolvedRouteLeg(leg?: RouteLeg) {
-  return Boolean(leg) && Object.values(leg!).every((mode) => mode.status !== 'loading');
+type RoutePair = {
+  from: Place;
+  to: Place;
+  key: string;
+  departureTimeMinutes: number | null;
+};
+
+function isResolvedRouteLeg(leg: RouteLeg | undefined, modes: RouteMode[]) {
+  return modes.every((mode) => {
+    const modeLeg = leg?.[mode];
+    return Boolean(modeLeg) && modeLeg?.status !== 'loading';
+  });
 }
 
-export function useSchedule(places: Place[], canPersist = false) {
+export function useSchedule(places: Place[], canPersist = false, enabledRouteModes: RouteMode[] = defaultEnabledRouteModes) {
   const [days, setDays] = useState<ScheduleDay[]>(() => withFallbackDay(loadStoredDays()).map(alignDayDepartureTimes));
   const [scheduleStatus, setScheduleStatus] = useState<ScheduleStatus>('loading');
   const [scheduleError, setScheduleError] = useState('');
@@ -102,25 +117,32 @@ export function useSchedule(places: Place[], canPersist = false) {
   function setRouteLegValue(key: string, leg: RouteLeg) {
     routeLegsRef.current = {
       ...routeLegsRef.current,
-      [key]: leg
+      [key]: {
+        ...routeLegsRef.current[key],
+        ...leg
+      }
     };
     setRouteLegs((current) => ({
       ...current,
-      [key]: leg
+      [key]: {
+        ...current[key],
+        ...leg
+      }
     }));
   }
 
   function requestRouteLeg(from: Place, to: Place, key: string, options: RouteRequestOptions = {}) {
-    if (!options.forceRefresh && routeLegRequestsRef.current[key]) {
-      return routeLegRequestsRef.current[key];
+    const requestKey = routeRequestKey(key, options);
+    if (!options.forceRefresh && routeLegRequestsRef.current[requestKey]) {
+      return routeLegRequestsRef.current[requestKey];
     }
 
     const request = fetchRouteLeg(from, to, options).finally(() => {
-      delete routeLegRequestsRef.current[key];
+      delete routeLegRequestsRef.current[requestKey];
     });
 
     if (!options.forceRefresh) {
-      routeLegRequestsRef.current[key] = request;
+      routeLegRequestsRef.current[requestKey] = request;
     }
 
     return request;
@@ -316,6 +338,8 @@ export function useSchedule(places: Place[], canPersist = false) {
   async function optimizeDayRoutes(dayId: string) {
     const day = days.find((candidate) => candidate.id === dayId);
     if (!day || day.stops.length < 1) return;
+    const optimizationModes = enabledRouteModes.filter((mode) => mode !== 'driving');
+    if (!optimizationModes.length) return;
 
     const scheduledStops = day.stops
       .map((stop) => {
@@ -336,7 +360,7 @@ export function useSchedule(places: Place[], canPersist = false) {
         ? normalizeDepartureTimeMinutes(day.departureTimeMinutes)
         : departureByPlaceId.get(place.id) ?? null;
     const keyForEdge = (from: Place, to: Place) => routeLegKey(from, to, departureForOrigin(from));
-    const pairs = [
+    const pairs: RoutePair[] = [
       ...dayPlaces.map((place) => ({
         from: hotelPlace,
         to: place,
@@ -362,26 +386,31 @@ export function useSchedule(places: Place[], canPersist = false) {
         )
       )
     ].filter(({ from, to }) => from.id !== to.id);
-    const missingPairs = pairs.filter(({ key }) => !isResolvedRouteLeg(routeLegsRef.current[key]));
+    const candidatePairs = selectTopRouteCandidatePairs(pairs, scheduleRoutePairs(day, placesById));
+    const missingPairs = candidatePairs.filter(({ key }) => !isResolvedRouteLeg(routeLegsRef.current[key], optimizationModes));
 
     if (missingPairs.length) {
-      const loadingLegs = Object.fromEntries(missingPairs.map(({ key }) => [key, createLoadingRouteLeg()]));
+      const loadingLegs = Object.fromEntries(missingPairs.map(({ key }) => [key, createLoadingRouteLeg(optimizationModes)]));
       routeLegsRef.current = {
         ...routeLegsRef.current,
-        ...loadingLegs
+        ...mergeRouteLegRecords(routeLegsRef.current, loadingLegs)
       };
       setRouteLegs((current) => ({
         ...current,
-        ...loadingLegs
+        ...mergeRouteLegRecords(current, loadingLegs)
       }));
     }
 
     await mapWithConcurrency(missingPairs, 4, async ({ from, to, key, departureTimeMinutes }) => {
-      const leg = await requestRouteLeg(from, to, key, { departureTimeMinutes });
+      const leg = await requestRouteLeg(from, to, key, { departureTimeMinutes, modes: optimizationModes });
       setRouteLegValue(key, leg);
     });
 
-    const optimized = optimizePlaceOrder(dayPlaces, routeLegsRef.current, hotelPlace, hotelPlace, {
+    const optimizationRouteLegs = mergeRouteLegRecords(
+      createEstimatedRouteLegs(pairs, optimizationModes),
+      routeLegsRef.current
+    );
+    const optimized = optimizePlaceOrder(dayPlaces, optimizationRouteLegs, hotelPlace, hotelPlace, {
       keyForEdge,
       ...optimizationLocks
     });
@@ -420,19 +449,53 @@ export function useSchedule(places: Place[], canPersist = false) {
 
     if (!pairs.length) return;
 
-    const loadingLegs = Object.fromEntries(pairs.map(({ key }) => [key, createLoadingRouteLeg()]));
+    const loadingLegs = Object.fromEntries(
+      pairs
+        .filter(({ key }) => !isResolvedRouteLeg(routeLegsRef.current[key], enabledRouteModes))
+        .map(({ key }) => [key, createLoadingRouteLeg(enabledRouteModes)])
+    );
     routeLegsRef.current = {
       ...routeLegsRef.current,
-      ...loadingLegs
+      ...mergeRouteLegRecords(routeLegsRef.current, loadingLegs)
     };
     setRouteLegs((current) => ({
       ...current,
-      ...loadingLegs
+      ...mergeRouteLegRecords(current, loadingLegs)
     }));
 
     await Promise.all(
       pairs.map(async ({ from, to, key, departureTimeMinutes }) => {
-        const leg = await requestRouteLeg(from, to, key, { forceRefresh: true, departureTimeMinutes });
+        const leg = await requestRouteLeg(from, to, key, { departureTimeMinutes, modes: enabledRouteModes });
+        setRouteLegValue(key, leg);
+      })
+    );
+  }
+
+  async function calculatePreciseDayRoutes(dayId: string) {
+    const day = days.find((candidate) => candidate.id === dayId);
+    if (!day) return;
+
+    const pairs = scheduleRoutePairs(day, placesById);
+    if (!pairs.length) return;
+
+    const loadingLegs = Object.fromEntries(pairs.map(({ key }) => [key, createLoadingRouteLeg(enabledRouteModes)]));
+    routeLegsRef.current = {
+      ...routeLegsRef.current,
+      ...mergeRouteLegRecords(routeLegsRef.current, loadingLegs)
+    };
+    setRouteLegs((current) => ({
+      ...current,
+      ...mergeRouteLegRecords(current, loadingLegs)
+    }));
+
+    await Promise.all(
+      pairs.map(async ({ from, to, key, departureTimeMinutes }) => {
+        const leg = await requestRouteLeg(from, to, key, {
+          forceRefresh: true,
+          departureTimeMinutes,
+          modes: enabledRouteModes,
+          precise: true
+        });
         setRouteLegValue(key, leg);
       })
     );
@@ -456,7 +519,8 @@ export function useSchedule(places: Place[], canPersist = false) {
     toggleStopEdgeLock,
     toggleReturnEdgeLock,
     optimizeDayRoutes,
-    refreshDayRoutes
+    refreshDayRoutes,
+    calculatePreciseDayRoutes
   };
 }
 
@@ -471,6 +535,56 @@ function clearLocksAroundMove(stops: ScheduleStop[], fromIndex: number, toIndex:
         }
       : stop
   );
+}
+
+function routeRequestKey(key: string, options: RouteRequestOptions) {
+  const modes = [...(options.modes ?? defaultEnabledRouteModes)].sort().join(',');
+  return `${key}:${modes}:${options.precise === true ? 'precise' : 'standard'}`;
+}
+
+function mergeRouteLegRecords(...records: Record<string, RouteLeg>[]) {
+  return records.reduce<Record<string, RouteLeg>>((merged, record) => {
+    Object.entries(record).forEach(([key, leg]) => {
+      merged[key] = {
+        ...merged[key],
+        ...leg
+      };
+    });
+    return merged;
+  }, {});
+}
+
+function createEstimatedRouteLegs(pairs: RoutePair[], modes: RouteMode[]) {
+  return Object.fromEntries(
+    pairs.map(({ from, to, key }) => [
+      key,
+      Object.fromEntries(modes.map((mode) => [mode, estimateRouteModeLeg(from, to, mode)])) as RouteLeg
+    ])
+  );
+}
+
+function selectTopRouteCandidatePairs(pairs: RoutePair[], requiredPairs: RoutePair[], perOriginLimit = 4) {
+  const pairByKey = new Map(pairs.map((pair) => [pair.key, pair]));
+  const selected = new Map(requiredPairs.flatMap((pair) => {
+    const matchedPair = pairByKey.get(pair.key);
+    return matchedPair ? [[matchedPair.key, matchedPair] as const] : [];
+  }));
+  const pairsByOrigin = new Map<string, RoutePair[]>();
+
+  pairs.forEach((pair) => {
+    const key = pair.from.id;
+    pairsByOrigin.set(key, [...(pairsByOrigin.get(key) ?? []), pair]);
+  });
+
+  pairsByOrigin.forEach((originPairs) => {
+    originPairs
+      .slice()
+      .sort((left, right) => haversineKm(left.from, left.to) - haversineKm(right.from, right.to))
+      .slice(0, perOriginLimit)
+      .forEach((pair) => selected.set(pair.key, pair));
+  });
+
+  return [...selected.values()];
 }
 
 function removeStopAndClearEdgeLocks(day: ScheduleDay, stopId: string): ScheduleDay {

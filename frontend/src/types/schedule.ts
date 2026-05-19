@@ -28,4 +28,4 @@ export type RouteModeLeg = {
   error?: string;
 };
 
-export type RouteLeg = Record<RouteMode, RouteModeLeg>;
+export type RouteLeg = Partial<Record<RouteMode, RouteModeLeg>>;

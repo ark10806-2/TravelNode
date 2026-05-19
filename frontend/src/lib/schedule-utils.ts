@@ -1,6 +1,6 @@
 import { hotel } from '@/constants/travel';
 import { haversineKm } from '@/lib/place-utils';
-import type { RouteMode, RouteModeLeg, ScheduleDay } from '@/types/schedule';
+import type { RouteLeg, RouteMode, RouteModeLeg, ScheduleDay } from '@/types/schedule';
 import type { Place } from '@/types/travel';
 
 export const scheduleStorageKey = 'japan-trip-schedule-v1';
@@ -41,10 +41,10 @@ export function routeLegKey(from: Place, to: Place, departureTimeMinutes?: numbe
   return `${routeCacheOriginKey(from, departureTimeMinutes)}:${to.id}`;
 }
 
-export function routeCacheOriginKey(place: Place, departureTimeMinutes?: number | null) {
+export function routeCacheOriginKey(place: Place, departureTimeMinutes?: number | null, precise?: boolean) {
   const normalized = normalizeDepartureTimeMinutes(departureTimeMinutes);
-  if (normalized == null) return place.id;
-  return `${place.id}:m${String(normalized).padStart(4, '0')}`;
+  const timeSuffix = normalized == null ? '' : `:m${String(normalized).padStart(4, '0')}`;
+  return `${place.id}${timeSuffix}${precise ? ':precise' : ''}`;
 }
 
 export function normalizeDepartureTimeMinutes(value: unknown) {
@@ -85,9 +85,9 @@ export function estimateRouteModeLeg(from: Place, to: Place, mode: RouteMode): R
   };
 }
 
-export function createLoadingRouteLeg() {
+export function createLoadingRouteLeg(modes: RouteMode[] = routeModes) {
   return Object.fromEntries(
-    routeModes.map((mode) => [
+    modes.map((mode) => [
       mode,
       {
         status: 'loading',
@@ -95,7 +95,7 @@ export function createLoadingRouteLeg() {
         distanceLabel: '계산 중'
       }
     ])
-  ) as Record<RouteMode, RouteModeLeg>;
+  ) as RouteLeg;
 }
 
 function estimateMinutes(distanceKm: number, mode: RouteMode) {

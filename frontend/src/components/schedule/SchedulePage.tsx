@@ -5,6 +5,7 @@ import { PlacePhotoDialog } from '@/components/dialogs/PlacePhotoDialog';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
 import { useSchedule } from '@/hooks/useSchedule';
+import { loadEnabledRouteModes } from '@/lib/route-preferences';
 import type { CategoryOption, PhotoState, Place } from '@/types/travel';
 import { DayScheduleCard } from './DayScheduleCard';
 
@@ -27,7 +28,9 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
   const [detailTarget, setDetailTarget] = useState<Place | null>(null);
   const [photoTarget, setPhotoTarget] = useState<Place | null>(null);
   const [refreshingDayId, setRefreshingDayId] = useState<string | null>(null);
+  const [preciseDayId, setPreciseDayId] = useState<string | null>(null);
   const [optimizingDayId, setOptimizingDayId] = useState<string | null>(null);
+  const [enabledRouteModes] = useState(loadEnabledRouteModes);
   const [routeRefreshAvailableAtByDay, setRouteRefreshAvailableAtByDay] = useState<Record<string, number>>({});
   const [currentTime, setCurrentTime] = useState(() => Date.now());
   const {
@@ -48,8 +51,9 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
     toggleStopEdgeLock,
     toggleReturnEdgeLock,
     optimizeDayRoutes,
-    refreshDayRoutes
-  } = useSchedule(places, isEditing);
+    refreshDayRoutes,
+    calculatePreciseDayRoutes
+  } = useSchedule(places, isEditing, enabledRouteModes);
   const currentDetailTarget = detailTarget ? placesById.get(detailTarget.id) ?? detailTarget : null;
   const currentPhotoTarget = photoTarget ? placesById.get(photoTarget.id) ?? photoTarget : null;
   const hasActiveRefreshCooldown = useMemo(
@@ -89,6 +93,17 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
       await refreshDayRoutes(dayId);
     } finally {
       setRefreshingDayId(null);
+    }
+  }
+
+  async function preciseRoutes(dayId: string) {
+    if (preciseDayId) return;
+
+    setPreciseDayId(dayId);
+    try {
+      await calculatePreciseDayRoutes(dayId);
+    } finally {
+      setPreciseDayId(null);
     }
   }
 
@@ -146,6 +161,7 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
             places={places}
             placesById={placesById}
             routeLegs={routeLegs}
+            visibleRouteModes={enabledRouteModes}
             isEditing={isEditing}
             isDarkMode={isDarkMode}
             onRemoveDay={removeDay}
@@ -160,11 +176,13 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
             isOptimizingRoutes={optimizingDayId === day.id}
             onOptimizeRoutes={() => void optimizeRoutes(day.id)}
             isRefreshingRoutes={refreshingDayId === day.id}
+            isCalculatingPreciseRoutes={preciseDayId === day.id}
             routeRefreshRemainingSeconds={Math.max(
               0,
               Math.ceil(((routeRefreshAvailableAtByDay[day.id] ?? 0) - currentTime) / 1000)
             )}
             onRefreshRoutes={() => void refreshRoutes(day.id)}
+            onPreciseRoutes={() => void preciseRoutes(day.id)}
             onOpenPlaceDetails={openDetails}
           />
         ))}

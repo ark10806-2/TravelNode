@@ -8,9 +8,9 @@ data class RouteModeLegResponse(
 )
 
 data class RouteLegResponse(
-  val driving: RouteModeLegResponse,
-  val transit: RouteModeLegResponse,
-  val walking: RouteModeLegResponse
+  val driving: RouteModeLegResponse? = null,
+  val transit: RouteModeLegResponse? = null,
+  val walking: RouteModeLegResponse? = null
 )
 
 data class RouteModeLegRequest(
@@ -31,9 +31,9 @@ data class RouteCacheRequest(
 data class RouteCacheValues(
   val fromPlaceId: String,
   val toPlaceId: String,
-  val driving: RouteModeLegValues,
-  val transit: RouteModeLegValues,
-  val walking: RouteModeLegValues
+  val driving: RouteModeLegValues?,
+  val transit: RouteModeLegValues?,
+  val walking: RouteModeLegValues?
 )
 
 data class RouteModeLegValues(
@@ -53,16 +53,18 @@ fun RouteCacheRequest.validate(): List<String> {
     errors += "fromPlaceId and toPlaceId must be different"
   }
 
-  listOf(
+  val modeRequests = listOf(
     "driving" to driving,
     "transit" to transit,
     "walking" to walking
-  ).forEach { (mode, leg) ->
-    if (leg == null) {
-      errors += "$mode is required"
-      return@forEach
-    }
+  )
 
+  if (modeRequests.none { (_, leg) -> leg != null }) {
+    errors += "at least one route mode is required"
+  }
+
+  modeRequests.forEach { (mode, leg) ->
+    if (leg == null) return@forEach
     if (leg.status !in allowedRouteLegStatuses) errors += "$mode.status must be ready, estimated, or error"
     if (leg.durationLabel.isNullOrBlank()) errors += "$mode.durationLabel is required"
     if (leg.distanceLabel.isNullOrBlank()) errors += "$mode.distanceLabel is required"
@@ -74,9 +76,9 @@ fun RouteCacheRequest.validate(): List<String> {
 fun RouteCacheRequest.toValues() = RouteCacheValues(
   fromPlaceId = fromPlaceId!!.trim(),
   toPlaceId = toPlaceId!!.trim(),
-  driving = driving!!.toValues(),
-  transit = transit!!.toValues(),
-  walking = walking!!.toValues()
+  driving = driving?.toValues(),
+  transit = transit?.toValues(),
+  walking = walking?.toValues()
 )
 
 private fun RouteModeLegRequest.toValues() = RouteModeLegValues(

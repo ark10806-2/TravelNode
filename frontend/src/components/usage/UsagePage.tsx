@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, BarChart3, ExternalLink, RefreshCw, Save } from 'lucide-react';
+import { AlertTriangle, BarChart3, Car, ExternalLink, Footprints, RefreshCw, Save, Train } from 'lucide-react';
 import { fetchApiUsage, updateApiUsage, type ApiUsageItem, type ApiUsageSummary } from '@/api/usage';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { loadEnabledRouteModes, normalizeEnabledRouteModes, storeEnabledRouteModes } from '@/lib/route-preferences';
+import { cn } from '@/lib/utils';
+import type { RouteMode } from '@/types/schedule';
 
 type UsagePageProps = {
   isEditing: boolean;
@@ -34,6 +37,7 @@ export function UsagePage({ isEditing }: UsagePageProps) {
   const [error, setError] = useState('');
   const [drafts, setDrafts] = useState<Record<string, DraftValue>>({});
   const [savingServiceId, setSavingServiceId] = useState<string | null>(null);
+  const [enabledRouteModes, setEnabledRouteModes] = useState<RouteMode[]>(loadEnabledRouteModes);
 
   const totalStatus = useMemo(() => {
     if (!summary) return 'normal';
@@ -90,6 +94,17 @@ export function UsagePage({ isEditing }: UsagePageProps) {
     } finally {
       setSavingServiceId(null);
     }
+  }
+
+  function toggleRouteMode(mode: RouteMode) {
+    if (!isEditing) return;
+
+    const nextModes = enabledRouteModes.includes(mode)
+      ? enabledRouteModes.filter((candidate) => candidate !== mode)
+      : normalizeEnabledRouteModes([...enabledRouteModes, mode]);
+    const normalized = normalizeEnabledRouteModes(nextModes);
+    setEnabledRouteModes(normalized);
+    storeEnabledRouteModes(normalized);
   }
 
   return (
@@ -184,9 +199,76 @@ export function UsagePage({ isEditing }: UsagePageProps) {
           </div>
         </div>
       </div>
+
+      <div className="rounded-md border bg-background p-4 shadow-sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-lg font-bold">이동 수단 표시 및 계산</h2>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
+              선택한 이동 수단만 일정 화면에 보이고 경로 계산 대상이 됩니다. 꺼진 이동 수단은 백그라운드에서도 Routes API를 호출하지 않습니다.
+            </p>
+          </div>
+          {!isEditing ? <Badge variant="outline">편집 모드에서 변경</Badge> : null}
+        </div>
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          {routeModeOptions.map((option) => {
+            const Icon = option.icon;
+            const isEnabled = enabledRouteModes.includes(option.id);
+
+            return (
+              <button
+                key={option.id}
+                type="button"
+                className={cn(
+                  'flex items-start gap-3 rounded-lg border bg-muted/10 p-3 text-left transition',
+                  isEditing && 'hover:bg-muted/30',
+                  isEnabled && 'border-primary/35 bg-primary/10 text-primary',
+                  !isEditing && 'cursor-default opacity-80'
+                )}
+                disabled={!isEditing}
+                onClick={() => toggleRouteMode(option.id)}
+              >
+                <span className={cn('grid h-9 w-9 shrink-0 place-items-center rounded-full bg-background text-muted-foreground', isEnabled && 'text-primary')}>
+                  <Icon className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block font-semibold">{option.label}</span>
+                  <span className="mt-1 block text-xs leading-5 text-muted-foreground">{option.description}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </PageContainer>
   );
 }
+
+const routeModeOptions: Array<{
+  id: RouteMode;
+  label: string;
+  description: string;
+  icon: typeof Car;
+}> = [
+  {
+    id: 'transit',
+    label: '대중교통',
+    description: '최적화 기본 기준입니다. 출발 기준 시간에 따라 캐시가 분리됩니다.',
+    icon: Train
+  },
+  {
+    id: 'walking',
+    label: '도보',
+    description: '거리 기반으로 안정적이라 오래 캐시합니다. 최적화에서 우선 사용합니다.',
+    icon: Footprints
+  },
+  {
+    id: 'driving',
+    label: '자동차',
+    description: '표시할 때만 계산합니다. 정밀계산 시 실시간 교통을 반영합니다.',
+    icon: Car
+  }
+];
 
 function UsageRow({
   service,

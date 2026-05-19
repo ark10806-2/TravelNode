@@ -10,6 +10,7 @@ type RouteLegRowProps = {
   leg?: RouteLeg;
   selectedMode?: RouteMode | null;
   departureTimeMinutes?: number | null;
+  visibleModes?: RouteMode[];
   isEditing?: boolean;
   isLocked?: boolean;
   onToggleLock?: () => void;
@@ -27,11 +28,13 @@ export function RouteLegRow({
   leg,
   selectedMode,
   departureTimeMinutes,
+  visibleModes = routeModes,
   isEditing,
   isLocked,
   onToggleLock
 }: RouteLegRowProps) {
   const LockIcon = isLocked ? Lock : LockOpen;
+  const modes = visibleModes.length ? visibleModes : routeModes;
 
   return (
     <div className="grid grid-cols-[2rem_minmax(0,1fr)] px-2 sm:grid-cols-[2.25rem_minmax(0,1fr)] sm:px-3">
@@ -40,11 +43,14 @@ export function RouteLegRow({
       </div>
       <div className="relative flex min-h-16 min-w-0 items-center py-2 sm:min-h-14">
         <div className="absolute inset-x-0 top-1/2 h-px bg-border/45" />
-        <div className="relative mr-10 grid w-full max-w-[34rem] grid-cols-3 items-stretch gap-1 bg-background px-2 pt-4 text-[10px] text-muted-foreground/60 sm:mr-auto sm:items-center sm:gap-2 sm:pt-0 sm:text-[11px]">
+        <div
+          className="relative mr-10 grid w-full max-w-[34rem] items-stretch gap-1 bg-background px-2 pt-4 text-[10px] text-muted-foreground/60 sm:mr-auto sm:items-center sm:gap-2 sm:pt-0 sm:text-[11px]"
+          style={{ gridTemplateColumns: `repeat(${modes.length}, minmax(0, 1fr))` }}
+        >
           <span className="absolute left-2 top-0 rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground/70 sm:-top-3">
             {departureTimeMinutes == null ? '현재 기준' : `기준 ${formatDepartureTime(departureTimeMinutes)}`}
           </span>
-          {routeModes.map((mode) => {
+          {modes.map((mode) => {
             const modeLeg = leg?.[mode];
             const isPending = !modeLeg;
             const isLoading = modeLeg?.status === 'loading';

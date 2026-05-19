@@ -9,44 +9,82 @@ import type { Place } from '@/types/travel';
 type FetchRouteLegOptions = {
   forceRefresh?: boolean;
   departureTimeMinutes?: number | null;
+  modes?: RouteMode[];
+  precise?: boolean;
 };
 
 export async function fetchRouteLeg(from: Place, to: Place, options: FetchRouteLegOptions = {}): Promise<RouteLeg> {
   const departureTimeMinutes = normalizeDepartureTimeMinutes(options.departureTimeMinutes);
-  const fromCacheKey = routeCacheOriginKey(from, departureTimeMinutes);
+  const requestedModes = normalizeRequestedModes(options.modes);
+  const fromCacheKey = routeCacheOriginKey(from, departureTimeMinutes, options.precise === true);
+  let leg: RouteLeg = {};
 
   if (!options.forceRefresh) {
     const cachedLeg = await fetchCachedRouteLeg(fromCacheKey, to.id).catch(() => null);
-    if (cachedLeg) return cachedLeg;
+    leg = pickModes(cachedLeg ?? {}, requestedModes);
+    if (hasAllModes(leg, requestedModes)) return leg;
   }
 
+  const missingModes = requestedModes.filter((mode) => !isReadyModeLeg(leg[mode]));
+
   if (!googleMapsApiKey) {
-    return Object.fromEntries(routeModes.map((mode) => [mode, estimateRouteModeLeg(from, to, mode)])) as RouteLeg;
+    return {
+      ...leg,
+      ...estimateModes(from, to, missingModes)
+    };
   }
 
   try {
     const maps = await loadGoogleMaps(googleMapsApiKey);
     const routes = (await maps.importLibrary('routes')) as google.maps.RoutesLibrary;
     const entries = await Promise.all(
-      routeModes.map(async (mode) => [
+      missingModes.map(async (mode) => [
         mode,
-        await fetchRouteModeLeg(maps, routes.Route, from, to, mode, departureTimeMinutes)
+        await fetchRouteModeLeg(maps, routes.Route, from, to, mode, departureTimeMinutes, options.precise === true)
       ] as const)
     );
-    const leg = Object.fromEntries(entries) as RouteLeg;
-    if (isCacheableRouteLeg(leg)) {
-      void saveRouteLegCache(fromCacheKey, to.id, leg).catch(() => undefined);
+    const fetchedLeg = Object.fromEntries(entries) as RouteLeg;
+    const cacheableLeg = cacheableModes(fetchedLeg);
+    if (Object.keys(cacheableLeg).length) {
+      void saveRouteLegCache(fromCacheKey, to.id, cacheableLeg).catch(() => undefined);
     }
 
-    return leg;
+    return {
+      ...leg,
+      ...fetchedLeg
+    };
   } catch (error) {
     console.warn(`[Google Maps] 경로 계산 준비 실패: ${describeRouteError(error)}`);
-    return Object.fromEntries(routeModes.map((mode) => [mode, estimateRouteModeLeg(from, to, mode)])) as RouteLeg;
+    return {
+      ...leg,
+      ...estimateModes(from, to, missingModes)
+    };
   }
 }
 
-function isCacheableRouteLeg(leg: RouteLeg) {
-  return routeModes.every((mode) => leg[mode].status === 'ready');
+function normalizeRequestedModes(modes: RouteMode[] | undefined) {
+  const requested = routeModes.filter((mode) => !modes || modes.includes(mode));
+  return requested.length ? requested : routeModes;
+}
+
+function pickModes(leg: RouteLeg, modes: RouteMode[]) {
+  return Object.fromEntries(modes.flatMap((mode) => (leg[mode] ? [[mode, leg[mode]]] : []))) as RouteLeg;
+}
+
+function hasAllModes(leg: RouteLeg, modes: RouteMode[]) {
+  return modes.every((mode) => isReadyModeLeg(leg[mode]));
+}
+
+function isReadyModeLeg(leg: RouteModeLeg | undefined) {
+  return leg?.status === 'ready';
+}
+
+function cacheableModes(leg: RouteLeg) {
+  return Object.fromEntries(routeModes.flatMap((mode) => (isReadyModeLeg(leg[mode]) ? [[mode, leg[mode]]] : []))) as RouteLeg;
+}
+
+function estimateModes(from: Place, to: Place, modes: RouteMode[]) {
+  return Object.fromEntries(modes.map((mode) => [mode, estimateRouteModeLeg(from, to, mode)])) as RouteLeg;
 }
 
 async function fetchRouteModeLeg(
@@ -55,10 +93,11 @@ async function fetchRouteModeLeg(
   from: Place,
   to: Place,
   mode: RouteMode,
-  departureTimeMinutes: number | null
+  departureTimeMinutes: number | null,
+  precise: boolean
 ): Promise<RouteModeLeg> {
   try {
-    const result = await fetchUsableRouteResult(maps, Route, from, to, mode, departureTimeMinutes);
+    const result = await fetchUsableRouteResult(maps, Route, from, to, mode, departureTimeMinutes, precise);
     const labels = getRouteLabels(result);
 
     if (!labels) {
@@ -90,25 +129,11 @@ async function fetchUsableRouteResult(
   from: Place,
   to: Place,
   mode: RouteMode,
-  departureTimeMinutes: number | null
+  departureTimeMinutes: number | null,
+  precise: boolean
 ) {
-  let lastError: unknown = null;
-  const enhancedResult = await routeModeLeg(maps, Route, from, to, mode, true, departureTimeMinutes).catch((error) => {
-    lastError = error;
-    return null;
-  });
-
-  if (getRouteLabels(enhancedResult)) return enhancedResult;
-
-  const basicResult = await routeModeLeg(maps, Route, from, to, mode, false, departureTimeMinutes).catch((error) => {
-    lastError = error;
-    return null;
-  });
-
-  if (getRouteLabels(basicResult)) return basicResult;
-  if (!enhancedResult && !basicResult && lastError) throw lastError;
-
-  return basicResult ?? enhancedResult;
+  const includeLiveOptions = mode === 'transit' || (mode === 'driving' && precise);
+  return routeModeLeg(maps, Route, from, to, mode, includeLiveOptions, departureTimeMinutes, precise);
 }
 
 function routeModeLeg(
@@ -118,7 +143,8 @@ function routeModeLeg(
   to: Place,
   mode: RouteMode,
   includeLiveOptions: boolean,
-  departureTimeMinutes: number | null
+  departureTimeMinutes: number | null,
+  precise: boolean
 ) {
   const request: google.maps.routes.ComputeRoutesRequest = {
     origin: { lat: from.latitude, lng: from.longitude },
@@ -135,7 +161,7 @@ function routeModeLeg(
     units: maps.UnitSystem.METRIC
   };
 
-  if (mode === 'driving' && includeLiveOptions) {
+  if (mode === 'driving' && includeLiveOptions && precise) {
     request.departureTime = createDepartureDate(departureTimeMinutes);
     request.routingPreference = google.maps.routes.RoutingPreference.TRAFFIC_AWARE_OPTIMAL;
     request.trafficModel = maps.TrafficModel.BEST_GUESS;

@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Building2, MapPinPlus, MapPinned, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Building2, Gauge, MapPinPlus, MapPinned, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
 import { AccommodationSelectorDialog } from '@/components/dialogs/AccommodationSelectorDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getCategoryBadgeClass, getCategoryOption, getGoogleMapsNoteLabel } from '@/lib/place-utils';
 import { formatDepartureTime, getScheduleHotelPlace, maxStopsPerDay, routeLegKey } from '@/lib/schedule-utils';
-import type { RouteLeg, ScheduleDay } from '@/types/schedule';
+import type { RouteLeg, RouteMode, ScheduleDay } from '@/types/schedule';
 import type { CategoryOption, Place } from '@/types/travel';
 import { DayRouteMapDialog } from './DayRouteMapDialog';
 import { DepartureTimePicker } from './DepartureTimePicker';
@@ -19,6 +19,7 @@ type DayScheduleCardProps = {
   places: Place[];
   placesById: Map<string, Place>;
   routeLegs: Record<string, RouteLeg>;
+  visibleRouteModes: RouteMode[];
   isEditing: boolean;
   isDarkMode: boolean;
   onRemoveDay: (dayId: string) => void;
@@ -33,8 +34,10 @@ type DayScheduleCardProps = {
   isOptimizingRoutes: boolean;
   onOptimizeRoutes: () => void;
   isRefreshingRoutes: boolean;
+  isCalculatingPreciseRoutes: boolean;
   routeRefreshRemainingSeconds: number;
   onRefreshRoutes: () => void;
+  onPreciseRoutes: () => void;
   onOpenPlaceDetails: (place: Place) => void;
 };
 
@@ -45,6 +48,7 @@ export function DayScheduleCard({
   places,
   placesById,
   routeLegs,
+  visibleRouteModes,
   isEditing,
   isDarkMode,
   onRemoveDay,
@@ -59,8 +63,10 @@ export function DayScheduleCard({
   isOptimizingRoutes,
   onOptimizeRoutes,
   isRefreshingRoutes,
+  isCalculatingPreciseRoutes,
   routeRefreshRemainingSeconds,
   onRefreshRoutes,
+  onPreciseRoutes,
   onOpenPlaceDetails
 }: DayScheduleCardProps) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -150,10 +156,22 @@ export function DayScheduleCard({
                 className="min-w-0 flex-1 rounded-full px-2 text-xs sm:flex-none sm:px-3 sm:text-sm"
                 variant="outline"
                 onClick={onRefreshRoutes}
-                disabled={isRefreshingRoutes || routeRefreshRemainingSeconds > 0}
+                disabled={isRefreshingRoutes || isCalculatingPreciseRoutes || routeRefreshRemainingSeconds > 0}
               >
                 <RefreshCw className={`h-4 w-4 ${isRefreshingRoutes ? 'animate-spin' : ''}`} />
                 {routeRefreshRemainingSeconds > 0 ? `${routeRefreshRemainingSeconds}초 후` : '경로 새로고침'}
+              </Button>
+            ) : null}
+            {isEditing && scheduledPlaces.length > 0 ? (
+              <Button
+                className="min-w-0 flex-1 rounded-full px-2 text-xs sm:flex-none sm:px-3 sm:text-sm"
+                variant="outline"
+                onClick={onPreciseRoutes}
+                disabled={isOptimizingRoutes || isRefreshingRoutes || isCalculatingPreciseRoutes}
+                title="정밀계산은 이 DAY의 현재 이동 경로를 Google Routes API로 강제 새로고침합니다. 자동차가 표시 중이면 실시간 교통(TRAFFIC_AWARE_OPTIMAL)을 반영해 더 정확하지만 API 사용량이 늘어납니다. 출발 시간이나 교통 상황이 중요한 날에만 사용하세요."
+              >
+                <Gauge className={`h-4 w-4 ${isCalculatingPreciseRoutes ? 'animate-pulse' : ''}`} />
+                {isCalculatingPreciseRoutes ? '정밀계산 중' : '정밀계산'}
               </Button>
             ) : null}
             {isEditing ? (
@@ -214,6 +232,7 @@ export function DayScheduleCard({
                         leg={leg}
                         selectedMode={stop.selectedRouteMode}
                         departureTimeMinutes={edgeDepartureTimeMinutes}
+                        visibleModes={visibleRouteModes}
                         isEditing={isEditing}
                         isLocked={stop.lockedFromPrevious === true}
                         onToggleLock={() => onToggleStopEdgeLock(day.id, stop.id)}
@@ -322,6 +341,7 @@ export function DayScheduleCard({
                   leg={returnLeg}
                   selectedMode={day.selectedReturnRouteMode}
                   departureTimeMinutes={lastStop?.departureTimeMinutes ?? null}
+                  visibleModes={visibleRouteModes}
                   isEditing={isEditing}
                   isLocked={day.lockedReturnRoute === true}
                   onToggleLock={() => onToggleReturnEdgeLock(day.id)}
