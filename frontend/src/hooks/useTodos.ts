@@ -174,6 +174,15 @@ export function useTodos(dayCount: number, canPersist = false) {
     }));
   }
 
+  function renameSectionItem(section: TodoSectionId, itemId: string, text: string) {
+    const trimmedText = text.trim();
+    if (!trimmedText) return;
+    updateTodos((current) => ({
+      ...current,
+      [section]: renameTodoItem(current[section], itemId, trimmedText)
+    }));
+  }
+
   function moveDayItem(dayIndex: number, itemId: string, direction: -1 | 1) {
     updateTodos((current) => ({
       ...current,
@@ -185,12 +194,38 @@ export function useTodos(dayCount: number, canPersist = false) {
     }));
   }
 
+  function renameDayItem(dayIndex: number, itemId: string, text: string) {
+    const trimmedText = text.trim();
+    if (!trimmedText) return;
+    updateTodos((current) => ({
+      ...current,
+      days: current.days.map((day) =>
+        day.dayIndex === dayIndex
+          ? { ...day, items: renameTodoItem(day.items, itemId, trimmedText) }
+          : day
+      )
+    }));
+  }
+
   function moveCustomItem(checklistId: string, itemId: string, direction: -1 | 1) {
     updateTodos((current) => ({
       ...current,
       custom: current.custom.map((checklist) =>
         checklist.id === checklistId
           ? { ...checklist, items: moveTodoItem(checklist.items, itemId, direction) }
+          : checklist
+      )
+    }));
+  }
+
+  function renameCustomItem(checklistId: string, itemId: string, text: string) {
+    const trimmedText = text.trim();
+    if (!trimmedText) return;
+    updateTodos((current) => ({
+      ...current,
+      custom: current.custom.map((checklist) =>
+        checklist.id === checklistId
+          ? { ...checklist, items: renameTodoItem(checklist.items, itemId, trimmedText) }
           : checklist
       )
     }));
@@ -285,6 +320,9 @@ export function useTodos(dayCount: number, canPersist = false) {
     moveSectionItem,
     moveDayItem,
     moveCustomItem,
+    renameSectionItem,
+    renameDayItem,
+    renameCustomItem,
     addCustomItem,
     toggleItem,
     toggleDayItem,
@@ -362,6 +400,10 @@ function mergeTodoSaveScopes(current: TodoSaveScope, next: TodoSaveScope): TodoS
     knownItemIds: Array.from(new Set([...current.knownItemIds, ...next.knownItemIds])),
     knownCustomChecklistIds: Array.from(new Set([...current.knownCustomChecklistIds, ...next.knownCustomChecklistIds]))
   };
+}
+
+function renameTodoItem(items: TodoItem[], itemId: string, text: string) {
+  return items.map((item) => (item.id === itemId ? { ...item, text } : item));
 }
 
 function moveTodoItem(items: TodoItem[], itemId: string, direction: -1 | 1) {

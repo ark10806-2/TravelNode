@@ -51,6 +51,9 @@ export function TodoPage({ isEditing }: TodoPageProps) {
     moveSectionItem,
     moveDayItem,
     moveCustomItem,
+    renameSectionItem,
+    renameDayItem,
+    renameCustomItem,
     addCustomItem,
     toggleItem,
     toggleDayItem,
@@ -133,6 +136,7 @@ export function TodoPage({ isEditing }: TodoPageProps) {
             onToggle={(itemId) => toggleItem('before', itemId)}
             onRemove={(itemId) => removeSectionItem('before', itemId)}
             onMove={(itemId, direction) => moveSectionItem('before', itemId, direction)}
+            onRename={(itemId, text) => renameSectionItem('before', itemId, text)}
           />
         );
       case 'days':
@@ -150,6 +154,7 @@ export function TodoPage({ isEditing }: TodoPageProps) {
             onToggleItem={toggleDayItem}
             onRemoveItem={removeDayItem}
             onMoveItem={moveDayItem}
+            onRenameItem={renameDayItem}
           />
         );
       case 'after':
@@ -170,6 +175,7 @@ export function TodoPage({ isEditing }: TodoPageProps) {
             onToggle={(itemId) => toggleItem('after', itemId)}
             onRemove={(itemId) => removeSectionItem('after', itemId)}
             onMove={(itemId, direction) => moveSectionItem('after', itemId, direction)}
+            onRename={(itemId, text) => renameSectionItem('after', itemId, text)}
           />
         );
       default:
@@ -230,6 +236,7 @@ export function TodoPage({ isEditing }: TodoPageProps) {
                 onToggle={(itemId) => toggleCustomItem(checklist.id, itemId)}
                 onRemoveItem={(itemId) => removeCustomItem(checklist.id, itemId)}
                 onMoveItem={(itemId, direction) => moveCustomItem(checklist.id, itemId, direction)}
+                onRenameItem={(itemId, text) => renameCustomItem(checklist.id, itemId, text)}
                 onRenameChecklist={(title) => renameCustomChecklist(checklist.id, title)}
                 onRemoveChecklist={() => removeCustomChecklist(checklist.id)}
               />
@@ -257,7 +264,8 @@ function TodoSectionCard({
   onAdd,
   onToggle,
   onRemove,
-  onMove
+  onMove,
+  onRename
 }: {
   title: string;
   description: string;
@@ -275,6 +283,7 @@ function TodoSectionCard({
   onToggle: (itemId: string) => void;
   onRemove: (itemId: string) => void;
   onMove?: (itemId: string, direction: -1 | 1) => void;
+  onRename: (itemId: string, text: string) => void;
 }) {
   const doneCount = items.filter((item) => item.done).length;
 
@@ -327,6 +336,7 @@ function TodoSectionCard({
             onToggle={onToggle}
             onRemove={onRemove}
             onMove={onMove}
+            onRename={onRename}
           />
           {isEditing ? <AddTodoForm disabled={isSaving} onAdd={onAdd} /> : null}
         </div>
@@ -349,6 +359,7 @@ function CustomChecklistCard({
   onToggle,
   onRemoveItem,
   onMoveItem,
+  onRenameItem,
   onRenameChecklist,
   onRemoveChecklist
 }: {
@@ -365,6 +376,7 @@ function CustomChecklistCard({
   onToggle: (itemId: string) => void;
   onRemoveItem: (itemId: string) => void;
   onMoveItem: (itemId: string, direction: -1 | 1) => void;
+  onRenameItem: (itemId: string, text: string) => void;
   onRenameChecklist: (title: string) => void;
   onRemoveChecklist: () => void;
 }) {
@@ -403,6 +415,7 @@ function CustomChecklistCard({
       onToggle={onToggle}
       onRemove={onRemoveItem}
       onMove={onMoveItem}
+      onRename={onRenameItem}
     />
   );
 }
@@ -601,7 +614,8 @@ function TodoDaySectionCard({
   onAddItem,
   onToggleItem,
   onRemoveItem,
-  onMoveItem
+  onMoveItem,
+  onRenameItem
 }: {
   days: TodoDay[];
   isCollapsed: boolean;
@@ -614,6 +628,7 @@ function TodoDaySectionCard({
   onToggleItem: (dayIndex: number, itemId: string) => void;
   onRemoveItem: (dayIndex: number, itemId: string) => void;
   onMoveItem: (dayIndex: number, itemId: string, direction: -1 | 1) => void;
+  onRenameItem: (dayIndex: number, itemId: string, text: string) => void;
 }) {
   const totalCount = days.reduce((sum, day) => sum + day.items.length, 0);
   const doneCount = days.reduce((sum, day) => sum + day.items.filter((item) => item.done).length, 0);
@@ -667,6 +682,7 @@ function TodoDaySectionCard({
               onToggle={(itemId) => onToggleItem(day.dayIndex, itemId)}
               onRemove={(itemId) => onRemoveItem(day.dayIndex, itemId)}
               onMove={(itemId, direction) => onMoveItem(day.dayIndex, itemId, direction)}
+              onRename={(itemId, text) => onRenameItem(day.dayIndex, itemId, text)}
             />
           ))}
         </div>
@@ -683,7 +699,8 @@ function TodoDayCard({
   onAdd,
   onToggle,
   onRemove,
-  onMove
+  onMove,
+  onRename
 }: {
   dayIndex: number;
   items: TodoItem[];
@@ -693,6 +710,7 @@ function TodoDayCard({
   onToggle: (itemId: string) => void;
   onRemove: (itemId: string) => void;
   onMove: (itemId: string, direction: -1 | 1) => void;
+  onRename: (itemId: string, text: string) => void;
 }) {
   const doneCount = items.filter((item) => item.done).length;
 
@@ -714,6 +732,7 @@ function TodoDayCard({
         onToggle={onToggle}
         onRemove={onRemove}
         onMove={onMove}
+        onRename={onRename}
       />
       {isEditing ? <AddTodoForm className="mt-3" disabled={isSaving} onAdd={onAdd} /> : null}
     </article>
@@ -727,7 +746,8 @@ function TodoItems({
   emptyText,
   onToggle,
   onRemove,
-  onMove
+  onMove,
+  onRename
 }: {
   items: TodoItem[];
   isEditing: boolean;
@@ -736,6 +756,7 @@ function TodoItems({
   onToggle: (itemId: string) => void;
   onRemove: (itemId: string) => void;
   onMove?: (itemId: string, direction: -1 | 1) => void;
+  onRename: (itemId: string, text: string) => void;
 }) {
   if (!items.length) {
     return (
@@ -757,9 +778,11 @@ function TodoItems({
             onChange={() => onToggle(item.id)}
             aria-label={`${item.text} 완료`}
           />
-          <span className={cn('min-w-0 flex-1 text-sm leading-6', item.done && 'text-muted-foreground line-through')}>
-            {item.text}
-          </span>
+          <EditableTodoItemText
+            item={item}
+            disabled={!isEditing || isSaving}
+            onRename={(text) => onRename(item.id, text)}
+          />
           {isEditing ? (
             <div className="flex shrink-0 items-center gap-1">
               {onMove ? (
@@ -801,6 +824,89 @@ function TodoItems({
         </li>
       ))}
     </ul>
+  );
+}
+
+function EditableTodoItemText({
+  item,
+  disabled,
+  onRename
+}: {
+  item: TodoItem;
+  disabled: boolean;
+  onRename: (text: string) => void;
+}) {
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [draftText, setDraftText] = useState(item.text);
+
+  useEffect(() => {
+    if (!isRenaming) setDraftText(item.text);
+  }, [isRenaming, item.text]);
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmedText = draftText.trim();
+    if (!trimmedText) return;
+    if (trimmedText !== item.text) onRename(trimmedText);
+    setIsRenaming(false);
+  }
+
+  if (!isRenaming) {
+    return (
+      <div className="flex min-w-0 flex-1 items-start gap-1.5">
+        <span className={cn('min-w-0 flex-1 text-sm leading-6', item.done && 'text-muted-foreground line-through')}>
+          {item.text}
+        </span>
+        {!disabled ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 shrink-0 rounded-full"
+            onClick={() => setIsRenaming(true)}
+            aria-label={`${item.text} 수정`}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <form className="flex min-w-0 flex-1 items-center gap-1" onSubmit={submit}>
+      <input
+        className="h-9 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
+        value={draftText}
+        autoFocus
+        maxLength={200}
+        disabled={disabled}
+        onChange={(event) => setDraftText(event.target.value)}
+      />
+      <Button
+        type="submit"
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 shrink-0 rounded-full"
+        disabled={disabled || !draftText.trim()}
+        aria-label="할 일 저장"
+      >
+        <Check className="h-4 w-4" />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 shrink-0 rounded-full"
+        onClick={() => {
+          setDraftText(item.text);
+          setIsRenaming(false);
+        }}
+        aria-label="할 일 수정 취소"
+      >
+        <X className="h-4 w-4" />
+      </Button>
+    </form>
   );
 }
 
