@@ -35,12 +35,33 @@ export function RouteLegRow({
 }: RouteLegRowProps) {
   const LockIcon = isLocked ? Lock : LockOpen;
   const modes = visibleModes.length ? visibleModes : routeModes;
-  const lockLabel = isLocked ? '구간 고정됨' : '구간 고정';
 
   return (
     <div className="grid grid-cols-[2rem_minmax(0,1fr)] px-2 sm:grid-cols-[2.25rem_minmax(0,1fr)] sm:px-3">
-      <div className="flex min-h-16 justify-center sm:min-h-14">
-        <div className="h-full w-px bg-border/60" />
+      <div className="relative flex min-h-16 justify-center sm:min-h-14">
+        <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border/60" />
+        {isEditing && onToggleLock ? (
+          <button
+            type="button"
+            className={cn(
+              'absolute left-1/2 top-1/2 z-10 grid h-7 w-7 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border bg-background text-muted-foreground shadow-sm transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              isLocked && 'border-primary/30 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary'
+            )}
+            onClick={onToggleLock}
+            aria-label={`${from.name}에서 ${to.name}까지 구간 ${isLocked ? '고정 해제' : '고정'}`}
+            title={isLocked ? '이 장소 사이 구간 고정 해제' : '이 장소 사이 구간 고정'}
+          >
+            <LockIcon className="h-3.5 w-3.5" />
+          </button>
+        ) : isLocked ? (
+          <span
+            className="absolute left-1/2 top-1/2 z-10 grid h-7 w-7 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-primary/25 bg-primary/10 text-primary"
+            aria-label="고정된 구간"
+            title="고정된 장소 사이 구간"
+          >
+            <Lock className="h-3.5 w-3.5" />
+          </span>
+        ) : null}
       </div>
       <div className="relative flex min-h-16 min-w-0 items-center py-2 sm:min-h-14">
         <div className="absolute inset-x-0 top-1/2 h-px bg-border/45" />
@@ -51,30 +72,6 @@ export function RouteLegRow({
             <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground/70">
               {departureTimeMinutes == null ? '현재 기준' : `기준 ${formatDepartureTime(departureTimeMinutes)}`}
             </span>
-            {isEditing && onToggleLock ? (
-              <button
-                type="button"
-                className={cn(
-                  'inline-flex items-center gap-1 rounded-full border bg-background px-1.5 py-0.5 text-[10px] font-semibold leading-none text-muted-foreground/70 shadow-sm transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  isLocked && 'border-primary/25 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary'
-                )}
-                onClick={onToggleLock}
-                aria-label={`${from.name}에서 ${to.name}까지 구간 ${isLocked ? '고정 해제' : '고정'}`}
-                title={isLocked ? '이 장소 사이 구간 고정 해제' : '이 장소 사이 구간 고정'}
-              >
-                <LockIcon className="h-3 w-3" />
-                {lockLabel}
-              </button>
-            ) : isLocked ? (
-              <span
-                className="inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary"
-                aria-label="고정된 구간"
-                title="고정된 장소 사이 구간"
-              >
-                <Lock className="h-3 w-3" />
-                구간 고정됨
-              </span>
-            ) : null}
           </div>
           <div
             className="grid items-stretch gap-1 sm:items-center sm:gap-2"
