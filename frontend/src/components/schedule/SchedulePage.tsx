@@ -58,6 +58,7 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
   } = useSchedule(places, isEditing, enabledRouteModes);
   const currentDetailTarget = detailTarget ? placesById.get(detailTarget.id) ?? detailTarget : null;
   const currentPhotoTarget = photoTarget ? placesById.get(photoTarget.id) ?? photoTarget : null;
+  const canCalculatePreciseRoutes = enabledRouteModes.includes('driving');
   const routeCalculatedAtByDay = useMemo(
     () => Object.fromEntries(
       days.map((day) => [
@@ -108,7 +109,7 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
   }
 
   async function preciseRoutes(dayId: string) {
-    if (preciseDayId) return;
+    if (!canCalculatePreciseRoutes || preciseDayId) return;
 
     setPreciseDayId(dayId);
     try {
@@ -174,6 +175,7 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
             routeLegs={routeLegs}
             visibleRouteModes={enabledRouteModes}
             routeCalculatedAtLabel={routeCalculatedAtByDay[day.id]}
+            canCalculatePreciseRoutes={canCalculatePreciseRoutes}
             isEditing={isEditing}
             isDarkMode={isDarkMode}
             onRemoveDay={removeDay}

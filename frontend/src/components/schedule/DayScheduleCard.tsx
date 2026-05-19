@@ -21,6 +21,7 @@ type DayScheduleCardProps = {
   routeLegs: Record<string, RouteLeg>;
   visibleRouteModes: RouteMode[];
   routeCalculatedAtLabel?: string | null;
+  canCalculatePreciseRoutes: boolean;
   isEditing: boolean;
   isDarkMode: boolean;
   onRemoveDay: (dayId: string) => void;
@@ -51,6 +52,7 @@ export function DayScheduleCard({
   routeLegs,
   visibleRouteModes,
   routeCalculatedAtLabel,
+  canCalculatePreciseRoutes,
   isEditing,
   isDarkMode,
   onRemoveDay,
@@ -174,8 +176,12 @@ export function DayScheduleCard({
                 className="min-w-0 flex-1 rounded-full px-2 text-xs sm:flex-none sm:px-3 sm:text-sm"
                 variant="outline"
                 onClick={onPreciseRoutes}
-                disabled={isOptimizingRoutes || isRefreshingRoutes || isCalculatingPreciseRoutes}
-                title="정밀계산은 이 DAY의 현재 이동 경로를 Google Routes API로 강제 새로고침합니다. 자동차가 표시 중이면 실시간 교통(TRAFFIC_AWARE_OPTIMAL)을 반영해 더 정확하지만 API 사용량이 늘어납니다. 출발 시간이나 교통 상황이 중요한 날에만 사용하세요."
+                disabled={!canCalculatePreciseRoutes || isOptimizingRoutes || isRefreshingRoutes || isCalculatingPreciseRoutes}
+                title={
+                  canCalculatePreciseRoutes
+                    ? '정밀계산은 이 DAY의 현재 이동 경로를 Google Routes API로 강제 새로고침합니다. 자동차는 실시간 교통(TRAFFIC_AWARE_OPTIMAL)을 반영해 더 정확하지만 API 사용량이 늘어납니다. 출발 시간이나 교통 상황이 중요한 날에만 사용하세요.'
+                    : '자동차 이동수단이 표시 중일 때만 정밀계산을 사용할 수 있습니다.'
+                }
               >
                 <Gauge className={`h-4 w-4 ${isCalculatingPreciseRoutes ? 'animate-pulse' : ''}`} />
                 {isCalculatingPreciseRoutes ? '정밀계산 중' : '정밀계산'}

@@ -502,6 +502,8 @@ export function useSchedule(places: Place[], canPersist = false, enabledRouteMod
   }
 
   async function calculatePreciseDayRoutes(dayId: string) {
+    if (!enabledRouteModes.includes('driving')) return;
+
     const day = days.find((candidate) => candidate.id === dayId);
     if (!day) return;
 
