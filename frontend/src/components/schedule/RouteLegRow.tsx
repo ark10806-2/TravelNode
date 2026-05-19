@@ -32,7 +32,8 @@ export function RouteLegRow({ from, to, leg, selectedMode, departureTimeMinutes 
           </span>
           {routeModes.map((mode) => {
             const modeLeg = leg?.[mode];
-            const isLoading = !modeLeg || modeLeg.status === 'loading';
+            const isPending = !modeLeg;
+            const isLoading = modeLeg?.status === 'loading';
             const isEstimated = modeLeg?.status === 'estimated' || modeLeg?.status === 'error';
             const isSelected = selectedMode === mode;
             const Icon = modeMeta[mode].icon;
@@ -47,18 +48,24 @@ export function RouteLegRow({ from, to, leg, selectedMode, departureTimeMinutes 
                 href={buildPlaceDirectionsUrl(from, to, mode)}
                 target="_blank"
                 rel="noreferrer"
-                title={`${modeMeta[mode].label}${isEstimated ? ' 예상값' : ''}`}
+                title={`${modeMeta[mode].label}${isPending ? ' 계산 전' : isEstimated ? ' 예상값' : ''}`}
                 aria-label={`${modeMeta[mode].label} 경로 열기`}
               >
                 {isLoading ? (
                   <Loader2 className="h-3 w-3 self-start animate-spin text-muted-foreground/50 sm:self-auto" />
                 ) : (
-                  <Icon className={cn('h-3 w-3 self-start text-muted-foreground/55 sm:self-auto', isSelected && 'text-primary')} />
+                  <Icon
+                    className={cn(
+                      'h-3 w-3 self-start text-muted-foreground/55 sm:self-auto',
+                      isPending && 'text-muted-foreground/35',
+                      isSelected && 'text-primary'
+                    )}
+                  />
                 )}
                 <span className="min-w-0 whitespace-normal break-keep font-medium leading-tight sm:truncate sm:whitespace-nowrap">
-                  {isLoading ? '...' : modeLeg.durationLabel}
+                  {isLoading ? '...' : isPending ? '계산 전' : modeLeg.durationLabel}
                 </span>
-                {!isLoading ? (
+                {!isLoading && !isPending ? (
                   <span
                     className={cn(
                       'col-start-2 w-fit max-w-full whitespace-normal break-keep rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none sm:col-auto sm:shrink-0 sm:whitespace-nowrap',

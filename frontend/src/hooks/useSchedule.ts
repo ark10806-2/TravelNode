@@ -3,6 +3,7 @@ import { getAuthToken } from '@/api/auth';
 import { fetchSchedule, saveSchedule } from '@/api/schedule';
 import { optimizePlaceOrder } from '@/lib/route-optimizer';
 import {
+  alignDayDepartureTimes,
   clearDayRouteSelection,
   clearSelectedRouteModes,
   hasMeaningfulSchedule,
@@ -35,7 +36,7 @@ function isResolvedRouteLeg(leg?: RouteLeg) {
 }
 
 export function useSchedule(places: Place[], canPersist = false) {
-  const [days, setDays] = useState<ScheduleDay[]>(() => withFallbackDay(loadStoredDays()));
+  const [days, setDays] = useState<ScheduleDay[]>(() => withFallbackDay(loadStoredDays()).map(alignDayDepartureTimes));
   const [scheduleStatus, setScheduleStatus] = useState<ScheduleStatus>('loading');
   const [scheduleError, setScheduleError] = useState('');
   const [isSavingSchedule, setIsSavingSchedule] = useState(false);
@@ -64,7 +65,7 @@ export function useSchedule(places: Place[], canPersist = false) {
         if (cancelled) return;
 
         const shouldUseLocalBackup = serverDays.length === 0 && hasMeaningfulSchedule(localDays);
-        const nextDays = withFallbackDay(shouldUseLocalBackup ? localDays : serverDays);
+        const nextDays = withFallbackDay(shouldUseLocalBackup ? localDays : serverDays).map(alignDayDepartureTimes);
         setDays(nextDays);
         storeDays(nextDays);
         setScheduleStatus('ready');
@@ -77,7 +78,7 @@ export function useSchedule(places: Place[], canPersist = false) {
       } catch (loadError) {
         if (cancelled) return;
 
-        const fallbackDays = withFallbackDay(localDays);
+        const fallbackDays = withFallbackDay(localDays).map(alignDayDepartureTimes);
         setDays(fallbackDays);
         setScheduleStatus('error');
         setScheduleError(loadError instanceof Error ? loadError.message : '일정을 불러오지 못했습니다.');
@@ -97,26 +98,6 @@ export function useSchedule(places: Place[], canPersist = false) {
     pendingLocalMigrationRef.current = null;
     void persistSchedule(pendingDays, { silent: true });
   }, [canPersist]);
-
-  useEffect(() => {
-    const pairs = days.flatMap((day) => scheduleRoutePairs(day, placesById));
-
-    pairs.forEach(({ from, to, key, departureTimeMinutes }) => {
-      if (routeLegsRef.current[key]) return;
-
-      const loadingLeg = createLoadingRouteLeg();
-      routeLegsRef.current = {
-        ...routeLegsRef.current,
-        [key]: loadingLeg
-      };
-      setRouteLegs((current) => ({
-        ...current,
-        [key]: loadingLeg
-      }));
-
-      void requestRouteLeg(from, to, key, { departureTimeMinutes }).then((leg) => setRouteLegValue(key, leg));
-    });
-  }, [days, placesById]);
 
   function setRouteLegValue(key: string, leg: RouteLeg) {
     routeLegsRef.current = {
@@ -153,7 +134,7 @@ export function useSchedule(places: Place[], canPersist = false) {
     setScheduleError('');
 
     try {
-      const savedDays = withFallbackDay(await saveSchedule(nextDays));
+      const savedDays = withFallbackDay(await saveSchedule(nextDays)).map(alignDayDepartureTimes);
       if (sequence === saveSequenceRef.current) {
         setDays(savedDays);
         storeDays(savedDays);
@@ -173,7 +154,7 @@ export function useSchedule(places: Place[], canPersist = false) {
 
   function updateDays(updater: (current: ScheduleDay[]) => ScheduleDay[]) {
     setDays((current) => {
-      const nextDays = updater(current);
+      const nextDays = updater(current).map(alignDayDepartureTimes);
       storeDays(nextDays);
       void persistSchedule(nextDays);
       return nextDays;

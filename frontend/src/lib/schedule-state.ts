@@ -10,22 +10,24 @@ export function loadStoredDays() {
     const parsed = JSON.parse(stored) as Partial<ScheduleDay>[];
     if (!Array.isArray(parsed) || !parsed.length) return createEmptyScheduleDays();
 
-    return parsed.map((day) => ({
-      id: typeof day.id === 'string' ? day.id : createId('day'),
-      selectedReturnRouteMode: isRouteMode(day.selectedReturnRouteMode) ? day.selectedReturnRouteMode : null,
-      hotelPlaceId: typeof day.hotelPlaceId === 'string' && day.hotelPlaceId.trim() ? day.hotelPlaceId : null,
-      departureTimeMinutes: normalizeDepartureTimeMinutes(day.departureTimeMinutes),
-      stops: Array.isArray(day.stops)
-        ? day.stops
-            .filter((stop) => typeof stop?.placeId === 'string')
-            .map((stop) => ({
-              id: typeof stop.id === 'string' ? stop.id : createId('stop'),
-              placeId: stop.placeId,
-              selectedRouteMode: isRouteMode(stop.selectedRouteMode) ? stop.selectedRouteMode : null,
-              departureTimeMinutes: normalizeDepartureTimeMinutes(stop.departureTimeMinutes)
-            }))
-        : []
-    }));
+    return parsed.map((day) =>
+      alignDayDepartureTimes({
+        id: typeof day.id === 'string' ? day.id : createId('day'),
+        selectedReturnRouteMode: isRouteMode(day.selectedReturnRouteMode) ? day.selectedReturnRouteMode : null,
+        hotelPlaceId: typeof day.hotelPlaceId === 'string' && day.hotelPlaceId.trim() ? day.hotelPlaceId : null,
+        departureTimeMinutes: normalizeDepartureTimeMinutes(day.departureTimeMinutes),
+        stops: Array.isArray(day.stops)
+          ? day.stops
+              .filter((stop) => typeof stop?.placeId === 'string')
+              .map((stop) => ({
+                id: typeof stop.id === 'string' ? stop.id : createId('stop'),
+                placeId: stop.placeId,
+                selectedRouteMode: isRouteMode(stop.selectedRouteMode) ? stop.selectedRouteMode : null,
+                departureTimeMinutes: normalizeDepartureTimeMinutes(stop.departureTimeMinutes)
+              }))
+          : []
+      })
+    );
   } catch {
     return createEmptyScheduleDays();
   }
@@ -52,6 +54,35 @@ export function clearDayRouteSelection(day: ScheduleDay): ScheduleDay {
     ...day,
     selectedReturnRouteMode: null,
     stops: clearSelectedRouteModes(day.stops)
+  };
+}
+
+export function alignDayDepartureTimes(day: ScheduleDay): ScheduleDay {
+  let previousDepartureTime = normalizeDepartureTimeMinutes(day.departureTimeMinutes);
+
+  return {
+    ...day,
+    departureTimeMinutes: previousDepartureTime,
+    stops: day.stops.map((stop) => {
+      let departureTimeMinutes = normalizeDepartureTimeMinutes(stop.departureTimeMinutes);
+
+      if (
+        previousDepartureTime != null &&
+        departureTimeMinutes != null &&
+        departureTimeMinutes < previousDepartureTime
+      ) {
+        departureTimeMinutes = previousDepartureTime;
+      }
+
+      if (departureTimeMinutes != null) {
+        previousDepartureTime = departureTimeMinutes;
+      }
+
+      return {
+        ...stop,
+        departureTimeMinutes
+      };
+    })
   };
 }
 
