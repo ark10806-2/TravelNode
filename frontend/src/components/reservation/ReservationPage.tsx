@@ -61,6 +61,8 @@ const emptyDraft: ReservationDraft = {
 };
 
 const maxReservationAttachmentBytes = 5 * 1024 * 1024;
+const maxReservationAttachmentTotalBytes = 20 * 1024 * 1024;
+const maxReservationAttachments = 8;
 const emptyPhotoState: PhotoState = {
   status: 'idle',
   photos: []
@@ -638,10 +640,9 @@ function ReservationForm({
 
     try {
       const attachments = await Promise.all(Array.from(files).map(readReservationAttachment));
-      setDraft((current) => ({
-        ...current,
-        attachments: [...current.attachments, ...attachments].slice(0, 8)
-      }));
+      const merged = mergeReservationAttachments(draft.attachments, attachments);
+      setDraft((current) => ({ ...current, attachments: merged.attachments }));
+      if (merged.message) setAttachmentError(merged.message);
     } catch (fileError) {
       setAttachmentError(fileError instanceof Error ? fileError.message : '첨부파일을 읽지 못했습니다.');
     }
@@ -891,6 +892,54 @@ function readReservationAttachment(file: File): Promise<ReservationAttachment> {
     reader.onerror = () => reject(new Error(`${file.name} 파일을 읽지 못했습니다.`));
     reader.readAsDataURL(file);
   });
+}
+
+function mergeReservationAttachments(
+  currentAttachments: ReservationAttachment[],
+  incomingAttachments: ReservationAttachment[]
+) {
+  const nextAttachments = [...currentAttachments];
+  const existingKeys = new Set(currentAttachments.map(attachmentIdentityKey));
+  const skippedDuplicates: string[] = [];
+  const skippedOverflow: string[] = [];
+  let totalSizeBytes = currentAttachments.reduce((sum, attachment) => sum + attachment.sizeBytes, 0);
+
+  for (const attachment of incomingAttachments) {
+    if (existingKeys.has(attachmentIdentityKey(attachment))) {
+      skippedDuplicates.push(attachment.fileName);
+      continue;
+    }
+
+    if (nextAttachments.length >= maxReservationAttachments) {
+      skippedOverflow.push(attachment.fileName);
+      continue;
+    }
+
+    if (totalSizeBytes + attachment.sizeBytes > maxReservationAttachmentTotalBytes) {
+      skippedOverflow.push(attachment.fileName);
+      continue;
+    }
+
+    nextAttachments.push(attachment);
+    existingKeys.add(attachmentIdentityKey(attachment));
+    totalSizeBytes += attachment.sizeBytes;
+  }
+
+  const messages = [
+    skippedDuplicates.length ? `이미 추가된 파일은 건너뛰었습니다: ${skippedDuplicates.join(', ')}` : '',
+    skippedOverflow.length
+      ? `첨부는 최대 ${maxReservationAttachments}개, 총 ${formatBytes(maxReservationAttachmentTotalBytes)}까지만 저장할 수 있어 일부 파일을 제외했습니다: ${skippedOverflow.join(', ')}`
+      : ''
+  ].filter(Boolean);
+
+  return {
+    attachments: nextAttachments,
+    message: messages.join(' ')
+  };
+}
+
+function attachmentIdentityKey(attachment: Pick<ReservationAttachment, 'fileName' | 'sizeBytes' | 'contentType'>) {
+  return `${attachment.fileName.trim().toLowerCase()}|${attachment.sizeBytes}|${attachment.contentType.trim().toLowerCase()}`;
 }
 
 function formatBytes(sizeBytes: number) {
