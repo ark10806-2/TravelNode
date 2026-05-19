@@ -588,7 +588,7 @@ function PlaceBookletCard({
         <div className="text-xs font-bold text-neutral-500">{category.emoji} {category.label}</div>
         <h4 className="mt-1 text-base font-black leading-snug text-neutral-950">{place.name}</h4>
         <div className="mt-1 text-xs font-bold text-neutral-700">{place.menu}</div>
-        <p className="mt-1 line-clamp-3 text-xs leading-5 text-neutral-500">{place.description}</p>
+        {place.description ? <MarkdownText className="mt-1 text-xs leading-5 text-neutral-500" text={place.description} fallback="" /> : null}
         <div className="mt-2 text-xs leading-5 text-neutral-500">
           {place.distanceLabel} · {place.travelMode === 'walk' ? '도보' : '대중교통'} {place.travelMinutes}분
         </div>

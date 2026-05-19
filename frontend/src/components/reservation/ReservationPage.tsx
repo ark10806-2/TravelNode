@@ -386,6 +386,12 @@ function ReservationCard({
               <span className="min-w-0 truncate">{place.name}</span>
               <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" />
             </div>
+            <div className="mt-1 line-clamp-2 text-sm leading-5 text-foreground/75">
+              설명: <MarkdownInline text={place.description} />
+            </div>
+            <div className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
+              메모: <MarkdownInline text={place.googleMapsNote} />
+            </div>
           </button>
         ) : null}
         {reservation.referenceNumber ? (

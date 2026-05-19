@@ -299,7 +299,9 @@ export function DayScheduleCard({
                               {place.name}
                             </button>
                             <div className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground sm:line-clamp-1">{place.menu}</div>
-                            <div className="mt-1 line-clamp-2 text-sm leading-5 text-foreground/75">{place.description}</div>
+                            <div className="mt-1 line-clamp-2 text-sm leading-5 text-foreground/75">
+                              설명: <MarkdownInline text={place.description} />
+                            </div>
                             <div className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
                               메모: <MarkdownInline text={place.googleMapsNote} />
                             </div>

@@ -93,9 +93,9 @@ export function SelectedPlacePanel({
               직선거리 {distanceKm.toFixed(1)}km
             </div>
           </div>
-          <div>
+          <div className="rounded-lg bg-secondary p-3">
             <div className="text-xs font-semibold text-muted-foreground">설명</div>
-            <div className="leading-6 text-muted-foreground">{place.description}</div>
+            <MarkdownText className="mt-1 text-sm" text={place.description} />
           </div>
           <div className="rounded-lg bg-secondary p-3">
             <div className="text-xs font-semibold text-muted-foreground">Google Maps 메모</div>

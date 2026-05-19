@@ -83,13 +83,16 @@ export function PlaceExpandableRow({
             </span>
           </div>
           <h3 className="mt-1.5 line-clamp-2 text-base font-bold leading-snug sm:truncate">{place.name}</h3>
+          <div className="mt-1 line-clamp-1 text-xs font-medium text-foreground/75">
+            설명: <MarkdownInline text={place.description} />
+          </div>
           <div className="mt-1 line-clamp-1 text-xs font-medium text-muted-foreground">
             메모: <MarkdownInline text={place.googleMapsNote} />
           </div>
         </div>
 
         <SummaryCell className="col-span-3 sm:col-auto" label="대표 항목" value={place.menu} />
-        <SummaryCell className="col-span-3 sm:col-auto" label="요약" value={place.description} muted />
+        <SummaryCell className="col-span-3 sm:col-auto" label="카테고리" value={place.cuisine} muted />
 
         {enableExpandedDetails ? (
           <Button

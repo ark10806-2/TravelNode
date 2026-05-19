@@ -60,7 +60,7 @@ export function PlaceDetailDialog({ place, categories, photoState, onClose, onOp
 
           <section className="rounded-md border bg-muted/20 p-3 sm:col-span-2">
             <div className="font-semibold">설명</div>
-            <p className="mt-1 leading-6 text-muted-foreground">{place.description}</p>
+            <MarkdownText className="mt-1" text={place.description} />
           </section>
 
           <section className="rounded-md border bg-muted/20 p-3 sm:col-span-2">

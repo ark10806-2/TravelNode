@@ -184,7 +184,9 @@ export function PlacePickerDialog({
                           </div>
                           <div className="line-clamp-2 text-base font-bold leading-snug">{place.name}</div>
                           <div className="mt-1 line-clamp-2 text-sm text-muted-foreground">{place.menu}</div>
-                          <div className="mt-2 line-clamp-3 text-sm leading-5 text-foreground/80">{place.description}</div>
+                          <div className="mt-2 line-clamp-3 text-sm leading-5 text-foreground/80">
+                            설명: <MarkdownInline text={place.description} />
+                          </div>
                           <div className="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">
                             메모: <MarkdownInline text={place.googleMapsNote} />
                           </div>
@@ -353,7 +355,9 @@ function PlacePickerDetails({
           {place.description ? (
             <div>
               <div className="text-xs font-bold text-muted-foreground">설명</div>
-              <div className="text-foreground/85">{place.description}</div>
+              <div className="text-foreground/85">
+                <MarkdownInline text={place.description} />
+              </div>
             </div>
           ) : null}
           <div>

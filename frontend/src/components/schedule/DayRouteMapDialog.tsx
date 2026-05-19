@@ -366,7 +366,10 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
                       <span className="min-w-0">
                         <span className="block truncate text-[15px] font-bold leading-5">{place.name}</span>
                         <span className="mt-1 block line-clamp-1 text-sm leading-5 text-foreground/70">{place.menu}</span>
-                        <span className="mt-2 inline-flex max-w-full rounded-full bg-background/75 px-2 py-1 text-[11px] leading-none text-muted-foreground ring-1 ring-border/70">
+                        <span className="mt-2 inline-flex max-w-full rounded-full bg-background/75 px-2 py-1 text-[11px] leading-none text-foreground/70 ring-1 ring-border/70">
+                          <span className="truncate">설명: <MarkdownInline text={place.description} /></span>
+                        </span>
+                        <span className="mt-1 inline-flex max-w-full rounded-full bg-background/75 px-2 py-1 text-[11px] leading-none text-muted-foreground ring-1 ring-border/70">
                           <span className="truncate">메모: <MarkdownInline text={place.googleMapsNote} /></span>
                         </span>
                       </span>

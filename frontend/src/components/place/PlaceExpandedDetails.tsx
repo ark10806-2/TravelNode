@@ -60,7 +60,7 @@ export function PlaceExpandedDetails({
 
         <section className="rounded-xl border bg-muted/20 p-3">
           <div className="text-sm font-semibold">설명</div>
-          <p className="mt-2 leading-6 text-muted-foreground">{place.description}</p>
+          <MarkdownText className="mt-2" text={place.description} />
         </section>
 
         <section className="rounded-xl border bg-muted/20 p-3">

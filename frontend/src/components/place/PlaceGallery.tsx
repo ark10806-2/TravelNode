@@ -240,7 +240,7 @@ export function PlaceGallery({
             <div className="min-w-0 sm:block">
               <h3 className="hidden text-lg font-bold leading-snug sm:block sm:text-xl">{activePlace.name}</h3>
               <p className="line-clamp-2 text-xs leading-5 text-muted-foreground sm:mt-2 sm:text-sm sm:leading-6">
-                {activePlace.description}
+                설명: <MarkdownInline text={activePlace.description} />
               </p>
             </div>
 
