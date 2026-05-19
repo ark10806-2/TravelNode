@@ -12,6 +12,7 @@ type MarkdownBlock =
   | { type: 'heading'; level: 2 | 3 | 4; text: string }
   | { type: 'quote'; lines: string[] }
   | { type: 'ul' | 'ol'; items: string[] }
+  | { type: 'table'; headers: string[]; rows: string[][] }
   | { type: 'code'; text: string };
 
 export function MarkdownText({ text, fallback = '빈 메모', className }: MarkdownTextProps) {
@@ -68,6 +69,20 @@ function parseBlocks(text: string) {
       continue;
     }
 
+    if (isTableStart(lines, index)) {
+      const headers = splitTableRow(lines[index]);
+      const rows: string[][] = [];
+      index += 2;
+
+      while (index < lines.length && lines[index].trim() && isTableRow(lines[index])) {
+        rows.push(normalizeTableRow(splitTableRow(lines[index]), headers.length));
+        index += 1;
+      }
+
+      blocks.push({ type: 'table', headers, rows });
+      continue;
+    }
+
     const listMatch = line.match(/^\s*((?:[-*])|(?:\d+\.))\s+(.+)$/);
     if (listMatch) {
       const ordered = /\d+\./.test(listMatch[1]);
@@ -93,7 +108,7 @@ function parseBlocks(text: string) {
     }
 
     const paragraphLines: string[] = [];
-    while (index < lines.length && lines[index].trim() && !isBlockStart(lines[index])) {
+    while (index < lines.length && lines[index].trim() && !isBlockStart(lines[index]) && !isTableStart(lines, index)) {
       paragraphLines.push(lines[index]);
       index += 1;
     }
@@ -144,6 +159,35 @@ function renderBlock(block: MarkdownBlock, key: string) {
     );
   }
 
+  if (block.type === 'table') {
+    return (
+      <div key={key} className="overflow-x-auto rounded-md border">
+        <table className="w-full min-w-max border-collapse text-left text-sm">
+          <thead className="bg-muted/60 text-foreground">
+            <tr>
+              {block.headers.map((header, index) => (
+                <th key={`${key}-head-${index}`} className="border-b px-3 py-2 font-bold">
+                  {renderInline(header, `${key}-head-${index}`)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {block.rows.map((row, rowIndex) => (
+              <tr key={`${key}-row-${rowIndex}`} className="odd:bg-background even:bg-muted/20">
+                {row.map((cell, cellIndex) => (
+                  <td key={`${key}-cell-${rowIndex}-${cellIndex}`} className="border-t px-3 py-2 align-top">
+                    {renderInline(cell, `${key}-cell-${rowIndex}-${cellIndex}`)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
   if (block.type === 'paragraph') {
     return (
       <p key={key}>
@@ -160,6 +204,37 @@ function renderLines(lines: string[], keyPrefix: string) {
     ...renderInline(line, `${keyPrefix}-${index}`),
     index < lines.length - 1 ? <br key={`${keyPrefix}-${index}-br`} /> : null
   ]);
+}
+
+function isTableStart(lines: string[], index: number) {
+  const header = lines[index];
+  const separator = lines[index + 1];
+  if (!header || !separator || !isTableRow(header) || !isTableSeparator(separator)) return false;
+
+  const headers = splitTableRow(header);
+  const separators = splitTableRow(separator);
+  return headers.length > 0 && separators.length >= headers.length;
+}
+
+function isTableRow(line: string) {
+  return line.includes('|') && splitTableRow(line).length > 1;
+}
+
+function isTableSeparator(line: string) {
+  const cells = splitTableRow(line);
+  return cells.length > 1 && cells.every((cell) => /^:?-{2,}:?$/.test(cell.replace(/\s+/g, '')));
+}
+
+function splitTableRow(line: string) {
+  const trimmed = line.trim();
+  const withoutOuterPipes = trimmed.replace(/^\|/, '').replace(/\|$/, '');
+  return withoutOuterPipes.split('|').map((cell) => cell.trim());
+}
+
+function normalizeTableRow(cells: string[], expectedLength: number) {
+  if (cells.length === expectedLength) return cells;
+  if (cells.length > expectedLength) return cells.slice(0, expectedLength);
+  return [...cells, ...Array.from({ length: expectedLength - cells.length }, () => '')];
 }
 
 function renderInline(text: string, keyPrefix: string): ReactNode[] {
