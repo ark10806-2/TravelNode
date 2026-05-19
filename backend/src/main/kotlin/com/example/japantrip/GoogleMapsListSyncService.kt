@@ -232,17 +232,20 @@ class GoogleMapsListSyncService(
     val name = path(2).asTrimmedText()
       ?: placeNode.path(2).asTrimmedText()
       ?: return null
-    val note = path(3).asTrimmedText().orEmpty()
     val address = placeNode.path(4).asTrimmedText()
       ?: placeNode.path(2).asTrimmedText()
       ?: ""
+    val favoriteNote = path(3).asTrimmedText().orEmpty()
+    val placeTypeNote = extractPlaceTypeNote(this, placeNode, name, address, favoriteNote, listTitle)
+    val googleMapsNote = mergeGoogleMapsNotes(placeTypeNote, favoriteNote)
+    val inferenceText = googleMapsNote.orEmpty()
     val location = placeNode.path(5)
     val latitude = location.path(2).asNullableDouble() ?: return null
     val longitude = location.path(3).asNullableDouble() ?: return null
     val syncKey = buildSyncKey(placeNode, name, latitude, longitude)
-    val category = GoogleMapsPlaceInference.category(name, note)
+    val category = GoogleMapsPlaceInference.category(name, inferenceText)
     val cuisine = GoogleMapsPlaceInference.cuisine(name, category)
-    val menu = GoogleMapsPlaceInference.menu(name, note, category)
+    val menu = GoogleMapsPlaceInference.menu(name, favoriteNote.ifBlank { placeTypeNote.orEmpty() }, category)
     val distanceKm = haversineKm(HotelLocation, Coordinate(latitude, longitude))
     val travelMode = if (distanceKm <= 2.0) "walk" else "transit"
 
@@ -256,8 +259,8 @@ class GoogleMapsListSyncService(
         category = category,
         cuisine = cuisine,
         menu = menu,
-        description = GoogleMapsPlaceInference.description(name, note, listTitle),
-        googleMapsNote = note.trim().takeIf { it.isNotBlank() },
+        description = GoogleMapsPlaceInference.description(name, inferenceText, listTitle),
+        googleMapsNote = googleMapsNote,
         address = address.ifBlank { "주소 확인 필요" },
         googleMapsUrl = buildPlaceSearchUrl(name, address),
         latitude = latitude,
@@ -285,6 +288,89 @@ class GoogleMapsListSyncService(
 
     return "google-maps-list:${name.lowercase()}:${"%.6f".format(latitude)}:${"%.6f".format(longitude)}"
   }
+
+  private fun extractPlaceTypeNote(
+    entry: JsonNode,
+    placeNode: JsonNode,
+    name: String,
+    address: String,
+    favoriteNote: String,
+    listTitle: String?
+  ): String? {
+    val excludedValues = (listOf(name, address, favoriteNote, listTitle.orEmpty()) + splitPlaceTypeFragments(favoriteNote))
+      .mapNotNull { it.normalizedComparisonValue() }
+      .toSet()
+    val candidates = buildList {
+      collectTextValues(placeNode, this)
+      collectTextValues(entry, this)
+    }
+      .flatMap(::splitPlaceTypeFragments)
+      .mapNotNull(::normalizePlaceTypeCandidate)
+      .filter { isPlaceTypeCandidate(it, excludedValues) }
+      .distinct()
+
+    return candidates
+      .maxWithOrNull(compareBy<String> { placeTypeScore(it) }.thenByDescending { -it.length })
+  }
+
+  private fun collectTextValues(node: JsonNode, values: MutableList<String>) {
+    when {
+      node.isTextual -> values += node.asText()
+      node.isArray -> node.forEach { child -> collectTextValues(child, values) }
+      node.isObject -> {
+        val fields = node.fields()
+        while (fields.hasNext()) {
+          collectTextValues(fields.next().value, values)
+        }
+      }
+    }
+  }
+
+  private fun splitPlaceTypeFragments(value: String): List<String> =
+    value
+      .replace("\\n", "\n")
+      .split('\n', '·', '•', '・', '|')
+
+  private fun normalizePlaceTypeCandidate(value: String): String? {
+    val normalized = value
+      .replace(Regex("""[\uE000-\uF8FF]"""), "")
+      .replace('\u00A0', ' ')
+      .replace(Regex("""\s+"""), " ")
+      .trim()
+      .trim('.', ',', ';', ':', '-', '–', '—', '/', '\\', '(', ')', '[', ']', '{', '}')
+
+    return normalized.takeIf { it.length in 2..40 }
+  }
+
+  private fun isPlaceTypeCandidate(value: String, excludedValues: Set<String>): Boolean {
+    val comparisonValue = value.normalizedComparisonValue() ?: return false
+    val lowerValue = comparisonValue.lowercase()
+
+    if (comparisonValue in excludedValues) return false
+    if (Regex("""^[\d\s.,()+\-~¥₩$]+$""").matches(value)) return false
+    if (Regex("""https?://|www\.|google|maps|^\(?\d[\d,.\s()]*\)?$""", RegexOption.IGNORE_CASE).containsMatchIn(value)) {
+      return false
+    }
+    if (PlaceTypeExclusionKeywords.any { it in lowerValue }) return false
+
+    return PlaceTypeKeywords.any { it in lowerValue }
+  }
+
+  private fun placeTypeScore(value: String): Int {
+    val lowerValue = value.lowercase()
+    return PlaceTypeKeywords.foldIndexed(0) { index, score, keyword ->
+      if (keyword in lowerValue) score + PlaceTypeKeywords.size - index else score
+    }
+  }
+
+  private fun mergeGoogleMapsNotes(placeTypeNote: String?, favoriteNote: String): String? =
+    listOfNotNull(placeTypeNote, favoriteNote)
+      .flatMap { it.replace("\\n", "\n").split('\n') }
+      .map { it.trim() }
+      .filter { it.isNotBlank() }
+      .distinct()
+      .joinToString("\n")
+      .takeIf { it.isNotBlank() }
 
   private fun haversineKm(a: Coordinate, b: Coordinate): Double {
     val radiusKm = 6371.0
@@ -392,6 +478,10 @@ class GoogleMapsListSyncService(
 
   private fun JsonNode.asNullableDouble(): Double? = if (isNumber) asDouble() else null
 
+  private fun String.normalizedComparisonValue() = trim()
+    .replace(Regex("""\s+"""), " ")
+    .takeIf { it.isNotBlank() }
+
   private data class Coordinate(val latitude: Double, val longitude: Double)
 
   private data class FetchedPage(val resolvedUrl: String, val body: String)
@@ -406,6 +496,77 @@ class GoogleMapsListSyncService(
 
   private companion object {
     val HotelLocation = Coordinate(35.668862, 139.773098)
+    val PlaceTypeKeywords = listOf(
+      "전문식당",
+      "전문점",
+      "음식점",
+      "식당",
+      "레스토랑",
+      "카페",
+      "커피",
+      "찻집",
+      "제과점",
+      "베이커리",
+      "빵집",
+      "디저트",
+      "술집",
+      "이자카야",
+      "바",
+      "호프",
+      "관광",
+      "명소",
+      "시장",
+      "박물관",
+      "미술관",
+      "공원",
+      "신사",
+      "사원",
+      "상점",
+      "매장",
+      "백화점",
+      "쇼핑",
+      "호텔",
+      "restaurant",
+      "cafe",
+      "coffee",
+      "bakery",
+      "bar",
+      "pub",
+      "tourist attraction",
+      "store",
+      "shop",
+      "hotel",
+      "レストラン",
+      "料理店",
+      "専門店",
+      "カフェ",
+      "喫茶",
+      "居酒屋",
+      "バー",
+      "観光",
+      "博物館",
+      "美術館",
+      "公園",
+      "神社",
+      "寺",
+      "ホテル"
+    )
+    val PlaceTypeExclusionKeywords = listOf(
+      "영업",
+      "폐점",
+      "휴무",
+      "곧",
+      "분 후",
+      "시간",
+      "전화",
+      "웹사이트",
+      "경로",
+      "저장",
+      "공유",
+      "리뷰",
+      "사진",
+      "별표"
+    )
     const val BrowserUserAgent =
       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36"
   }
