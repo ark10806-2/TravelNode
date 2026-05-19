@@ -1,6 +1,7 @@
 package com.example.japantrip
 
 import java.sql.ResultSet
+import java.sql.Types
 import javax.sql.DataSource
 
 class TodoRepository(
@@ -86,23 +87,48 @@ class TodoRepository(
     val insertFixedItemSql = """
       INSERT INTO todo_items (id, section, day_index, text, is_done, sort_order)
       VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT (id) DO UPDATE
+      SET
+        section = EXCLUDED.section,
+        day_index = EXCLUDED.day_index,
+        text = EXCLUDED.text,
+        is_done = EXCLUDED.is_done,
+        sort_order = EXCLUDED.sort_order,
+        updated_at = now()
     """.trimIndent()
     val insertCustomListSql = """
       INSERT INTO custom_todo_lists (id, title, sort_order)
       VALUES (?, ?, ?)
+      ON CONFLICT (id) DO UPDATE
+      SET
+        title = EXCLUDED.title,
+        sort_order = EXCLUDED.sort_order,
+        updated_at = now()
     """.trimIndent()
     val insertCustomItemSql = """
       INSERT INTO custom_todo_items (id, list_id, text, is_done, sort_order)
       VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT (id) DO UPDATE
+      SET
+        list_id = EXCLUDED.list_id,
+        text = EXCLUDED.text,
+        is_done = EXCLUDED.is_done,
+        sort_order = EXCLUDED.sort_order,
+        updated_at = now()
     """.trimIndent()
+    val hasClientScope = request.knownItemIds != null || request.knownCustomChecklistIds != null
+    val submittedItemIds = submittedTodoItemIds(request)
+    val submittedChecklistIds = request.custom.orEmpty().map { it.id!!.trim() }
 
     dataSource.connection.use { connection ->
       connection.autoCommit = false
       try {
-        connection.createStatement().use { statement ->
-          statement.executeUpdate("DELETE FROM custom_todo_items")
-          statement.executeUpdate("DELETE FROM custom_todo_lists")
-          statement.executeUpdate("DELETE FROM todo_items")
+        if (!hasClientScope) {
+          connection.createStatement().use { statement ->
+            statement.executeUpdate("DELETE FROM custom_todo_items")
+            statement.executeUpdate("DELETE FROM custom_todo_lists")
+            statement.executeUpdate("DELETE FROM todo_items")
+          }
         }
 
         connection.prepareStatement(insertFixedItemSql).use { statement ->
@@ -131,6 +157,24 @@ class TodoRepository(
           statement.executeBatch()
         }
 
+        if (hasClientScope) {
+          connection.deleteMissingRows(
+            "custom_todo_items",
+            request.knownItemIds.orEmpty(),
+            submittedItemIds
+          )
+          connection.deleteMissingRows(
+            "todo_items",
+            request.knownItemIds.orEmpty(),
+            submittedItemIds
+          )
+          connection.deleteMissingRows(
+            "custom_todo_lists",
+            request.knownCustomChecklistIds.orEmpty(),
+            submittedChecklistIds
+          )
+        }
+
         connection.commit()
       } catch (cause: Exception) {
         connection.rollback()
@@ -151,7 +195,7 @@ class TodoRepository(
       statement.setString(1, item.id!!.trim())
       statement.setString(2, section)
       if (dayIndex == null) {
-        statement.setNull(3, java.sql.Types.INTEGER)
+        statement.setNull(3, Types.INTEGER)
       } else {
         statement.setInt(3, dayIndex)
       }
@@ -176,6 +220,27 @@ class TodoRepository(
       statement.addBatch()
     }
   }
+
+  private fun java.sql.Connection.deleteMissingRows(tableName: String, knownIds: List<String>, submittedIds: List<String>) {
+    if (knownIds.isEmpty()) return
+
+    val sql = """
+      DELETE FROM $tableName
+      WHERE id = ANY (?)
+        AND NOT (id = ANY (?))
+    """.trimIndent()
+    prepareStatement(sql).use { statement ->
+      statement.setArray(1, createArrayOf("text", knownIds.map(String::trim).toTypedArray()))
+      statement.setArray(2, createArrayOf("text", submittedIds.map(String::trim).toTypedArray()))
+      statement.executeUpdate()
+    }
+  }
+
+  private fun submittedTodoItemIds(request: TodoSaveRequest) =
+    request.before.orEmpty().map { it.id!!.trim() } +
+      request.after.orEmpty().map { it.id!!.trim() } +
+      request.days.orEmpty().flatMap { day -> day.items.orEmpty().map { it.id!!.trim() } } +
+      request.custom.orEmpty().flatMap { checklist -> checklist.items.orEmpty().map { it.id!!.trim() } }
 
   private fun ResultSet.toTodoItem() = TodoItemResponse(
     id = getString("id"),

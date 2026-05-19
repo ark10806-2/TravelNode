@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getAuthToken } from '@/api/auth';
-import { fetchTodos, saveTodos } from '@/api/todos';
+import { fetchTodos, saveTodos, type TodoSaveScope } from '@/api/todos';
 import type { TodoCustomChecklist, TodoItem, TodoList, TodoSectionId } from '@/types/todo';
 
 type TodoStatus = 'loading' | 'ready' | 'error';
@@ -11,6 +11,7 @@ export function useTodos(dayCount: number, canPersist = false) {
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const saveSequenceRef = useRef(0);
+  const saveScopeRef = useRef<TodoSaveScope>(emptyTodoSaveScope());
 
   useEffect(() => {
     let cancelled = false;
@@ -22,6 +23,7 @@ export function useTodos(dayCount: number, canPersist = false) {
       try {
         const loadedTodos = normalizeTodos(await fetchTodos(), dayCount);
         if (cancelled) return;
+        saveScopeRef.current = todoSaveScope(loadedTodos);
         setTodos(loadedTodos);
         setStatus('ready');
       } catch (loadError) {
@@ -46,6 +48,7 @@ export function useTodos(dayCount: number, canPersist = false) {
     setTodos((current) => {
       const nextTodos = normalizeTodos(updater(current), dayCount);
       if (canPersist && getAuthToken()) {
+        saveScopeRef.current = mergeTodoSaveScopes(saveScopeRef.current, todoSaveScope(nextTodos));
         void persistTodos(nextTodos);
       }
       return nextTodos;
@@ -58,8 +61,9 @@ export function useTodos(dayCount: number, canPersist = false) {
     setError('');
 
     try {
-      const savedTodos = normalizeTodos(await saveTodos(nextTodos), dayCount);
+      const savedTodos = normalizeTodos(await saveTodos(nextTodos, saveScopeRef.current), dayCount);
       if (sequence === saveSequenceRef.current) {
+        saveScopeRef.current = todoSaveScope(savedTodos);
         setTodos(savedTodos);
         setStatus('ready');
       }
@@ -320,6 +324,32 @@ function normalizeItems(items: TodoItem[]) {
       text: item.text.trim(),
       done: Boolean(item.done)
     }));
+}
+
+function todoSaveScope(todos: TodoList): TodoSaveScope {
+  return {
+    knownItemIds: [
+      ...todos.before.map((item) => item.id),
+      ...todos.after.map((item) => item.id),
+      ...todos.days.flatMap((day) => day.items.map((item) => item.id)),
+      ...todos.custom.flatMap((checklist) => checklist.items.map((item) => item.id))
+    ],
+    knownCustomChecklistIds: todos.custom.map((checklist) => checklist.id)
+  };
+}
+
+function emptyTodoSaveScope(): TodoSaveScope {
+  return {
+    knownItemIds: [],
+    knownCustomChecklistIds: []
+  };
+}
+
+function mergeTodoSaveScopes(current: TodoSaveScope, next: TodoSaveScope): TodoSaveScope {
+  return {
+    knownItemIds: Array.from(new Set([...current.knownItemIds, ...next.knownItemIds])),
+    knownCustomChecklistIds: Array.from(new Set([...current.knownCustomChecklistIds, ...next.knownCustomChecklistIds]))
+  };
 }
 
 function moveTodoItem(items: TodoItem[], itemId: string, direction: -1 | 1) {

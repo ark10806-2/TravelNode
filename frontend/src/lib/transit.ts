@@ -109,6 +109,7 @@ async function fetchRouteModeLeg(
 ): Promise<RouteModeLeg> {
   try {
     const result = await fetchUsableRouteResult(maps, Route, from, to, mode, departureTimeMinutes, precise);
+    void recordApiUsage('routes').catch(() => undefined);
     const labels = getRouteLabels(result);
 
     if (!labels) {
@@ -117,8 +118,6 @@ async function fetchRouteModeLeg(
         error: '경로 정보를 찾지 못해 예상값으로 표시합니다.'
       };
     }
-
-    void recordApiUsage('routes').catch(() => undefined);
 
     return {
       status: 'ready',

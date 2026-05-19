@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader2, MapPin } from 'lucide-react';
+import { recordApiUsage } from '@/api/usage';
 import { googleMapsApiKey, mapsKeyLabel } from '@/config/env';
 import { createPlaceMarkerIcon, describeError, getPlaceMapStyles, loadGoogleMaps } from '@/lib/google-maps';
 import { getEmbedMapUrl } from '@/lib/place-utils';
@@ -53,6 +54,7 @@ export function TravelMap({ places, selectedPlace, referencePlace, status, isDar
           fullscreenControl: false,
           styles: getPlaceMapStyles(isDarkMode)
         });
+        void recordApiUsage('maps-js').catch(() => undefined);
         setMapLoadFailed(false);
         setMapReady(true);
       })

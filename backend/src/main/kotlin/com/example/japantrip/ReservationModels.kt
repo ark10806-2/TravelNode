@@ -14,7 +14,8 @@ data class ReservationResponse(
 )
 
 data class ReservationSaveRequest(
-  val reservations: List<ReservationRequest>? = emptyList()
+  val reservations: List<ReservationRequest>? = emptyList(),
+  val knownReservationIds: List<String>? = null
 )
 
 data class ReservationRequest(
@@ -92,7 +93,26 @@ fun ReservationSaveRequest.validate(): List<String> {
     validateAttachments(errors, "reservations[$index].attachments", reservation.attachments.orEmpty())
   }
 
+  validateKnownReservationIds(errors, knownReservationIds)
+
   return errors
+}
+
+private fun validateKnownReservationIds(errors: MutableList<String>, ids: List<String>?) {
+  val knownIds = ids ?: return
+  if (knownIds.size > MaxKnownReservationIds) {
+    errors += "knownReservationIds must have $MaxKnownReservationIds ids or fewer"
+  }
+
+  val uniqueIds = mutableSetOf<String>()
+  knownIds.forEachIndexed { index, rawId ->
+    val id = rawId.trim()
+    if (!isValidReservationId(id)) {
+      errors += "knownReservationIds[$index] is invalid"
+    } else if (!uniqueIds.add(id)) {
+      errors += "knownReservationIds[$index] is duplicated"
+    }
+  }
 }
 
 private fun validateAttachments(
@@ -172,3 +192,4 @@ const val MaxReservationAttachmentBytes = 5 * 1024 * 1024
 const val MaxReservationAttachmentTotalBytes = 20 * 1024 * 1024
 const val MaxReservationAttachmentFileNameLength = 180
 const val MaxReservationAttachmentDataUrlLength = 7 * 1024 * 1024
+const val MaxKnownReservationIds = 1_000

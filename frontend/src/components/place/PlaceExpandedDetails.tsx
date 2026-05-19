@@ -1,4 +1,5 @@
 import { ExternalLink, Loader2, Map, Navigation, Pencil, Trash2 } from 'lucide-react';
+import { recordApiUsage } from '@/api/usage';
 import { Button } from '@/components/ui/button';
 import { googleMapsApiKey } from '@/config/env';
 import { getGoogleMapsNoteLabel, getHotelToPlaceEmbedUrl, getPlaceInfoUrl, haversineKm } from '@/lib/place-utils';
@@ -49,6 +50,9 @@ export function PlaceExpandedDetails({
             src={getHotelToPlaceEmbedUrl(place, googleMapsApiKey, referencePlace)}
             title={`${place.name} 기준점 위치`}
             loading="lazy"
+            onLoad={() => {
+              if (googleMapsApiKey) void recordApiUsage('maps-embed').catch(() => undefined);
+            }}
             referrerPolicy="no-referrer-when-downgrade"
           />
         </section>

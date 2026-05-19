@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getAuthToken } from '@/api/auth';
-import { fetchReservations, saveReservations } from '@/api/reservations';
+import { fetchReservations, saveReservations, type ReservationSaveScope } from '@/api/reservations';
 import type { Reservation, ReservationDraft } from '@/types/reservation';
 
 type ReservationStatus = 'loading' | 'ready' | 'error';
@@ -11,6 +11,7 @@ export function useReservations(canPersist = false) {
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const saveSequenceRef = useRef(0);
+  const saveScopeRef = useRef<ReservationSaveScope>({ knownReservationIds: [] });
 
   useEffect(() => {
     let cancelled = false;
@@ -22,6 +23,7 @@ export function useReservations(canPersist = false) {
       try {
         const loadedReservations = normalizeReservations(await fetchReservations());
         if (cancelled) return;
+        saveScopeRef.current = reservationSaveScope(loadedReservations);
         setReservations(loadedReservations);
         setStatus('ready');
       } catch (loadError) {
@@ -41,6 +43,7 @@ export function useReservations(canPersist = false) {
     setReservations((current) => {
       const nextReservations = normalizeReservations(updater(current));
       if (canPersist && getAuthToken()) {
+        saveScopeRef.current = mergeReservationSaveScopes(saveScopeRef.current, reservationSaveScope(nextReservations));
         void persistReservations(nextReservations);
       }
       return nextReservations;
@@ -53,8 +56,9 @@ export function useReservations(canPersist = false) {
     setError('');
 
     try {
-      const savedReservations = normalizeReservations(await saveReservations(nextReservations));
+      const savedReservations = normalizeReservations(await saveReservations(nextReservations, saveScopeRef.current));
       if (sequence === saveSequenceRef.current) {
+        saveScopeRef.current = reservationSaveScope(savedReservations);
         setReservations(savedReservations);
         setStatus('ready');
       }
@@ -117,6 +121,18 @@ function normalizeReservations(reservations: Reservation[]) {
     id: reservation.id,
     ...normalizeDraft(reservation)
   }));
+}
+
+function reservationSaveScope(reservations: Reservation[]): ReservationSaveScope {
+  return {
+    knownReservationIds: reservations.map((reservation) => reservation.id)
+  };
+}
+
+function mergeReservationSaveScopes(current: ReservationSaveScope, next: ReservationSaveScope): ReservationSaveScope {
+  return {
+    knownReservationIds: Array.from(new Set([...current.knownReservationIds, ...next.knownReservationIds]))
+  };
 }
 
 function normalizeDraft(draft: ReservationDraft): ReservationDraft {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Home, Loader2, MapPin, MapPinned, Route } from 'lucide-react';
+import { recordApiUsage } from '@/api/usage';
 import { ModalFrame } from '@/components/dialogs/ModalFrame';
 import { Badge } from '@/components/ui/badge';
 import { googleMapsApiKey } from '@/config/env';
@@ -94,6 +95,7 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
           fullscreenControl: false,
           styles: getPlaceMapStyles(isDarkMode)
         });
+        void recordApiUsage('maps-js').catch(() => undefined);
         setStatus('ready');
       })
       .catch((loadError) => {

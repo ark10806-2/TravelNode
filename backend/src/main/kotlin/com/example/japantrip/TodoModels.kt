@@ -28,7 +28,9 @@ data class TodoSaveRequest(
   val before: List<TodoItemRequest>? = emptyList(),
   val days: List<TodoDayRequest>? = emptyList(),
   val after: List<TodoItemRequest>? = emptyList(),
-  val custom: List<TodoCustomChecklistRequest>? = emptyList()
+  val custom: List<TodoCustomChecklistRequest>? = emptyList(),
+  val knownItemIds: List<String>? = null,
+  val knownCustomChecklistIds: List<String>? = null
 )
 
 data class TodoDayRequest(
@@ -91,7 +93,27 @@ fun TodoSaveRequest.validate(): List<String> {
     validateItems("custom[$checklistIndex].items", checklist.items.orEmpty(), itemIds, errors)
   }
 
+  validateKnownIds("knownItemIds", knownItemIds, errors)
+  validateKnownIds("knownCustomChecklistIds", knownCustomChecklistIds, errors)
+
   return errors
+}
+
+private fun validateKnownIds(field: String, ids: List<String>?, errors: MutableList<String>) {
+  val knownIds = ids ?: return
+  if (knownIds.size > MaxKnownTodoIds) {
+    errors += "$field must have $MaxKnownTodoIds ids or fewer"
+  }
+
+  val uniqueIds = mutableSetOf<String>()
+  knownIds.forEachIndexed { index, rawId ->
+    val id = rawId.trim()
+    if (!isValidTodoId(id)) {
+      errors += "$field[$index] is invalid"
+    } else if (!uniqueIds.add(id)) {
+      errors += "$field[$index] is duplicated"
+    }
+  }
 }
 
 private fun validateItems(
@@ -130,3 +152,4 @@ const val MaxTodoItemsPerSection = 80
 const val MaxTodoTextLength = 200
 const val MaxCustomTodoChecklists = 30
 const val MaxTodoChecklistTitleLength = 80
+const val MaxKnownTodoIds = 2_000

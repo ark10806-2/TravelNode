@@ -1,4 +1,3 @@
-import { recordApiUsage } from '@/api/usage';
 import type { CategoryId } from '@/types/travel';
 
 const googleMapsCallbackName = '__initJapanTripGoogleMaps';
@@ -216,7 +215,6 @@ export function loadGoogleMaps(apiKey: string) {
       if (window.google?.maps?.Map) {
         void ensureGoogleMapsLibraries()
           .then(() => {
-            void recordApiUsage('maps-js').catch(() => undefined);
             resolve(window.google.maps);
           })
           .catch(rejectLoad);

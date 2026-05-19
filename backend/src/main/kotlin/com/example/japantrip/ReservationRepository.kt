@@ -58,13 +58,30 @@ class ReservationRepository(
         sort_order
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?)
+      ON CONFLICT (id) DO UPDATE
+      SET
+        reservation_type = EXCLUDED.reservation_type,
+        title = EXCLUDED.title,
+        day_index = EXCLUDED.day_index,
+        place_id = EXCLUDED.place_id,
+        time_label = EXCLUDED.time_label,
+        reference_number = EXCLUDED.reference_number,
+        link_url = EXCLUDED.link_url,
+        notes = EXCLUDED.notes,
+        attachments = EXCLUDED.attachments,
+        sort_order = EXCLUDED.sort_order,
+        updated_at = now()
     """.trimIndent()
+    val hasClientScope = request.knownReservationIds != null
+    val submittedIds = request.reservations.orEmpty().map { it.id!!.trim() }
 
     dataSource.connection.use { connection ->
       connection.autoCommit = false
       try {
-        connection.createStatement().use { statement ->
-          statement.executeUpdate("DELETE FROM reservations")
+        if (!hasClientScope) {
+          connection.createStatement().use { statement ->
+            statement.executeUpdate("DELETE FROM reservations")
+          }
         }
 
         connection.prepareStatement(insertSql).use { statement ->
@@ -97,6 +114,10 @@ class ReservationRepository(
           statement.executeBatch()
         }
 
+        if (hasClientScope) {
+          connection.deleteMissingReservations(request.knownReservationIds.orEmpty(), submittedIds)
+        }
+
         connection.commit()
       } catch (cause: Exception) {
         connection.rollback()
@@ -123,6 +144,21 @@ class ReservationRepository(
   private fun parseAttachments(value: String?): List<ReservationAttachmentResponse> {
     if (value.isNullOrBlank()) return emptyList()
     return mapper.readValue(value, object : TypeReference<List<ReservationAttachmentResponse>>() {})
+  }
+
+  private fun java.sql.Connection.deleteMissingReservations(knownIds: List<String>, submittedIds: List<String>) {
+    if (knownIds.isEmpty()) return
+
+    val sql = """
+      DELETE FROM reservations
+      WHERE id = ANY (?)
+        AND NOT (id = ANY (?))
+    """.trimIndent()
+    prepareStatement(sql).use { statement ->
+      statement.setArray(1, createArrayOf("text", knownIds.map(String::trim).toTypedArray()))
+      statement.setArray(2, createArrayOf("text", submittedIds.map(String::trim).toTypedArray()))
+      statement.executeUpdate()
+    }
   }
 
   private fun ReservationAttachmentRequest.toResponse() = ReservationAttachmentResponse(

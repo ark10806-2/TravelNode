@@ -7,6 +7,7 @@ import javax.sql.DataSource
 
 object ApiUsageServiceIds {
   const val MapsJavaScript = "maps-js"
+  const val MapsEmbed = "maps-embed"
   const val Routes = "routes"
   const val PlacesNew = "places-new"
   const val PlacesPhoto = "places-photo"
@@ -82,6 +83,7 @@ class ApiUsageRepository(
   private val limits = parseLimits(limitConfig)
   private val serviceConfigs = listOf(
     ApiUsageServiceConfig(ApiUsageServiceIds.MapsJavaScript, "Maps JavaScript API (Dynamic Maps)", 10_000),
+    ApiUsageServiceConfig(ApiUsageServiceIds.MapsEmbed, "Maps Embed API", 10_000),
     ApiUsageServiceConfig(ApiUsageServiceIds.Routes, "Routes API (Compute Routes)", 10_000),
     ApiUsageServiceConfig(ApiUsageServiceIds.PlacesNew, "Places API (New Search/Details)", 5_000),
     ApiUsageServiceConfig(ApiUsageServiceIds.PlacesPhoto, "Places API Photo Media", 1_000)
