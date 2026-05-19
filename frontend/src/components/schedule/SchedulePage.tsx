@@ -177,8 +177,10 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
             visibleRouteModes={enabledRouteModes}
             routeCalculatedAtLabel={routeCalculatedAtByDay[day.id]}
             canCalculatePreciseRoutes={canCalculatePreciseRoutes}
+            photoCache={photoCache}
             isEditing={isEditing}
             isDarkMode={isDarkMode}
+            onLoadPhotos={onLoadPhotos}
             onRemoveDay={removeDay}
             onAddStops={addStops}
             onRemoveStop={removeStop}

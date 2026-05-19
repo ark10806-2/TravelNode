@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react';
-import { Check, Plus, Search, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Check, ExternalLink, Images, Plus, Search, X } from 'lucide-react';
 import { MarkdownInline } from '@/components/common/MarkdownText';
 import { Button } from '@/components/ui/button';
-import { getCategoryBadgeClass, getCategoryOption, getEmbedMapUrl } from '@/lib/place-utils';
-import type { CategoryId, CategoryOption, Place } from '@/types/travel';
+import { getCategoryBadgeClass, getCategoryOption, getEmbedMapUrl, getPlaceInfoUrl } from '@/lib/place-utils';
+import type { CategoryId, CategoryOption, PhotoState, Place } from '@/types/travel';
 
 type PlacePickerDialogProps = {
   dayLabel: string;
@@ -11,8 +11,15 @@ type PlacePickerDialogProps = {
   places: Place[];
   excludedPlaceIds: Set<string>;
   maxSelectable: number;
+  photoCache: Record<string, PhotoState>;
+  onLoadPhotos: (place: Place, force?: boolean) => Promise<void>;
   onClose: () => void;
   onSelect: (places: Place[]) => void;
+};
+
+const emptyPhotoState: PhotoState = {
+  status: 'idle',
+  photos: []
 };
 
 export function PlacePickerDialog({
@@ -21,12 +28,15 @@ export function PlacePickerDialog({
   places,
   excludedPlaceIds,
   maxSelectable,
+  photoCache,
+  onLoadPhotos,
   onClose,
   onSelect
 }: PlacePickerDialogProps) {
   const [query, setQuery] = useState('');
   const [categoryId, setCategoryId] = useState<CategoryId>('all');
   const [focusedPlaceId, setFocusedPlaceId] = useState<string | null>(null);
+  const [sideView, setSideView] = useState<'details' | 'map'>('details');
   const [selectedPlaceIds, setSelectedPlaceIds] = useState<string[]>([]);
   const availablePlaces = useMemo(() => places.filter((place) => !excludedPlaceIds.has(place.id)), [excludedPlaceIds, places]);
   const filteredPlaces = useMemo(() => {
@@ -45,11 +55,19 @@ export function PlacePickerDialog({
   }, [availablePlaces, categoryId, query]);
   const focusedPlace =
     filteredPlaces.find((place) => place.id === focusedPlaceId) ?? filteredPlaces[0] ?? availablePlaces[0] ?? null;
+  const focusedPhotoState = focusedPlace ? photoCache[focusedPlace.id] ?? emptyPhotoState : emptyPhotoState;
   const selectedPlaces = useMemo(
     () => selectedPlaceIds.flatMap((placeId) => availablePlaces.find((place) => place.id === placeId) ?? []),
     [availablePlaces, selectedPlaceIds]
   );
   const isSelectionFull = selectedPlaceIds.length >= maxSelectable;
+
+  useEffect(() => {
+    if (!focusedPlace) return;
+    const state = photoCache[focusedPlace.id];
+    if (state?.status === 'loading' || state?.status === 'ready' || state?.status === 'error') return;
+    void onLoadPhotos(focusedPlace);
+  }, [focusedPlace, onLoadPhotos, photoCache]);
 
   function togglePlace(place: Place) {
     setFocusedPlaceId(place.id);
@@ -118,6 +136,8 @@ export function PlacePickerDialog({
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-1">
                 {filteredPlaces.map((place) => {
                   const category = getCategoryOption(categories, place.category);
+                  const photoState = photoCache[place.id] ?? emptyPhotoState;
+                  const photo = photoState.photos[0] ?? null;
                   const isFocused = focusedPlace?.id === place.id;
                   const isSelected = selectedPlaceIds.includes(place.id);
                   const isDisabled = !isSelected && isSelectionFull;
@@ -138,7 +158,22 @@ export function PlacePickerDialog({
                       onFocus={() => setFocusedPlaceId(place.id)}
                       onClick={() => togglePlace(place)}
                     >
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border bg-muted sm:h-24 sm:w-24">
+                          {photo ? (
+                            <img
+                              src={photo.url}
+                              alt={`${place.name} 대표 사진`}
+                              className="h-full w-full object-cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="grid h-full w-full place-items-center bg-secondary">
+                              <Images className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                          )}
+                          {photoState.status === 'loading' ? <div className="absolute inset-0 animate-pulse bg-background/45" /> : null}
+                        </div>
                         <div className="min-w-0">
                           <div
                             className={`mb-2 inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold ${getCategoryBadgeClass(
@@ -179,31 +214,56 @@ export function PlacePickerDialog({
 
           <aside className="order-first shrink-0 border-b bg-muted/25 p-3 sm:p-4 lg:order-none lg:border-b-0 lg:border-l">
             <div className="sticky top-4 grid gap-3">
-              <div className="overflow-hidden rounded-md border bg-background">
-                {focusedPlace ? (
-                  <iframe
-                    className="pointer-events-none h-40 w-full border-0 sm:h-52 lg:pointer-events-auto lg:h-[420px]"
-                    src={getEmbedMapUrl(focusedPlace)}
-                    title={`${focusedPlace.name} 지도`}
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
+              <div className="grid grid-cols-2 gap-2 rounded-full border bg-background p-1">
+                <Button
+                  type="button"
+                  className="rounded-full"
+                  variant={sideView === 'details' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setSideView('details')}
+                >
+                  세부사항
+                </Button>
+                <Button
+                  type="button"
+                  className="rounded-full"
+                  variant={sideView === 'map' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setSideView('map')}
+                >
+                  지도
+                </Button>
+              </div>
+
+              {sideView === 'details' ? (
+                focusedPlace ? (
+                  <PlacePickerDetails
+                    place={focusedPlace}
+                    category={getCategoryOption(categories, focusedPlace.category)}
+                    photoState={focusedPhotoState}
                   />
                 ) : (
-                  <div className="grid h-40 place-items-center text-sm text-muted-foreground sm:h-52 lg:h-[420px]">
-                    지도에 표시할 장소가 없습니다.
+                  <div className="grid min-h-64 place-items-center rounded-md border bg-background p-6 text-center text-sm text-muted-foreground">
+                    세부사항을 볼 장소가 없습니다.
                   </div>
-                )}
-              </div>
-              {focusedPlace ? (
-                <div className="rounded-md border bg-background p-3">
-                  <div className="text-sm font-bold">{focusedPlace.name}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">{focusedPlace.address}</div>
-                  <div className="mt-2 line-clamp-2 text-sm leading-5 text-foreground/80 lg:line-clamp-4">{focusedPlace.description}</div>
-                  <div className="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">
-                    메모: <MarkdownInline text={focusedPlace.googleMapsNote} />
-                  </div>
+                )
+              ) : (
+                <div className="overflow-hidden rounded-md border bg-background">
+                  {focusedPlace ? (
+                    <iframe
+                      className="pointer-events-none h-56 w-full border-0 sm:h-72 lg:pointer-events-auto lg:h-[520px]"
+                      src={getEmbedMapUrl(focusedPlace)}
+                      title={`${focusedPlace.name} 지도`}
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                  ) : (
+                    <div className="grid h-56 place-items-center text-sm text-muted-foreground sm:h-72 lg:h-[520px]">
+                      지도에 표시할 장소가 없습니다.
+                    </div>
+                  )}
                 </div>
-              ) : null}
+              )}
             </div>
           </aside>
         </div>
@@ -222,6 +282,104 @@ export function PlacePickerDialog({
             </Button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function PlacePickerDetails({
+  place,
+  category,
+  photoState
+}: {
+  place: Place;
+  category: CategoryOption;
+  photoState: PhotoState;
+}) {
+  const primaryPhoto = photoState.photos[0] ?? null;
+  const extraPhotos = photoState.photos.slice(1, 4);
+
+  return (
+    <div className="overflow-hidden rounded-md border bg-background">
+      <div className="relative h-48 bg-muted sm:h-60 lg:h-72">
+        {primaryPhoto ? (
+          <img
+            src={primaryPhoto.url}
+            alt={`${place.name} 대표 사진`}
+            className="h-full w-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="grid h-full w-full place-items-center bg-secondary">
+            <div className="text-center text-sm text-muted-foreground">
+              <Images className="mx-auto h-8 w-8" />
+              <div className="mt-2">{photoState.status === 'loading' ? '사진을 불러오는 중입니다.' : '사진이 없습니다.'}</div>
+            </div>
+          </div>
+        )}
+        {photoState.status === 'loading' ? <div className="absolute inset-0 animate-pulse bg-background/40" /> : null}
+      </div>
+
+      {extraPhotos.length ? (
+        <div className="grid grid-cols-3 gap-1 border-t bg-muted/40 p-1">
+          {extraPhotos.map((photo, index) => (
+            <img
+              key={photo.url}
+              src={photo.url}
+              alt={`${place.name} 추가 사진 ${index + 1}`}
+              className="h-20 w-full rounded object-cover"
+              loading="lazy"
+            />
+          ))}
+        </div>
+      ) : null}
+
+      <div className="grid gap-3 p-3">
+        <div>
+          <div className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold ${getCategoryBadgeClass(place.category)}`}>
+            {category.emoji} {category.label}
+          </div>
+          <h3 className="mt-2 text-lg font-bold leading-snug">{place.name}</h3>
+          <div className="mt-1 text-xs leading-5 text-muted-foreground">{place.address}</div>
+        </div>
+
+        <div className="grid gap-2 text-sm leading-6">
+          {place.menu ? (
+            <div>
+              <div className="text-xs font-bold text-muted-foreground">대표 항목</div>
+              <div className="text-foreground">{place.menu}</div>
+            </div>
+          ) : null}
+          {place.description ? (
+            <div>
+              <div className="text-xs font-bold text-muted-foreground">설명</div>
+              <div className="text-foreground/85">{place.description}</div>
+            </div>
+          ) : null}
+          <div>
+            <div className="text-xs font-bold text-muted-foreground">메모</div>
+            <div className="text-muted-foreground">
+              <MarkdownInline text={place.googleMapsNote} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+            <div className="rounded-lg bg-muted/40 p-2">
+              <div className="font-bold text-foreground">거리</div>
+              <div className="mt-1">{place.distanceLabel}</div>
+            </div>
+            <div className="rounded-lg bg-muted/40 p-2">
+              <div className="font-bold text-foreground">분류</div>
+              <div className="mt-1">{place.cuisine}</div>
+            </div>
+          </div>
+        </div>
+
+        <Button asChild variant="outline" className="rounded-full">
+          <a href={getPlaceInfoUrl(place)} target="_blank" rel="noreferrer">
+            Google Maps
+            <ExternalLink className="h-4 w-4" />
+          </a>
+        </Button>
       </div>
     </div>
   );

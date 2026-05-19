@@ -140,6 +140,17 @@ export function useTodos(dayCount: number, canPersist = false) {
     }));
   }
 
+  function renameCustomChecklist(checklistId: string, title: string) {
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) return;
+    updateTodos((current) => ({
+      ...current,
+      custom: current.custom.map((checklist) =>
+        checklist.id === checklistId ? { ...checklist, title: trimmedTitle } : checklist
+      )
+    }));
+  }
+
   function moveCustomChecklist(checklistId: string, direction: -1 | 1) {
     updateTodos((current) => {
       const fromIndex = current.custom.findIndex((checklist) => checklist.id === checklistId);
@@ -269,6 +280,7 @@ export function useTodos(dayCount: number, canPersist = false) {
     addDay,
     addCustomChecklist,
     removeCustomChecklist,
+    renameCustomChecklist,
     moveCustomChecklist,
     moveSectionItem,
     moveDayItem,

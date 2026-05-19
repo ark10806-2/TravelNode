@@ -3,12 +3,15 @@ import {
   ArrowDown,
   ArrowUp,
   CalendarCheck2,
+  Check,
   ChevronDown,
   ClipboardList,
   Home,
+  Pencil,
   PlaneTakeoff,
   Plus,
   Trash2,
+  X,
   type LucideIcon
 } from 'lucide-react';
 import { fetchSchedule } from '@/api/schedule';
@@ -43,6 +46,7 @@ export function TodoPage({ isEditing }: TodoPageProps) {
     addDay,
     addCustomChecklist,
     removeCustomChecklist,
+    renameCustomChecklist,
     moveCustomChecklist,
     moveSectionItem,
     moveDayItem,
@@ -226,6 +230,7 @@ export function TodoPage({ isEditing }: TodoPageProps) {
                 onToggle={(itemId) => toggleCustomItem(checklist.id, itemId)}
                 onRemoveItem={(itemId) => removeCustomItem(checklist.id, itemId)}
                 onMoveItem={(itemId, direction) => moveCustomItem(checklist.id, itemId, direction)}
+                onRenameChecklist={(title) => renameCustomChecklist(checklist.id, title)}
                 onRemoveChecklist={() => removeCustomChecklist(checklist.id)}
               />
             ))}
@@ -246,6 +251,7 @@ function TodoSectionCard({
   isSaving,
   accentClassName,
   headerActions,
+  titleContent,
   onRemoveList,
   onToggleCollapsed,
   onAdd,
@@ -262,6 +268,7 @@ function TodoSectionCard({
   isSaving: boolean;
   accentClassName: string;
   headerActions?: ReactNode;
+  titleContent?: ReactNode;
   onRemoveList?: () => void;
   onToggleCollapsed: () => void;
   onAdd: (text: string) => void;
@@ -280,7 +287,11 @@ function TodoSectionCard({
               <Icon className="h-5 w-5" />
             </span>
             <div className="min-w-0">
-              <h2 className="text-lg font-bold">{title}</h2>
+              {titleContent ? (
+                <div className="text-lg font-bold">{titleContent}</div>
+              ) : (
+                <h2 className="text-lg font-bold">{title}</h2>
+              )}
               <p className="mt-1 text-sm leading-5 text-muted-foreground">{description}</p>
             </div>
           </div>
@@ -338,6 +349,7 @@ function CustomChecklistCard({
   onToggle,
   onRemoveItem,
   onMoveItem,
+  onRenameChecklist,
   onRemoveChecklist
 }: {
   checklist: TodoCustomChecklist;
@@ -353,6 +365,7 @@ function CustomChecklistCard({
   onToggle: (itemId: string) => void;
   onRemoveItem: (itemId: string) => void;
   onMoveItem: (itemId: string, direction: -1 | 1) => void;
+  onRenameChecklist: (title: string) => void;
   onRemoveChecklist: () => void;
 }) {
   return (
@@ -365,6 +378,13 @@ function CustomChecklistCard({
       isEditing={isEditing}
       isSaving={isSaving}
       accentClassName="bg-violet-500/10 text-violet-700 dark:text-violet-300"
+      titleContent={
+        <EditableChecklistTitle
+          title={checklist.title}
+          disabled={!isEditing || isSaving}
+          onRename={onRenameChecklist}
+        />
+      }
       headerActions={
         isEditing ? (
           <TodoBoxMoveActions
@@ -384,6 +404,87 @@ function CustomChecklistCard({
       onRemove={onRemoveItem}
       onMove={onMoveItem}
     />
+  );
+}
+
+function EditableChecklistTitle({
+  title,
+  disabled,
+  onRename
+}: {
+  title: string;
+  disabled: boolean;
+  onRename: (title: string) => void;
+}) {
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [draftTitle, setDraftTitle] = useState(title);
+
+  useEffect(() => {
+    if (!isRenaming) setDraftTitle(title);
+  }, [isRenaming, title]);
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmedTitle = draftTitle.trim();
+    if (!trimmedTitle) return;
+    if (trimmedTitle !== title) onRename(trimmedTitle);
+    setIsRenaming(false);
+  }
+
+  if (!isRenaming) {
+    return (
+      <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 align-middle">
+        <span className="min-w-0 truncate">{title}</span>
+        {!disabled ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 shrink-0 rounded-full"
+            onClick={() => setIsRenaming(true)}
+            aria-label={`${title} 제목 수정`}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+        ) : null}
+      </span>
+    );
+  }
+
+  return (
+    <form className="flex min-w-0 max-w-full items-center gap-1" onSubmit={submit}>
+      <input
+        className="h-8 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm font-semibold outline-none ring-offset-background focus:ring-2 focus:ring-ring"
+        value={draftTitle}
+        autoFocus
+        maxLength={80}
+        disabled={disabled}
+        onChange={(event) => setDraftTitle(event.target.value)}
+      />
+      <Button
+        type="submit"
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 shrink-0 rounded-full"
+        disabled={disabled || !draftTitle.trim()}
+        aria-label="체크리스트 제목 저장"
+      >
+        <Check className="h-4 w-4" />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 shrink-0 rounded-full"
+        onClick={() => {
+          setDraftTitle(title);
+          setIsRenaming(false);
+        }}
+        aria-label="체크리스트 제목 수정 취소"
+      >
+        <X className="h-4 w-4" />
+      </Button>
+    </form>
   );
 }
 

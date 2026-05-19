@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { getCategoryBadgeClass, getCategoryOption } from '@/lib/place-utils';
 import { formatDepartureTime, formatTravelDate, getScheduleHotelPlace, maxStopsPerDay, routeLegKey } from '@/lib/schedule-utils';
 import type { RouteLeg, RouteMode, ScheduleDay } from '@/types/schedule';
-import type { CategoryOption, Place } from '@/types/travel';
+import type { CategoryOption, PhotoState, Place } from '@/types/travel';
 import { DayRouteMapDialog } from './DayRouteMapDialog';
 import { DepartureTimePicker } from './DepartureTimePicker';
 import { PlacePickerDialog } from './PlacePickerDialog';
@@ -23,8 +23,10 @@ type DayScheduleCardProps = {
   visibleRouteModes: RouteMode[];
   routeCalculatedAtLabel?: string | null;
   canCalculatePreciseRoutes: boolean;
+  photoCache: Record<string, PhotoState>;
   isEditing: boolean;
   isDarkMode: boolean;
+  onLoadPhotos: (place: Place, force?: boolean) => Promise<void>;
   onRemoveDay: (dayId: string) => void;
   onAddStops: (dayId: string, placeIds: string[]) => void;
   onRemoveStop: (dayId: string, stopId: string) => void;
@@ -55,8 +57,10 @@ export function DayScheduleCard({
   visibleRouteModes,
   routeCalculatedAtLabel,
   canCalculatePreciseRoutes,
+  photoCache,
   isEditing,
   isDarkMode,
+  onLoadPhotos,
   onRemoveDay,
   onAddStops,
   onRemoveStop,
@@ -408,6 +412,8 @@ export function DayScheduleCard({
           places={places}
           excludedPlaceIds={scheduledPlaceIds}
           maxSelectable={maxStopsPerDay - day.stops.length}
+          photoCache={photoCache}
+          onLoadPhotos={onLoadPhotos}
           onClose={() => setIsPickerOpen(false)}
           onSelect={addPlaces}
         />
