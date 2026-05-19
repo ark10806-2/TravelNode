@@ -286,7 +286,7 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
           ref={listScrollRef}
           className="min-h-0 overflow-y-auto overscroll-contain scroll-smooth border-t bg-background/95 p-3 sm:p-4 lg:border-l lg:border-t-0"
         >
-          <div className="sticky top-0 z-10 -mx-3 -mt-3 border-b bg-background/95 px-3 pb-3 pt-3 backdrop-blur sm:-mx-4 sm:-mt-4 sm:px-4 sm:pt-4">
+          <div className="-mx-3 -mt-3 border-b bg-background/95 px-3 pb-3 pt-3 backdrop-blur sm:-mx-4 sm:-mt-4 sm:px-4 sm:pt-4 lg:sticky lg:top-0 lg:z-10">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-base font-bold text-foreground">방문 순서</div>
