@@ -50,7 +50,7 @@ export function getPlaceInfoUrl(place: Pick<Place, 'name' | 'address'>) {
 }
 
 export function getGoogleMapsNoteLabel(place: Pick<Place, 'googleMapsNote'>) {
-  return place.googleMapsNote?.trim() || '빈 메모';
+  return place.googleMapsNote?.trim() || '';
 }
 
 export function getEmbedMapUrl(target: Pick<Place, 'latitude' | 'longitude'> | typeof hotel) {

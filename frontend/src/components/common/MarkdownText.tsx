@@ -15,7 +15,7 @@ type MarkdownBlock =
   | { type: 'table'; headers: string[]; rows: string[][] }
   | { type: 'code'; text: string };
 
-export function MarkdownText({ text, fallback = '빈 메모', className }: MarkdownTextProps) {
+export function MarkdownText({ text, fallback = '', className }: MarkdownTextProps) {
   const value = normalizeMarkdownText(text, fallback);
   const blocks = parseBlocks(value);
 
@@ -26,7 +26,7 @@ export function MarkdownText({ text, fallback = '빈 메모', className }: Markd
   );
 }
 
-export function MarkdownInline({ text, fallback = '빈 메모', className }: MarkdownTextProps) {
+export function MarkdownInline({ text, fallback = '', className }: MarkdownTextProps) {
   return (
     <span className={cn('break-words', className)}>
       {renderInline(normalizeMarkdownText(text, fallback), 'inline')}
