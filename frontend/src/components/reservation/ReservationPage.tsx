@@ -858,12 +858,10 @@ function ReservationAttachmentGrid({
 
         return (
           <div key={attachment.id} className="relative overflow-hidden rounded-lg border bg-muted/20">
-            <a
-              className="grid gap-2 p-2"
-              href={attachment.dataUrl}
-              target="_blank"
-              rel="noreferrer"
-              download={attachment.fileName}
+            <button
+              type="button"
+              className="grid w-full gap-2 p-2 text-left transition hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              onClick={() => downloadReservationAttachment(attachment)}
             >
               <div className="grid h-28 place-items-center overflow-hidden rounded-md bg-background">
                 {isImage ? (
@@ -878,8 +876,12 @@ function ReservationAttachmentGrid({
                   {isImage ? <Image className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
                   {isImage ? '이미지' : 'PDF'} · {formatBytes(attachment.sizeBytes)}
                 </div>
+                <div className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary">
+                  <DownloadCloud className="h-3.5 w-3.5" />
+                  다운로드
+                </div>
               </div>
-            </a>
+            </button>
             {isEditing && onRemove ? (
               <Button
                 type="button"
@@ -897,6 +899,40 @@ function ReservationAttachmentGrid({
       })}
     </div>
   );
+}
+
+function downloadReservationAttachment(attachment: ReservationAttachment) {
+  try {
+    const blob = dataUrlToBlob(attachment.dataUrl, attachment.contentType);
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = attachment.fileName || 'reservation-file';
+    link.rel = 'noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  } catch (_error) {
+    window.open(attachment.dataUrl, '_blank', 'noopener,noreferrer');
+  }
+}
+
+function dataUrlToBlob(dataUrl: string, fallbackContentType: string) {
+  const separatorIndex = dataUrl.indexOf(',');
+  if (separatorIndex < 0) throw new Error('Invalid data URL');
+
+  const metadata = dataUrl.slice(0, separatorIndex);
+  const payload = dataUrl.slice(separatorIndex + 1);
+  const contentType = metadata.match(/^data:([^;,]+)/)?.[1] ?? fallbackContentType;
+  const raw = metadata.includes(';base64') ? window.atob(payload) : decodeURIComponent(payload);
+  const bytes = new Uint8Array(raw.length);
+
+  for (let index = 0; index < raw.length; index += 1) {
+    bytes[index] = raw.charCodeAt(index);
+  }
+
+  return new Blob([bytes], { type: contentType || 'application/octet-stream' });
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
