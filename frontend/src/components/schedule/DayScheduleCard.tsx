@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, Building2, CalendarDays, Gauge, MapPinPlus, MapPinned, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
 import { AccommodationSelectorDialog } from '@/components/dialogs/AccommodationSelectorDialog';
+import { MarkdownInline } from '@/components/common/MarkdownText';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { getCategoryBadgeClass, getCategoryOption, getGoogleMapsNoteLabel } from '@/lib/place-utils';
+import { getCategoryBadgeClass, getCategoryOption } from '@/lib/place-utils';
 import { formatDepartureTime, formatTravelDate, getScheduleHotelPlace, maxStopsPerDay, routeLegKey } from '@/lib/schedule-utils';
 import type { RouteLeg, RouteMode, ScheduleDay } from '@/types/schedule';
 import type { CategoryOption, Place } from '@/types/travel';
@@ -296,7 +297,7 @@ export function DayScheduleCard({
                             <div className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground sm:line-clamp-1">{place.menu}</div>
                             <div className="mt-1 line-clamp-2 text-sm leading-5 text-foreground/75">{place.description}</div>
                             <div className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
-                              메모: {getGoogleMapsNoteLabel(place)}
+                              메모: <MarkdownInline text={place.googleMapsNote} />
                             </div>
                             {isEditing ? (
                               <div className="mt-3">

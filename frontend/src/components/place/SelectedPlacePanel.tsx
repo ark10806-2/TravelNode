@@ -1,7 +1,8 @@
 import { ExternalLink, Navigation, Pencil, Utensils } from 'lucide-react';
+import { MarkdownText } from '@/components/common/MarkdownText';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { getCategoryBadgeClass, getCategoryOption, getGoogleMapsNoteLabel, getPlaceInfoUrl, haversineKm } from '@/lib/place-utils';
+import { getCategoryBadgeClass, getCategoryOption, getPlaceInfoUrl, haversineKm } from '@/lib/place-utils';
 import type { CategoryId, CategoryOption, PhotoState, Place } from '@/types/travel';
 import { CategoryMoveSelect } from './CategoryMoveSelect';
 import { PhotoBundlePreview } from './PhotoBundlePreview';
@@ -98,7 +99,7 @@ export function SelectedPlacePanel({
           </div>
           <div className="rounded-lg bg-secondary p-3">
             <div className="text-xs font-semibold text-muted-foreground">Google Maps 메모</div>
-            <div className="mt-1 leading-6 text-muted-foreground">{getGoogleMapsNoteLabel(place)}</div>
+            <MarkdownText className="mt-1 text-sm" text={place.googleMapsNote} />
           </div>
         </div>
         <Button asChild className="mt-auto">

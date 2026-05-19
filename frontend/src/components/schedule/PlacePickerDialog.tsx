@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Check, Plus, Search, X } from 'lucide-react';
+import { MarkdownInline } from '@/components/common/MarkdownText';
 import { Button } from '@/components/ui/button';
-import { getCategoryBadgeClass, getCategoryOption, getEmbedMapUrl, getGoogleMapsNoteLabel } from '@/lib/place-utils';
+import { getCategoryBadgeClass, getCategoryOption, getEmbedMapUrl } from '@/lib/place-utils';
 import type { CategoryId, CategoryOption, Place } from '@/types/travel';
 
 type PlacePickerDialogProps = {
@@ -150,7 +151,7 @@ export function PlacePickerDialog({
                           <div className="mt-1 line-clamp-2 text-sm text-muted-foreground">{place.menu}</div>
                           <div className="mt-2 line-clamp-3 text-sm leading-5 text-foreground/80">{place.description}</div>
                           <div className="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">
-                            메모: {getGoogleMapsNoteLabel(place)}
+                            메모: <MarkdownInline text={place.googleMapsNote} />
                           </div>
                         </div>
                         <div
@@ -199,7 +200,7 @@ export function PlacePickerDialog({
                   <div className="mt-1 text-xs text-muted-foreground">{focusedPlace.address}</div>
                   <div className="mt-2 line-clamp-2 text-sm leading-5 text-foreground/80 lg:line-clamp-4">{focusedPlace.description}</div>
                   <div className="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">
-                    메모: {getGoogleMapsNoteLabel(focusedPlace)}
+                    메모: <MarkdownInline text={focusedPlace.googleMapsNote} />
                   </div>
                 </div>
               ) : null}

@@ -18,6 +18,7 @@ import {
   X
 } from 'lucide-react';
 import { fetchSchedule } from '@/api/schedule';
+import { MarkdownInline, MarkdownText } from '@/components/common/MarkdownText';
 import { ModalFrame } from '@/components/dialogs/ModalFrame';
 import { PlaceDetailDialog } from '@/components/dialogs/PlaceDetailDialog';
 import { PlacePhotoDialog } from '@/components/dialogs/PlacePhotoDialog';
@@ -371,7 +372,7 @@ function ReservationCard({
             <div className="mt-1 break-all font-semibold">{reservation.referenceNumber}</div>
           </div>
         ) : null}
-        {reservation.notes ? <p className="leading-6 text-muted-foreground">{reservation.notes}</p> : null}
+        {reservation.notes ? <MarkdownText text={reservation.notes} /> : null}
         {reservation.attachments.length ? (
           <ReservationAttachmentGrid attachments={reservation.attachments} />
         ) : null}
@@ -551,7 +552,11 @@ function GoogleReservationImportDialog({
                     {draft.referenceNumber ? <div>예약번호: {draft.referenceNumber}</div> : null}
                     {draft.linkUrl ? <div className="truncate">{draft.linkUrl}</div> : null}
                   </div>
-                  {draft.notes ? <p className="mt-2 line-clamp-3 leading-5 text-muted-foreground">{draft.notes}</p> : null}
+                  {draft.notes ? (
+                    <div className="mt-2 line-clamp-3 leading-5 text-muted-foreground">
+                      <MarkdownInline text={draft.notes} fallback="" />
+                    </div>
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -751,7 +756,7 @@ function ReservationForm({
           value={draft.notes}
           maxLength={1000}
           disabled={disabled}
-          placeholder="주의사항, QR 위치, 준비물 등"
+          placeholder="주의사항, QR 위치, 준비물 등 (Markdown 지원)"
           onChange={(event) => updateDraft('notes', event.target.value)}
         />
       </Field>

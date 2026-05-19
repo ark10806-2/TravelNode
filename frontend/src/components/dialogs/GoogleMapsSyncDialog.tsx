@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { DownloadCloud, ImageIcon, Loader2, MapPin, Search } from 'lucide-react';
 import { previewGoogleMapsList, syncGoogleMapsList } from '@/api/travel';
+import { MarkdownInline } from '@/components/common/MarkdownText';
 import { Button } from '@/components/ui/button';
 import { inputClass } from '@/constants/travel';
-import { getGoogleMapsNoteLabel } from '@/lib/place-utils';
 import type { GoogleMapsListPreview, GoogleMapsListPreviewPlace, GoogleMapsListSyncResult } from '@/types/travel';
 import { ModalFrame } from './ModalFrame';
 
@@ -268,7 +268,7 @@ function PreviewPlaceCard({
           {place.description}
         </div>
         <div className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
-          메모: {getGoogleMapsNoteLabel(place)}
+          메모: <MarkdownInline text={place.googleMapsNote} />
         </div>
         <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
           <MapPin className="h-3.5 w-3.5 shrink-0" />

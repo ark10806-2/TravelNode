@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Home, Loader2, MapPin, MapPinned, Route } from 'lucide-react';
 import { recordApiUsage } from '@/api/usage';
+import { MarkdownInline } from '@/components/common/MarkdownText';
 import { ModalFrame } from '@/components/dialogs/ModalFrame';
 import { Badge } from '@/components/ui/badge';
 import { googleMapsApiKey } from '@/config/env';
 import { createPlaceMarkerIcon, describeError, getPlaceMapStyles, loadGoogleMaps } from '@/lib/google-maps';
-import { getGoogleMapsNoteLabel } from '@/lib/place-utils';
 import { cn } from '@/lib/utils';
 import type { Place } from '@/types/travel';
 
@@ -367,7 +367,7 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
                         <span className="block truncate text-[15px] font-bold leading-5">{place.name}</span>
                         <span className="mt-1 block line-clamp-1 text-sm leading-5 text-foreground/70">{place.menu}</span>
                         <span className="mt-2 inline-flex max-w-full rounded-full bg-background/75 px-2 py-1 text-[11px] leading-none text-muted-foreground ring-1 ring-border/70">
-                          <span className="truncate">메모: {getGoogleMapsNoteLabel(place)}</span>
+                          <span className="truncate">메모: <MarkdownInline text={place.googleMapsNote} /></span>
                         </span>
                       </span>
                     </button>

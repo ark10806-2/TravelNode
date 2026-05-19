@@ -1,8 +1,9 @@
 import { ExternalLink, MapPin, Navigation } from 'lucide-react';
+import { MarkdownText } from '@/components/common/MarkdownText';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { travelLabel } from '@/constants/travel';
-import { getCategoryBadgeClass, getCategoryOption, getGoogleMapsNoteLabel, getPlaceInfoUrl } from '@/lib/place-utils';
+import { getCategoryBadgeClass, getCategoryOption, getPlaceInfoUrl } from '@/lib/place-utils';
 import type { CategoryOption, PhotoState, Place } from '@/types/travel';
 import { PhotoBundlePreview } from '@/components/place/PhotoBundlePreview';
 import { ModalFrame } from './ModalFrame';
@@ -64,7 +65,7 @@ export function PlaceDetailDialog({ place, categories, photoState, onClose, onOp
 
           <section className="rounded-md border bg-muted/20 p-3 sm:col-span-2">
             <div className="font-semibold">Google Maps 메모</div>
-            <p className="mt-1 leading-6 text-muted-foreground">{getGoogleMapsNoteLabel(place)}</p>
+            <MarkdownText className="mt-1" text={place.googleMapsNote} />
           </section>
         </div>
 

@@ -59,7 +59,7 @@ export function PlaceFormFields({
         <textarea
           className={textareaClass}
           value={draft.googleMapsNote ?? ''}
-          placeholder="Google Maps 즐겨찾기 메모 또는 직접 남긴 참고사항"
+          placeholder="Google Maps 즐겨찾기 메모 또는 직접 남긴 참고사항 (Markdown 지원)"
           onChange={(event) => onChange('googleMapsNote', event.target.value)}
         />
       </label>
