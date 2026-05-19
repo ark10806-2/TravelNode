@@ -76,11 +76,11 @@ export function TripBookletDialog({ snapshot, photoCache, onClose }: TripBooklet
           </Button>
         </div>
 
-        <div className="trip-booklet-preview-frame max-h-[74vh] overflow-y-auto bg-muted/30 p-3 sm:p-5">
+        <div className="trip-booklet-preview-frame max-h-[74vh] overflow-auto bg-muted/30 p-3 sm:p-5">
           <BookletArticle
             snapshot={snapshot}
             photoCache={photoCache}
-            className="mx-auto max-w-[920px] shadow-sm"
+            className="mx-auto w-[920px] max-w-[920px] shadow-sm"
           />
         </div>
       </ModalFrame>
@@ -297,7 +297,7 @@ function BookletCover({
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-4">
+        <div className="booklet-cover-metrics grid gap-3 sm:grid-cols-4">
           <CoverMetric label="일정" value={`${dayCount} DAY`} />
           <CoverMetric label="장소" value={`${placeCount}곳`} />
           <CoverMetric label="예약" value={`${reservationCount}개`} />
@@ -341,7 +341,7 @@ function BookletSection({
         </div>
       </div>
 
-      <div className="mb-7 grid gap-4 sm:grid-cols-[3.5rem_minmax(0,1fr)_auto] sm:items-start">
+      <div className="booklet-section-heading mb-7 grid gap-4 sm:grid-cols-[3.5rem_minmax(0,1fr)_auto] sm:items-start">
         <div className="grid h-14 w-14 place-items-center rounded-2xl bg-rose-50 text-rose-600 ring-1 ring-rose-100">
           {icon}
         </div>
@@ -349,7 +349,7 @@ function BookletSection({
           <h2 className="text-2xl font-black tracking-normal text-neutral-950">{title}</h2>
           <p className="mt-1.5 max-w-2xl text-xs leading-5 text-neutral-500">{subtitle}</p>
         </div>
-        <div className="hidden text-6xl font-black leading-none text-neutral-100 sm:block">{sectionNumber}</div>
+        <div className="booklet-section-number hidden text-6xl font-black leading-none text-neutral-100 sm:block">{sectionNumber}</div>
       </div>
 
       {children}
@@ -411,7 +411,7 @@ function DayBookletCard({
           <RouteLine label="도착" place={hotelPlace} mode={day.selectedReturnRouteMode ?? null} locked={day.lockedReturnRoute} />
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2 print:grid-cols-2">
+        <div className="booklet-two-column-grid grid gap-3 md:grid-cols-2 print:grid-cols-2">
           <MiniList
             title="이 DAY 예약"
             emptyText="예약 없음"
@@ -551,7 +551,7 @@ function PlaceDirectory({
               <span>{category.label}</span>
               <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-neutral-500 ring-1 ring-neutral-200">{categoryPlaces.length}</span>
             </h3>
-            <div className="grid gap-3 md:grid-cols-2 print:grid-cols-2">
+            <div className="booklet-two-column-grid grid gap-3 md:grid-cols-2 print:grid-cols-2">
               {categoryPlaces.map((place) => (
                 <PlaceBookletCard
                   key={place.id}
@@ -605,7 +605,7 @@ function PlaceBookletCard({
 
 function TodoBooklet({ todos, scheduleDays }: { todos: TodoList; scheduleDays: ScheduleDay[] }) {
   return (
-    <div className="grid gap-3 md:grid-cols-2 print:grid-cols-2">
+    <div className="booklet-two-column-grid grid gap-3 md:grid-cols-2 print:grid-cols-2">
       <TodoMiniList title="여행 전 체크리스트" items={todos.before} />
       {todos.days.map((day) => (
         <TodoMiniList

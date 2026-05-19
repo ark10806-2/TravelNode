@@ -186,6 +186,27 @@
   page-break-inside: avoid;
 }
 
+.trip-booklet-article .booklet-cover-layout {
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+
+.trip-booklet-article .booklet-cover-metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.trip-booklet-article .booklet-section-heading {
+  grid-template-columns: 3.5rem minmax(0, 1fr) auto;
+  align-items: flex-start;
+}
+
+.trip-booklet-article .booklet-section-number {
+  display: block;
+}
+
+.trip-booklet-article .booklet-two-column-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .booklet-muted-markdown {
   line-height: 1.45;
 }
@@ -285,6 +306,27 @@
     gap: 0 !important;
     padding: 0 !important;
     background: #fff !important;
+  }
+
+  .booklet-cover-layout {
+    grid-template-columns: minmax(0, 1fr) 82mm !important;
+  }
+
+  .booklet-cover-metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  .booklet-section-heading {
+    grid-template-columns: 14mm minmax(0, 1fr) auto !important;
+    align-items: flex-start !important;
+  }
+
+  .booklet-section-number {
+    display: block !important;
+  }
+
+  .booklet-two-column-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
   .booklet-page {
