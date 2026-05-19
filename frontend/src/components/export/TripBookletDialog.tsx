@@ -68,7 +68,7 @@ export function TripBookletDialog({ snapshot, photoCache, onClose }: TripBooklet
         <div className="trip-booklet-controls flex flex-col gap-3 border-b bg-secondary/60 px-4 py-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div className="leading-6">
             PDF 저장 창이 열리면 대상에서 <strong className="text-foreground">PDF로 저장</strong>을 선택하세요.
-            지도 대신 주소와 Google Maps 링크를 함께 담아 오프라인에서도 읽기 좋게 구성했습니다.
+            표지와 섹션이 A4 페이지 단위로 분리되며, 지도 대신 주소와 Google Maps 링크를 함께 담습니다.
           </div>
           <Button className="rounded-full" onClick={printBooklet}>
             <Printer className="h-4 w-4" />
@@ -132,11 +132,15 @@ function BookletArticle({
   const todos = snapshot.todos ?? emptyTodos;
   const todoCount = countTodos(todos);
   const checkedTodoCount = countDoneTodos(todos);
+  const coverPhotos = snapshot.places
+    .flatMap((place) => photoCache[place.id]?.photos[0]?.url ?? [])
+    .slice(0, 5);
 
   return (
-    <article className={cn('grid gap-4 bg-white text-neutral-950', className)}>
+    <article className={cn('trip-booklet-article grid gap-6 bg-[#f4efe8] p-4 text-neutral-950', className)}>
       <BookletCover
         generatedAt={generatedAt}
+        coverPhotos={coverPhotos}
         placeCount={snapshot.places.length}
         dayCount={snapshot.scheduleDays.length}
         reservationCount={snapshot.reservations.length}
@@ -145,6 +149,7 @@ function BookletArticle({
       />
 
       <BookletSection
+        sectionNumber="01"
         title="DAY별 일정"
         subtitle="숙소 출발과 도착을 기준으로 방문 순서를 정리했습니다."
         icon={<CalendarDays className="h-5 w-5" />}
@@ -168,6 +173,7 @@ function BookletArticle({
       </BookletSection>
 
       <BookletSection
+        sectionNumber="02"
         title="예약/티켓"
         subtitle="예약번호, 링크, 첨부파일 이름을 함께 확인할 수 있습니다."
         icon={<TicketCheck className="h-5 w-5" />}
@@ -189,6 +195,7 @@ function BookletArticle({
       </BookletSection>
 
       <BookletSection
+        sectionNumber="03"
         title="장소 모음"
         subtitle="카테고리별 장소, 대표 항목, 주소, 메모를 한 번에 볼 수 있습니다."
         icon={<MapPin className="h-5 w-5" />}
@@ -201,6 +208,7 @@ function BookletArticle({
       </BookletSection>
 
       <BookletSection
+        sectionNumber="04"
         title="체크리스트"
         subtitle="여행 전, DAY별, 여행 후, 커스텀 체크리스트를 모았습니다."
         icon={<CheckCircle2 className="h-5 w-5" />}
@@ -213,6 +221,7 @@ function BookletArticle({
 
 function BookletCover({
   generatedAt,
+  coverPhotos,
   placeCount,
   dayCount,
   reservationCount,
@@ -220,32 +229,72 @@ function BookletCover({
   checkedTodoCount
 }: {
   generatedAt: string;
+  coverPhotos: string[];
   placeCount: number;
   dayCount: number;
   reservationCount: number;
   todoCount: number;
   checkedTodoCount: number;
 }) {
+  const primaryPhoto = coverPhotos[0] ?? null;
+  const secondaryPhotos = coverPhotos.slice(1, 5);
+
   return (
-    <section className="booklet-page grid gap-6 rounded-xl border bg-white p-8 print:rounded-none print:border-0 print:p-0">
-      <div className="grid min-h-[620px] content-between rounded-2xl border border-neutral-200 bg-[linear-gradient(135deg,#fff7f7_0%,#ffffff_46%,#f3fbf8_100%)] p-8 print:min-h-[240mm] print:rounded-none print:border-0">
+    <section className="booklet-page booklet-cover-page overflow-hidden rounded-2xl border border-neutral-200 bg-[#fffaf5] p-8">
+      <div className="grid min-h-[720px] content-between gap-10 rounded-[1.75rem] border border-[#eadfd2] bg-[linear-gradient(135deg,#fff7f2_0%,#ffffff_48%,#eef8f4_100%)] p-7 print:min-h-[250mm] print:rounded-none print:border-0">
         <div className="flex items-center justify-between gap-4">
-          <div className="rounded-full border border-rose-200 bg-white/80 px-4 py-2 text-sm font-bold text-rose-600">
-            TravelNode Offline Booklet
+          <div className="rounded-full border border-rose-200 bg-white/85 px-4 py-2 text-sm font-black text-rose-600 shadow-sm">
+            TravelNode Guide
           </div>
           <div className="text-right text-xs leading-5 text-neutral-500">
             저장 기준<br />{generatedAt}
           </div>
         </div>
 
-        <div>
-          <div className="text-sm font-bold uppercase tracking-[0.22em] text-neutral-500">Japan Trip Planner</div>
-          <h1 className="mt-4 max-w-2xl text-5xl font-black leading-tight tracking-normal text-neutral-950 print:text-5xl">
-            나의 여행 책자
-          </h1>
-          <p className="mt-5 max-w-xl text-base leading-7 text-neutral-600">
-            일정, 장소, 예약, 체크리스트를 오프라인에서도 확인할 수 있도록 한 권의 PDF로 정리했습니다.
-          </p>
+        <div className="booklet-cover-layout grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] print:grid-cols-[minmax(0,1fr)_82mm]">
+          <div className="self-end">
+            <div className="text-xs font-black uppercase tracking-[0.26em] text-neutral-500">Japan Trip Planner</div>
+            <h1 className="mt-4 max-w-2xl text-6xl font-black leading-[0.95] tracking-normal text-neutral-950 print:text-6xl">
+              나의<br />여행 책자
+            </h1>
+            <p className="mt-6 max-w-xl text-base leading-8 text-neutral-600">
+              일정, 장소, 예약, 체크리스트를 오프라인에서도 보기 좋게 묶은 개인 여행 가이드입니다.
+              현장에서 바로 확인할 수 있도록 핵심 정보와 링크를 한 장씩 분리했습니다.
+            </p>
+          </div>
+
+          <div className="grid gap-3">
+            <div className="overflow-hidden rounded-[1.5rem] border border-white bg-neutral-100 shadow-[0_18px_45px_rgba(120,70,50,0.16)]">
+              {primaryPhoto ? (
+                <img
+                  className="h-72 w-full object-cover print:h-[96mm]"
+                  src={primaryPhoto}
+                  alt="여행 대표 사진"
+                  loading="eager"
+                />
+              ) : (
+                <div className="grid h-72 place-items-center bg-[#f3ebe3] text-sm font-bold text-neutral-500 print:h-[96mm]">
+                  Travel Preview
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {Array.from({ length: 4 }).map((_, index) => {
+                const photo = secondaryPhotos[index];
+                return photo ? (
+                  <img
+                    key={photo}
+                    className="h-20 w-full rounded-xl border border-white object-cover print:h-[22mm]"
+                    src={photo}
+                    alt={`여행 사진 ${index + 2}`}
+                    loading="eager"
+                  />
+                ) : (
+                  <div key={index} className="h-20 rounded-xl bg-[#f3ebe3] print:h-[22mm]" />
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-4">
@@ -261,7 +310,7 @@ function BookletCover({
 
 function CoverMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white/80 p-4">
+    <div className="rounded-2xl border border-[#eadfd2] bg-white/85 p-4 shadow-sm">
       <div className="text-xs font-bold text-neutral-500">{label}</div>
       <div className="mt-2 text-2xl font-black text-neutral-950">{value}</div>
     </div>
@@ -269,28 +318,46 @@ function CoverMetric({ label, value }: { label: string; value: string }) {
 }
 
 function BookletSection({
+  sectionNumber,
   title,
   subtitle,
   icon,
   children
 }: {
+  sectionNumber: string;
   title: string;
   subtitle: string;
   icon: ReactNode;
   children: ReactNode;
 }) {
   return (
-    <section className="booklet-page rounded-xl border bg-white p-6 print:rounded-none print:border-0 print:p-0">
-      <div className="mb-5 flex items-start gap-3 border-b border-neutral-200 pb-4">
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-rose-50 text-rose-600 print:bg-neutral-100 print:text-neutral-900">
+    <section className="booklet-page booklet-section-page rounded-2xl border border-neutral-200 bg-white p-7">
+      <div className="mb-6 flex items-center justify-between gap-4 border-b border-neutral-200 pb-4">
+        <div className="rounded-full bg-neutral-950 px-3 py-1 text-xs font-black tracking-[0.18em] text-white">
+          SECTION {sectionNumber}
+        </div>
+        <div className="text-right text-xs font-bold uppercase tracking-[0.16em] text-neutral-400">
+          TravelNode Booklet
+        </div>
+      </div>
+
+      <div className="mb-7 grid gap-4 sm:grid-cols-[3.5rem_minmax(0,1fr)_auto] sm:items-start">
+        <div className="grid h-14 w-14 place-items-center rounded-2xl bg-rose-50 text-rose-600 ring-1 ring-rose-100">
           {icon}
         </div>
         <div>
-          <h2 className="text-2xl font-black tracking-normal text-neutral-950">{title}</h2>
-          <p className="mt-1 text-sm leading-6 text-neutral-600">{subtitle}</p>
+          <h2 className="text-3xl font-black tracking-normal text-neutral-950">{title}</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">{subtitle}</p>
         </div>
+        <div className="hidden text-7xl font-black leading-none text-neutral-100 sm:block">{sectionNumber}</div>
       </div>
+
       {children}
+
+      <div className="booklet-page-footer mt-8 flex items-center justify-between border-t border-neutral-200 pt-3 text-[11px] font-bold uppercase tracking-[0.16em] text-neutral-400">
+        <span>{title}</span>
+        <span>Japan Trip Guide</span>
+      </div>
     </section>
   );
 }
@@ -316,8 +383,8 @@ function DayBookletCard({
   const dayTodos = todos.days.find((todoDay) => todoDay.dayIndex === dayIndex)?.items ?? [];
 
   return (
-    <article className="booklet-avoid-break overflow-hidden rounded-xl border border-neutral-200">
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-neutral-950 px-4 py-3 text-white">
+    <article className="booklet-avoid-break overflow-hidden rounded-2xl border border-[#eadfd2] bg-[#fffaf6] shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#2b211f] px-5 py-4 text-white">
         <div>
           <h3 className="text-xl font-black">DAY {dayIndex + 1}</h3>
           <p className="mt-1 text-sm text-white/70">{day.travelDate ? formatTravelDate(day.travelDate) : '날짜 미지정'}</p>
@@ -328,7 +395,7 @@ function DayBookletCard({
         </div>
       </div>
 
-      <div className="grid gap-4 p-4">
+      <div className="grid gap-5 p-4">
         <div className="grid gap-2">
           <RouteLine label="출발" place={hotelPlace} mode={null} />
           {stops.map(({ stop, place }, index) => (
@@ -376,10 +443,10 @@ function RouteLine({
 }) {
   return (
     <div className="grid grid-cols-[3rem_minmax(0,1fr)] gap-3">
-      <div className="grid h-9 w-9 place-items-center rounded-full bg-neutral-100 text-xs font-black text-neutral-700">
+      <div className="grid h-9 w-9 place-items-center rounded-full bg-white text-xs font-black text-neutral-700 ring-1 ring-neutral-200">
         {label}
       </div>
-      <div className="rounded-lg border border-neutral-200 px-3 py-2">
+      <div className="rounded-xl border border-neutral-200 bg-white px-3 py-2.5 shadow-[0_6px_16px_rgba(80,60,45,0.04)]">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="font-bold text-neutral-950">{place.name}</div>
           {mode || locked ? (
@@ -412,13 +479,13 @@ function ReservationBookletCard({
   const otherAttachments = reservation.attachments.filter((attachment) => !attachment.contentType.startsWith('image/'));
 
   return (
-    <article className="booklet-avoid-break rounded-xl border border-neutral-200 p-4">
+    <article className="booklet-avoid-break rounded-2xl border border-[#eadfd2] bg-[#fffaf6] p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-xs font-bold text-rose-600">{reservationTypeLabel[reservation.reservationType]}</div>
           <h3 className="mt-1 text-lg font-black text-neutral-950">{reservation.title}</h3>
         </div>
-        <div className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-bold text-neutral-600">
+        <div className="rounded-full bg-white px-3 py-1 text-xs font-bold text-neutral-600 ring-1 ring-neutral-200">
           {formatDayLabel(reservation.dayIndex, scheduleDays)}
         </div>
       </div>
@@ -438,7 +505,7 @@ function ReservationBookletCard({
           {imageAttachments.slice(0, 3).map((attachment) => (
             <img
               key={attachment.id}
-              className="h-24 w-full rounded-md border object-cover"
+              className="h-24 w-full rounded-xl border border-white object-cover shadow-sm"
               src={attachment.dataUrl}
               alt={attachment.fileName}
               loading="eager"
@@ -478,11 +545,11 @@ function PlaceDirectory({
         if (!categoryPlaces.length) return null;
 
         return (
-          <section key={category.id} className="booklet-avoid-break grid gap-3">
-            <h3 className="flex items-center gap-2 text-lg font-black text-neutral-950">
-              <span>{category.emoji}</span>
-              {category.label}
-              <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-bold text-neutral-500">{categoryPlaces.length}</span>
+          <section key={category.id} className="booklet-category-section grid gap-3">
+            <h3 className="flex items-center gap-2 rounded-2xl border border-neutral-200 bg-[#fffaf6] px-4 py-3 text-lg font-black text-neutral-950">
+              <span className="grid h-8 w-8 place-items-center rounded-full bg-white ring-1 ring-neutral-200">{category.emoji}</span>
+              <span>{category.label}</span>
+              <span className="rounded-full bg-white px-2 py-0.5 text-xs font-bold text-neutral-500 ring-1 ring-neutral-200">{categoryPlaces.length}</span>
             </h3>
             <div className="grid gap-3 md:grid-cols-2 print:grid-cols-2">
               {categoryPlaces.map((place) => (
@@ -511,11 +578,11 @@ function PlaceBookletCard({
   photoUrl: string | null;
 }) {
   return (
-    <article className="booklet-avoid-break grid grid-cols-[72px_minmax(0,1fr)] gap-3 rounded-xl border border-neutral-200 p-3">
+    <article className="booklet-avoid-break grid grid-cols-[80px_minmax(0,1fr)] gap-3 rounded-2xl border border-neutral-200 bg-white p-3 shadow-[0_6px_16px_rgba(80,60,45,0.04)]">
       {photoUrl ? (
-        <img className="h-[72px] w-[72px] rounded-lg object-cover" src={photoUrl} alt={place.name} loading="eager" />
+        <img className="h-20 w-20 rounded-xl object-cover" src={photoUrl} alt={place.name} loading="eager" />
       ) : (
-        <div className="grid h-[72px] w-[72px] place-items-center rounded-lg bg-neutral-100 text-xl">{category.emoji}</div>
+        <div className="grid h-20 w-20 place-items-center rounded-xl bg-neutral-100 text-xl">{category.emoji}</div>
       )}
       <div className="min-w-0">
         <div className="text-xs font-bold text-neutral-500">{category.emoji} {category.label}</div>
@@ -557,10 +624,10 @@ function TodoBooklet({ todos, scheduleDays }: { todos: TodoList; scheduleDays: S
 
 function TodoMiniList({ title, items }: { title: string; items: { id: string; text: string; done: boolean }[] }) {
   return (
-    <div className="booklet-avoid-break rounded-xl border border-neutral-200 p-3">
+    <div className="booklet-avoid-break rounded-2xl border border-neutral-200 bg-white p-3 shadow-[0_6px_16px_rgba(80,60,45,0.04)]">
       <div className="flex items-center justify-between gap-2">
         <h4 className="font-black text-neutral-950">{title}</h4>
-        <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-bold text-neutral-500">
+        <span className="rounded-full bg-[#fff3f0] px-2 py-0.5 text-xs font-bold text-rose-600">
           {items.filter((item) => item.done).length}/{items.length}
         </span>
       </div>
@@ -590,7 +657,7 @@ function MiniList({
   emptyText: string;
 }) {
   return (
-    <div className="rounded-xl border border-neutral-200 p-3">
+    <div className="rounded-2xl border border-neutral-200 bg-white p-3 shadow-[0_6px_16px_rgba(80,60,45,0.04)]">
       <h4 className="font-black text-neutral-950">{title}</h4>
       {items.length ? (
         <ul className="mt-3 grid gap-2">
