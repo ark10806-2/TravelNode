@@ -409,13 +409,11 @@ class RestaurantRepository(
       isDefault = isDefaultMenu(),
       update = { nextMenu = it.orEmpty() }
     )
-    mergeField(
-      label = "설명",
-      currentValue = description,
-      incomingValue = values.description,
-      isDefault = isDefaultDescription(),
-      update = { nextDescription = it.orEmpty() }
-    )
+    val normalizedIncomingDescription = values.description.normalizedOrNull()
+    if (normalizedIncomingDescription != null && normalizedIncomingDescription != description.normalizedOrNull()) {
+      nextDescription = normalizedIncomingDescription
+      updatedFields += "설명"
+    }
     mergeField(
       label = "Google Maps 메모",
       currentValue = googleMapsNote,

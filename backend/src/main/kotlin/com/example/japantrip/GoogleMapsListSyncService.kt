@@ -237,8 +237,8 @@ class GoogleMapsListSyncService(
       ?: ""
     val favoriteNote = path(3).asTrimmedText().orEmpty()
     val placeTypeNote = extractPlaceTypeNote(this, placeNode, name, address, favoriteNote, listTitle)
-    val googleMapsNote = mergeGoogleMapsNotes(placeTypeNote, favoriteNote)
-    val inferenceText = googleMapsNote.orEmpty()
+    val googleMapsNote = normalizeFavoriteNote(favoriteNote)
+    val inferenceText = listOfNotNull(placeTypeNote, googleMapsNote).joinToString("\n")
     val location = placeNode.path(5)
     val latitude = location.path(2).asNullableDouble() ?: return null
     val longitude = location.path(3).asNullableDouble() ?: return null
@@ -259,7 +259,7 @@ class GoogleMapsListSyncService(
         category = category,
         cuisine = cuisine,
         menu = menu,
-        description = GoogleMapsPlaceInference.description(name, inferenceText, listTitle),
+        description = placeTypeNote ?: GoogleMapsPlaceInference.description(name, inferenceText, listTitle),
         googleMapsNote = googleMapsNote,
         address = address.ifBlank { "주소 확인 필요" },
         googleMapsUrl = buildPlaceSearchUrl(name, address),
@@ -363,8 +363,8 @@ class GoogleMapsListSyncService(
     }
   }
 
-  private fun mergeGoogleMapsNotes(placeTypeNote: String?, favoriteNote: String): String? =
-    listOfNotNull(placeTypeNote, favoriteNote)
+  private fun normalizeFavoriteNote(favoriteNote: String): String? =
+    listOf(favoriteNote)
       .flatMap { it.replace("\\n", "\n").split('\n') }
       .map { it.trim() }
       .filter { it.isNotBlank() }
