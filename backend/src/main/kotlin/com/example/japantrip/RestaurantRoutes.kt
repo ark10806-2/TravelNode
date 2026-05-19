@@ -18,6 +18,7 @@ import org.slf4j.Logger
 
 fun Route.restaurantRoutes(
   repository: RestaurantRepository,
+  categoryRepository: CategoryRepository,
   photoRepository: RestaurantPhotoRepository,
   googleMapsPhotoService: GoogleMapsPhotoService,
   apiUsageRepository: ApiUsageRepository,
@@ -50,6 +51,11 @@ fun Route.restaurantRoutes(
         return@post
       }
 
+      if (!categoryRepository.exists(request.category!!.trim())) {
+        call.respondError(HttpStatusCode.BadRequest, "category not found")
+        return@post
+      }
+
       call.respond(HttpStatusCode.Created, DataResponse(repository.create(request.toValues())))
     }
 
@@ -68,6 +74,11 @@ fun Route.restaurantRoutes(
 
       if (errors.isNotEmpty()) {
         call.respondErrors(HttpStatusCode.BadRequest, errors)
+        return@put
+      }
+
+      if (!categoryRepository.exists(request.category!!.trim())) {
+        call.respondError(HttpStatusCode.BadRequest, "category not found")
         return@put
       }
 

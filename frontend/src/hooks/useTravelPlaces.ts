@@ -20,8 +20,21 @@ import type {
 } from '@/types/travel';
 
 function toPlaceDraft(place: Place, category: CategoryId): PlaceDraft {
-  const { id: _id, ...draft } = place;
-  return { ...draft, category };
+  return {
+    name: place.name,
+    category,
+    cuisine: place.cuisine,
+    menu: place.menu,
+    description: place.description,
+    googleMapsNote: place.googleMapsNote,
+    address: place.address,
+    googleMapsUrl: place.googleMapsUrl,
+    latitude: place.latitude,
+    longitude: place.longitude,
+    travelMode: place.travelMode,
+    travelMinutes: place.travelMinutes,
+    distanceLabel: place.distanceLabel
+  };
 }
 
 export function useTravelPlaces() {
@@ -158,11 +171,12 @@ export function useTravelPlaces() {
         updatePlace(updatedPlace);
       } catch (moveError) {
         setError(moveError instanceof Error ? moveError.message : '장소의 카테고리를 옮기지 못했습니다.');
+        void refreshCategories();
       } finally {
         setMovingCategoryPlaceId(null);
       }
     },
-    [updatePlace]
+    [refreshCategories, updatePlace]
   );
 
   const deletePlace = useCallback(async (place: Place) => {

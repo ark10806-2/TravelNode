@@ -20,6 +20,7 @@ fun Route.apiRoutes(services: AppServices, config: AppConfig, appLog: Logger) {
   googleMapsRoutes(services.googleMapsPreviewService, services.googleMapsListSyncService, services.authRepository)
   restaurantRoutes(
     services.restaurantRepository,
+    services.categoryRepository,
     services.restaurantPhotoRepository,
     services.googleMapsPhotoService,
     services.apiUsageRepository,

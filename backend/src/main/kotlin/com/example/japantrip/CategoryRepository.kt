@@ -25,6 +25,18 @@ class CategoryRepository(
     }
   }
 
+  fun exists(id: String): Boolean {
+    dataSource.connection.use { connection ->
+      connection.prepareStatement("SELECT EXISTS (SELECT 1 FROM categories WHERE id = ?)").use { statement ->
+        statement.setString(1, id)
+        statement.executeQuery().use { rows ->
+          rows.next()
+          return rows.getBoolean(1)
+        }
+      }
+    }
+  }
+
   fun create(request: CategoryRequest): CategoryResponse {
     val sql = """
       INSERT INTO categories (id, label, emoji, sort_order)
