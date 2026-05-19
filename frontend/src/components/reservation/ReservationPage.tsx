@@ -26,8 +26,10 @@ import { PageContainer } from '@/components/layout/PageContainer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useReservations } from '@/hooks/useReservations';
+import { formatTravelDate } from '@/lib/schedule-utils';
 import { cn } from '@/lib/utils';
 import type { Reservation, ReservationAttachment, ReservationDraft, ReservationType } from '@/types/reservation';
+import type { ScheduleDay } from '@/types/schedule';
 import type { CategoryOption, PhotoState, Place } from '@/types/travel';
 
 type ReservationPageProps = {
@@ -79,8 +81,16 @@ https://example.com/booking
 몬자야키 전문점
 3-chōme-16-9 Tsukishima, Chuo City, Tokyo 104-0052 일본`;
 
+function formatReservationDayLabel(dayIndex: number | null, scheduleDays: ScheduleDay[]) {
+  if (dayIndex == null) return 'DAY 미지정';
+
+  const dayLabel = `DAY ${dayIndex + 1}`;
+  const travelDate = scheduleDays[dayIndex]?.travelDate;
+  return travelDate ? `${dayLabel} · ${formatTravelDate(travelDate)}` : dayLabel;
+}
+
 export function ReservationPage({ categories, places, isEditing, photoCache, onLoadPhotos }: ReservationPageProps) {
-  const [scheduleDayCount, setScheduleDayCount] = useState(1);
+  const [scheduleDays, setScheduleDays] = useState<ScheduleDay[]>([]);
   const [editingReservationId, setEditingReservationId] = useState<string | null>(null);
   const [isGoogleImportOpen, setIsGoogleImportOpen] = useState(false);
   const [detailTarget, setDetailTarget] = useState<Place | null>(null);
@@ -91,7 +101,7 @@ export function ReservationPage({ categories, places, isEditing, photoCache, onL
   const currentDetailTarget = detailTarget ? placesById.get(detailTarget.id) ?? detailTarget : null;
   const currentPhotoTarget = photoTarget ? placesById.get(photoTarget.id) ?? photoTarget : null;
   const dayCount = Math.max(
-    scheduleDayCount,
+    scheduleDays.length,
     ...reservations.map((reservation) => (reservation.dayIndex == null ? 0 : reservation.dayIndex + 1)),
     1
   );
@@ -101,10 +111,10 @@ export function ReservationPage({ categories, places, isEditing, photoCache, onL
 
     async function loadDayCount() {
       try {
-        const scheduleDays = await fetchSchedule();
-        if (!cancelled) setScheduleDayCount(Math.max(1, scheduleDays.length));
+        const nextScheduleDays = await fetchSchedule();
+        if (!cancelled) setScheduleDays(nextScheduleDays);
       } catch {
-        if (!cancelled) setScheduleDayCount(1);
+        if (!cancelled) setScheduleDays([]);
       }
     }
 
@@ -178,6 +188,7 @@ export function ReservationPage({ categories, places, isEditing, photoCache, onL
             <ReservationForm
               places={places}
               dayCount={dayCount}
+              scheduleDays={scheduleDays}
               disabled={isSaving}
               onSubmit={addReservation}
             />
@@ -205,6 +216,7 @@ export function ReservationPage({ categories, places, isEditing, photoCache, onL
                   reservation={reservation}
                   place={place}
                   dayCount={dayCount}
+                  scheduleDays={scheduleDays}
                   places={places}
                   isEditing={isEditing}
                   isSaving={isSaving}
@@ -232,6 +244,7 @@ export function ReservationPage({ categories, places, isEditing, photoCache, onL
         <GoogleReservationImportDialog
           places={places}
           dayCount={dayCount}
+          scheduleDays={scheduleDays}
           disabled={isSaving}
           onClose={() => setIsGoogleImportOpen(false)}
           onImport={(drafts) => {
@@ -268,6 +281,7 @@ function ReservationCard({
   reservation,
   place,
   dayCount,
+  scheduleDays,
   places,
   isEditing,
   isSaving,
@@ -281,6 +295,7 @@ function ReservationCard({
   reservation: Reservation;
   place: Place | null;
   dayCount: number;
+  scheduleDays: ScheduleDay[];
   places: Place[];
   isEditing: boolean;
   isSaving: boolean;
@@ -302,6 +317,7 @@ function ReservationCard({
             initialDraft={reservation}
             places={places}
             dayCount={dayCount}
+            scheduleDays={scheduleDays}
             disabled={isSaving}
             submitLabel="저장"
             onSubmit={onSave}
@@ -350,7 +366,7 @@ function ReservationCard({
       <div className="grid gap-3 p-4 text-sm">
         <div className="flex flex-wrap items-center gap-2 text-muted-foreground">
           <CalendarClock className="h-4 w-4" />
-          <span>{reservation.dayIndex == null ? 'DAY 미지정' : `DAY ${reservation.dayIndex + 1}`}</span>
+          <span>{formatReservationDayLabel(reservation.dayIndex, scheduleDays)}</span>
           {reservation.timeLabel ? <span>· {reservation.timeLabel}</span> : null}
         </div>
         {place ? (
@@ -392,12 +408,14 @@ function ReservationCard({
 function GoogleReservationImportDialog({
   places,
   dayCount,
+  scheduleDays,
   disabled,
   onClose,
   onImport
 }: {
   places: Place[];
   dayCount: number;
+  scheduleDays: ScheduleDay[];
   disabled: boolean;
   onClose: () => void;
   onImport: (drafts: ReservationDraft[]) => void;
@@ -547,7 +565,7 @@ function GoogleReservationImportDialog({
                   </Badge>
                   <div className="mt-2 line-clamp-2 text-base font-bold">{draft.title}</div>
                   <div className="mt-2 grid gap-1 text-muted-foreground">
-                    <div>{draft.dayIndex == null ? 'DAY 미지정' : `DAY ${draft.dayIndex + 1}`}</div>
+                    <div>{formatReservationDayLabel(draft.dayIndex, scheduleDays)}</div>
                     {draft.timeLabel ? <div>{draft.timeLabel}</div> : null}
                     {draft.referenceNumber ? <div>예약번호: {draft.referenceNumber}</div> : null}
                     {draft.linkUrl ? <div className="truncate">{draft.linkUrl}</div> : null}
@@ -585,6 +603,7 @@ function ReservationForm({
   initialDraft = emptyDraft,
   places,
   dayCount,
+  scheduleDays,
   disabled,
   submitLabel = '추가',
   onSubmit,
@@ -593,6 +612,7 @@ function ReservationForm({
   initialDraft?: ReservationDraft;
   places: Place[];
   dayCount: number;
+  scheduleDays: ScheduleDay[];
   disabled: boolean;
   submitLabel?: string;
   onSubmit: (draft: ReservationDraft) => void;
@@ -671,7 +691,7 @@ function ReservationForm({
             <option value="">DAY 미지정</option>
             {Array.from({ length: dayCount }, (_, dayIndex) => (
               <option key={dayIndex} value={dayIndex}>
-                DAY {dayIndex + 1}
+                {formatReservationDayLabel(dayIndex, scheduleDays)}
               </option>
             ))}
           </select>
