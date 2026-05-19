@@ -34,7 +34,6 @@ CREATE TABLE IF NOT EXISTS restaurants (
   travel_mode text NOT NULL CHECK (travel_mode IN ('walk', 'transit')),
   travel_minutes integer NOT NULL CHECK (travel_minutes >= 0),
   distance_label text NOT NULL,
-  no_seafood boolean NOT NULL DEFAULT true,
   place_status text NOT NULL DEFAULT 'active' CHECK (place_status IN ('active', 'deleted')),
   google_sync_key text,
   google_sync_source_url text,
@@ -50,6 +49,7 @@ ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS google_sync_key text;
 ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS google_sync_source_url text;
 ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS google_synced_at timestamptz;
 ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS google_maps_note text;
+ALTER TABLE restaurants DROP COLUMN IF EXISTS no_seafood;
 
 UPDATE restaurants
 SET google_maps_note = btrim(replace(split_part(description, E'\n', 1), 'Google Maps 메모:', ''))

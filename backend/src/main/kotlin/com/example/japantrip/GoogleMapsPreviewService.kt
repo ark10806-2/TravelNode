@@ -64,8 +64,7 @@ class GoogleMapsPreviewService(
         longitude = location.longitude,
         travelMode = travelMode,
         travelMinutes = estimateTravelMinutes(distanceKm, travelMode),
-        distanceLabel = if (distanceKm < 1) "${(distanceKm * 1000).toInt()}m" else "%.1fkm".format(distanceKm),
-        noSeafood = true
+        distanceLabel = if (distanceKm < 1) "${(distanceKm * 1000).toInt()}m" else "%.1fkm".format(distanceKm)
       ),
       resolvedUrl = resolvedUrl,
       warnings = warnings.distinct()

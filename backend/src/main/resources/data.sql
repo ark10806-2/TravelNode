@@ -11,8 +11,7 @@ INSERT INTO restaurants (
   longitude,
   travel_mode,
   travel_minutes,
-  distance_label,
-  no_seafood
+  distance_label
 ) VALUES
 (
   '0b585efa-91af-4a0b-bb8a-3a40c6fd5444',
@@ -20,15 +19,14 @@ INSERT INTO restaurants (
   'meal',
   '닭고기 덮밥',
   '오야코동 / 토리메시',
-  '츠키지에서 해산물을 피하고 싶을 때 가기 좋은 닭요리 전문점입니다. 부드러운 달걀과 닭고기 덮밥이 중심이라 아침이나 점심 식사로 무난합니다.',
+  '츠키지 산책 중 든든하게 들르기 좋은 닭요리 전문점입니다. 부드러운 달걀과 닭고기 덮밥이 중심이라 아침이나 점심 식사로 무난합니다.',
   '4 Chome-8-6 Tsukiji, Chuo City, Tokyo',
   'https://www.google.com/maps/search/?api=1&query=Torito+Bunten+4+Chome-8-6+Tsukiji+Chuo+City+Tokyo',
   35.665287,
   139.770370,
   'walk',
   7,
-  '700m',
-  true
+  '700m'
 ),
 (
   '8c3b7c6e-6525-4089-84ad-487d6e60e4ea',
@@ -43,8 +41,7 @@ INSERT INTO restaurants (
   139.770613,
   'walk',
   9,
-  '850m',
-  true
+  '850m'
 ),
 (
   'e780f0d6-a058-47c1-bcaf-17adfb247d54',
@@ -52,15 +49,14 @@ INSERT INTO restaurants (
   'meal',
   '닭 육수 라멘',
   '치킨 파이탄 소바 / 치킨 라이스',
-  '크리미한 닭 육수 라멘으로 알려진 긴자 맛집입니다. 해산물 라멘보다 닭 베이스를 선호할 때 선택하기 좋고, 식사 시간대에는 웨이팅을 감안해야 합니다.',
+  '크리미한 닭 육수 라멘으로 알려진 긴자 맛집입니다. 진한 닭 베이스 국물을 좋아한다면 선택하기 좋고, 식사 시간대에는 웨이팅을 감안해야 합니다.',
   '6 Chome-4-12 Ginza, Chuo City, Tokyo',
   'https://www.google.com/maps/search/?api=1&query=Ginza+Kagari+Honten+6+Chome-4-12+Ginza+Chuo+City+Tokyo',
   35.671083,
   139.763139,
   'walk',
   17,
-  '1.4km',
-  true
+  '1.4km'
 ),
 (
   '33e752fa-4fde-49f4-92b5-36ca74477c1d',
@@ -75,8 +71,7 @@ INSERT INTO restaurants (
   139.773591,
   'walk',
   3,
-  '280m',
-  true
+  '280m'
 ),
 (
   'ac2ee156-7c5e-49ec-b7b0-a4abf26cbfe9',
@@ -84,15 +79,14 @@ INSERT INTO restaurants (
   'dessert',
   '딸기 모찌',
   '딸기 다이후쿠 / 이치고 모찌',
-  '츠키지 시장 산책 중 해산물 대신 가볍게 먹기 좋은 디저트 가게입니다. 딸기와 찹쌀떡 조합이라 호불호가 적은 편입니다.',
+  '츠키지 시장 산책 중 가볍게 들르기 좋은 디저트 가게입니다. 딸기와 찹쌀떡 조합이라 호불호가 적은 편입니다.',
   '4 Chome-11-10 Tsukiji, Chuo City, Tokyo',
   'https://www.google.com/maps/search/?api=1&query=Tsukiji+Soratsuki+Honten+4+Chome-11-10+Tsukiji+Chuo+City+Tokyo',
   35.665939,
   139.771338,
   'walk',
   8,
-  '750m',
-  true
+  '750m'
 ),
 (
   '6fdc48c4-78f4-4f95-82c0-b1ce7fb9237d',
@@ -100,15 +94,14 @@ INSERT INTO restaurants (
   'meal',
   '돈카츠',
   '로스카츠 / 히레카츠',
-  '아키하바라에서 유명한 돈카츠 전문점입니다. 숙소에서 대중교통으로 30분 안팎에 갈 수 있고, 고기 중심 메뉴라 해산물을 피하기 좋습니다.',
+  '아키하바라에서 유명한 돈카츠 전문점입니다. 숙소에서 대중교통으로 30분 안팎에 갈 수 있고, 바삭한 돈카츠를 제대로 즐기기 좋습니다.',
   '1 Chome-8-14 Sotokanda, Chiyoda City, Tokyo',
   'https://www.google.com/maps/search/?api=1&query=Tonkatsu+Marugo+1+Chome-8-14+Sotokanda+Chiyoda+City+Tokyo',
   35.699083,
   139.771546,
   'transit',
   22,
-  '대중교통 22분',
-  true
+  '대중교통 22분'
 ),
 (
   '9f7aefef-5131-4b3e-b945-99174c6e4cc1',
@@ -123,8 +116,7 @@ INSERT INTO restaurants (
   139.771174,
   'transit',
   22,
-  '대중교통 22분',
-  true
+  '대중교통 22분'
 ),
 (
   '4c7d3583-7d45-4d0d-8539-4c19556c43ef',
@@ -139,8 +131,7 @@ INSERT INTO restaurants (
   139.790958,
   'transit',
   28,
-  '대중교통 28분',
-  true
+  '대중교통 28분'
 )
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,
@@ -155,5 +146,4 @@ ON CONFLICT (id) DO UPDATE SET
   travel_mode = EXCLUDED.travel_mode,
   travel_minutes = EXCLUDED.travel_minutes,
   distance_label = EXCLUDED.distance_label,
-  no_seafood = EXCLUDED.no_seafood,
   updated_at = now();

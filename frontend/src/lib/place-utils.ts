@@ -87,8 +87,7 @@ export function createEmptyDraft(category: CategoryId): PlaceDraft {
     longitude: hotel.longitude,
     travelMode: 'walk',
     travelMinutes: 1,
-    distanceLabel: '확인 필요',
-    noSeafood: true
+    distanceLabel: '확인 필요'
   };
 }
 

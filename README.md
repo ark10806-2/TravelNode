@@ -145,8 +145,7 @@ DELETE /api/restaurants/:id
   "longitude": 139.763139,
   "travelMode": "walk",
   "travelMinutes": 17,
-  "distanceLabel": "1.4km",
-  "noSeafood": true
+  "distanceLabel": "1.4km"
 }
 ```
 

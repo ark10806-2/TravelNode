@@ -264,8 +264,7 @@ class GoogleMapsListSyncService(
         longitude = longitude,
         travelMode = travelMode,
         travelMinutes = GoogleMapsPlaceInference.estimateTravelMinutes(distanceKm, travelMode),
-        distanceLabel = if (distanceKm < 1) "${(distanceKm * 1000).toInt()}m" else "%.1fkm".format(distanceKm),
-        noSeafood = !GoogleMapsPlaceInference.containsSeafoodKeyword(name)
+        distanceLabel = if (distanceKm < 1) "${(distanceKm * 1000).toInt()}m" else "%.1fkm".format(distanceKm)
       ),
       syncKey = syncKey,
       sourceUrl = sourceUrl,
@@ -382,7 +381,6 @@ class GoogleMapsListSyncService(
     travelMode = restaurant.travelMode,
     travelMinutes = restaurant.travelMinutes,
     distanceLabel = restaurant.distanceLabel,
-    noSeafood = restaurant.noSeafood,
     thumbnailUrl = thumbnailUrl
   )
 

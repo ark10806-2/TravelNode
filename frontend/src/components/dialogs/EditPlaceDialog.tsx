@@ -116,7 +116,6 @@ export function EditPlaceDialog({ place, categories, onClose, onSaved }: EditPla
           categories={categories}
           draft={draft}
           showCategory
-          showNoSeafood
           onChange={updateDraft}
         />
 
@@ -148,7 +147,6 @@ function placeToDraft(place: Place): PlaceDraft {
     longitude: place.longitude,
     travelMode: place.travelMode,
     travelMinutes: place.travelMinutes,
-    distanceLabel: place.distanceLabel,
-    noSeafood: place.noSeafood
+    distanceLabel: place.distanceLabel
   };
 }

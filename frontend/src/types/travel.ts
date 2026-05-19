@@ -25,7 +25,6 @@ export type Place = {
   travelMode: TravelMode;
   travelMinutes: number;
   distanceLabel: string;
-  noSeafood: boolean;
 };
 
 export type PlaceDraft = Omit<Place, 'id'>;

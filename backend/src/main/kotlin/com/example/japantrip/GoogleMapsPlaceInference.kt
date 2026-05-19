@@ -53,11 +53,6 @@ object GoogleMapsPlaceInference {
     return "${name}은 ${prefix}에서 가져온 장소입니다. 방문 전 영업시간과 휴무일을 확인해주세요."
   }
 
-  fun containsSeafoodKeyword(name: String): Boolean {
-    val text = name.lowercase()
-    return SeafoodKeywords.any { it in text }
-  }
-
   fun estimateTravelMinutes(distanceKm: Double, travelMode: String): Int {
     return if (travelMode == "walk") {
       ceil(distanceKm / 0.08).toInt().coerceAtLeast(1)
@@ -104,19 +99,4 @@ object GoogleMapsPlaceInference {
     "호텔"
   )
 
-  private val SeafoodKeywords = listOf(
-    "스시",
-    "sushi",
-    "초밥",
-    "장어",
-    "うなぎ",
-    "unagi",
-    "긴다코",
-    "gindaco",
-    "문어",
-    "타코야키",
-    "takoyaki",
-    "생선",
-    "fish"
-  )
 }

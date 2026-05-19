@@ -18,8 +18,7 @@ data class RestaurantDraft(
   val longitude: Double,
   val travelMode: String,
   val travelMinutes: Int,
-  val distanceLabel: String,
-  val noSeafood: Boolean
+  val distanceLabel: String
 )
 
 data class GoogleMapsPreviewResponse(
@@ -61,7 +60,6 @@ data class GoogleMapsListPreviewPlace(
   val travelMode: String,
   val travelMinutes: Int,
   val distanceLabel: String,
-  val noSeafood: Boolean,
   val thumbnailUrl: String?
 )
 

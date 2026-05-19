@@ -22,8 +22,7 @@ export const hotelSchedulePlace: Place = {
   longitude: hotel.longitude,
   travelMode: 'walk',
   travelMinutes: 0,
-  distanceLabel: '0m',
-  noSeafood: true
+  distanceLabel: '0m'
 };
 
 export function createId(prefix: string) {

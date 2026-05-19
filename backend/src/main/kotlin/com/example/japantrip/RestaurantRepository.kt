@@ -69,10 +69,9 @@ class RestaurantRepository(
         longitude,
         travel_mode,
         travel_minutes,
-        distance_label,
-        no_seafood
+        distance_label
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING *
     """.trimIndent()
 
@@ -126,13 +125,12 @@ class RestaurantRepository(
         travel_mode,
         travel_minutes,
         distance_label,
-        no_seafood,
         place_status,
         google_sync_key,
         google_sync_source_url,
         google_synced_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, now())
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, now())
       RETURNING *
     """.trimIndent()
     val updateSyncedDetailsSql = """
@@ -217,8 +215,8 @@ class RestaurantRepository(
                   }
                   else -> {
                     insertStatement.bindValues(synced.restaurant)
-                    insertStatement.setString(15, synced.syncKey)
-                    insertStatement.setString(16, synced.sourceUrl)
+                    insertStatement.setString(14, synced.syncKey)
+                    insertStatement.setString(15, synced.sourceUrl)
                     insertStatement.executeQuery().use { rows ->
                       rows.next()
                       created += rows.toRestaurant()
@@ -271,7 +269,6 @@ class RestaurantRepository(
         travel_mode = ?,
         travel_minutes = ?,
         distance_label = ?,
-        no_seafood = ?,
         updated_at = now()
       WHERE id = ?
         AND place_status = 'active'
@@ -281,7 +278,7 @@ class RestaurantRepository(
     dataSource.connection.use { connection ->
       connection.prepareStatement(sql).use { statement ->
         statement.bindValues(values)
-        statement.setObject(15, UUID.fromString(id))
+        statement.setObject(14, UUID.fromString(id))
         statement.executeQuery().use { rows ->
           return if (rows.next()) rows.toRestaurant() else null
         }
@@ -368,7 +365,6 @@ class RestaurantRepository(
     setString(11, values.travelMode)
     setInt(12, values.travelMinutes)
     setString(13, values.distanceLabel)
-    setBoolean(14, values.noSeafood)
   }
 
   private fun ExistingRestaurantStatus.mergeSyncedDetails(values: RestaurantValues): SyncedDetailMerge {
@@ -488,7 +484,6 @@ class RestaurantRepository(
     travelMode = getString("travel_mode"),
     travelMinutes = getInt("travel_minutes"),
     distanceLabel = getString("distance_label"),
-    noSeafood = getBoolean("no_seafood"),
     createdAt = getObject("created_at", OffsetDateTime::class.java),
     updatedAt = getObject("updated_at", OffsetDateTime::class.java)
   )

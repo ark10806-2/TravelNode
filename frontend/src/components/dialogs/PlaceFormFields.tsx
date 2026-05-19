@@ -6,7 +6,6 @@ type PlaceFormFieldsProps = {
   categories: CategoryOption[];
   draft: PlaceDraft;
   showCategory?: boolean;
-  showNoSeafood?: boolean;
   onChange: <Field extends keyof PlaceDraft>(field: Field, value: PlaceDraft[Field]) => void;
 };
 
@@ -14,7 +13,6 @@ export function PlaceFormFields({
   categories,
   draft,
   showCategory = false,
-  showNoSeafood = false,
   onChange
 }: PlaceFormFieldsProps) {
   return (
@@ -116,17 +114,6 @@ export function PlaceFormFields({
           onChange={(event) => onChange('distanceLabel', event.target.value)}
         />
       </label>
-      {showNoSeafood ? (
-        <label className="flex items-center gap-2 self-end rounded-md border px-3 py-2 text-sm font-semibold">
-          <input
-            checked={draft.noSeafood}
-            className="h-4 w-4 accent-primary"
-            type="checkbox"
-            onChange={(event) => onChange('noSeafood', event.target.checked)}
-          />
-          해산물 제외 후보
-        </label>
-      ) : null}
     </div>
   );
 }

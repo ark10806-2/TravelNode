@@ -17,7 +17,6 @@ data class RestaurantResponse(
   val travelMode: String,
   val travelMinutes: Int,
   val distanceLabel: String,
-  val noSeafood: Boolean,
   val createdAt: OffsetDateTime,
   val updatedAt: OffsetDateTime
 )
@@ -35,8 +34,7 @@ data class RestaurantRequest(
   val longitude: Double? = null,
   val travelMode: String? = null,
   val travelMinutes: Int? = null,
-  val distanceLabel: String? = null,
-  val noSeafood: Boolean = true
+  val distanceLabel: String? = null
 )
 
 data class RestaurantDescriptionRequest(
@@ -74,8 +72,7 @@ data class RestaurantValues(
   val longitude: Double,
   val travelMode: String,
   val travelMinutes: Int,
-  val distanceLabel: String,
-  val noSeafood: Boolean
+  val distanceLabel: String
 )
 
 fun RestaurantRequest.validate(): List<String> {
@@ -118,8 +115,7 @@ fun RestaurantRequest.toValues() = RestaurantValues(
   longitude = longitude!!,
   travelMode = travelMode!!.trim(),
   travelMinutes = travelMinutes!!,
-  distanceLabel = distanceLabel!!.trim(),
-  noSeafood = noSeafood
+  distanceLabel = distanceLabel!!.trim()
 )
 
 fun RestaurantDescriptionRequest.validate(): List<String> {
