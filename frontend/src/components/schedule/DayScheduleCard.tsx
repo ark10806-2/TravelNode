@@ -28,6 +28,8 @@ type DayScheduleCardProps = {
   onSetDayHotel: (dayId: string, placeId: string | null) => void;
   onSetDayDepartureTime: (dayId: string, departureTimeMinutes: number | null) => void;
   onSetStopDepartureTime: (dayId: string, stopId: string, departureTimeMinutes: number | null) => void;
+  onToggleStopEdgeLock: (dayId: string, stopId: string) => void;
+  onToggleReturnEdgeLock: (dayId: string) => void;
   isOptimizingRoutes: boolean;
   onOptimizeRoutes: () => void;
   isRefreshingRoutes: boolean;
@@ -52,6 +54,8 @@ export function DayScheduleCard({
   onSetDayHotel,
   onSetDayDepartureTime,
   onSetStopDepartureTime,
+  onToggleStopEdgeLock,
+  onToggleReturnEdgeLock,
   isOptimizingRoutes,
   onOptimizeRoutes,
   isRefreshingRoutes,
@@ -210,6 +214,9 @@ export function DayScheduleCard({
                         leg={leg}
                         selectedMode={stop.selectedRouteMode}
                         departureTimeMinutes={edgeDepartureTimeMinutes}
+                        isEditing={isEditing}
+                        isLocked={stop.lockedFromPrevious === true}
+                        onToggleLock={() => onToggleStopEdgeLock(day.id, stop.id)}
                       />
                     ) : null}
                     <div className="grid grid-cols-[1.75rem_minmax(0,1fr)] items-start gap-2 rounded-lg px-1.5 py-3 transition hover:bg-muted/25 sm:grid-cols-[2.25rem_minmax(0,1fr)] sm:items-center sm:gap-3 sm:px-3">
@@ -315,6 +322,9 @@ export function DayScheduleCard({
                   leg={returnLeg}
                   selectedMode={day.selectedReturnRouteMode}
                   departureTimeMinutes={lastStop?.departureTimeMinutes ?? null}
+                  isEditing={isEditing}
+                  isLocked={day.lockedReturnRoute === true}
+                  onToggleLock={() => onToggleReturnEdgeLock(day.id)}
                 />
               ) : null}
             </>

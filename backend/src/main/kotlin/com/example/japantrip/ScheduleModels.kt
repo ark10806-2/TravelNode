@@ -4,7 +4,8 @@ data class ScheduleStopResponse(
   val id: String,
   val placeId: String,
   val selectedRouteMode: String? = null,
-  val departureTimeMinutes: Int? = null
+  val departureTimeMinutes: Int? = null,
+  val lockedFromPrevious: Boolean = false
 )
 
 data class ScheduleDayResponse(
@@ -12,7 +13,8 @@ data class ScheduleDayResponse(
   val stops: List<ScheduleStopResponse>,
   val selectedReturnRouteMode: String? = null,
   val hotelPlaceId: String? = null,
-  val departureTimeMinutes: Int? = null
+  val departureTimeMinutes: Int? = null,
+  val lockedReturnRoute: Boolean = false
 )
 
 data class ScheduleSaveRequest(
@@ -24,14 +26,16 @@ data class ScheduleDayRequest(
   val stops: List<ScheduleStopRequest>? = emptyList(),
   val selectedReturnRouteMode: String? = null,
   val hotelPlaceId: String? = null,
-  val departureTimeMinutes: Int? = null
+  val departureTimeMinutes: Int? = null,
+  val lockedReturnRoute: Boolean? = false
 )
 
 data class ScheduleStopRequest(
   val id: String? = null,
   val placeId: String? = null,
   val selectedRouteMode: String? = null,
-  val departureTimeMinutes: Int? = null
+  val departureTimeMinutes: Int? = null,
+  val lockedFromPrevious: Boolean? = false
 )
 
 fun ScheduleSaveRequest.validate(): List<String> {

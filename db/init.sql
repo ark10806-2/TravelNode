@@ -94,11 +94,17 @@ CREATE TABLE IF NOT EXISTS schedule_days (
   id text PRIMARY KEY,
   sort_order integer NOT NULL,
   selected_return_route_mode text CHECK (selected_return_route_mode IN ('driving', 'transit', 'walking')),
+  departure_time_minutes integer CHECK (departure_time_minutes >= 0 AND departure_time_minutes < 1440 AND departure_time_minutes % 30 = 0),
+  hotel_place_id uuid REFERENCES restaurants(id) ON DELETE SET NULL,
+  locked_return_route boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 ALTER TABLE schedule_days ADD COLUMN IF NOT EXISTS selected_return_route_mode text;
+ALTER TABLE schedule_days ADD COLUMN IF NOT EXISTS hotel_place_id uuid REFERENCES restaurants(id) ON DELETE SET NULL;
+ALTER TABLE schedule_days ADD COLUMN IF NOT EXISTS departure_time_minutes integer;
+ALTER TABLE schedule_days ADD COLUMN IF NOT EXISTS locked_return_route boolean NOT NULL DEFAULT false;
 
 DO $$
 BEGIN
@@ -120,6 +126,8 @@ CREATE TABLE IF NOT EXISTS schedule_stops (
   restaurant_id uuid NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
   sort_order integer NOT NULL,
   selected_route_mode text CHECK (selected_route_mode IN ('driving', 'transit', 'walking')),
+  departure_time_minutes integer CHECK (departure_time_minutes >= 0 AND departure_time_minutes < 1440 AND departure_time_minutes % 30 = 0),
+  locked_from_previous boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (day_id, restaurant_id),
@@ -127,6 +135,8 @@ CREATE TABLE IF NOT EXISTS schedule_stops (
 );
 
 ALTER TABLE schedule_stops ADD COLUMN IF NOT EXISTS selected_route_mode text;
+ALTER TABLE schedule_stops ADD COLUMN IF NOT EXISTS departure_time_minutes integer;
+ALTER TABLE schedule_stops ADD COLUMN IF NOT EXISTS locked_from_previous boolean NOT NULL DEFAULT false;
 
 DO $$
 BEGIN

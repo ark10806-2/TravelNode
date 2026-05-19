@@ -169,7 +169,8 @@ export function useSchedule(places: Place[], canPersist = false) {
         stops: [],
         selectedReturnRouteMode: null,
         hotelPlaceId: null,
-        departureTimeMinutes: null
+        departureTimeMinutes: null,
+        lockedReturnRoute: false
       }
     ]);
   }
@@ -202,7 +203,8 @@ export function useSchedule(places: Place[], canPersist = false) {
               id: createId('stop'),
               placeId,
               selectedRouteMode: null,
-              departureTimeMinutes: null
+              departureTimeMinutes: null,
+              lockedFromPrevious: false
             }))
           ])
         };
@@ -214,7 +216,7 @@ export function useSchedule(places: Place[], canPersist = false) {
     updateDays((current) =>
       current.map((day) =>
         day.id === dayId
-          ? clearDayRouteSelection({ ...day, stops: day.stops.filter((stop) => stop.id !== stopId) })
+          ? clearDayRouteSelection(removeStopAndClearEdgeLocks(day, stopId))
           : day
       )
     );
@@ -232,8 +234,41 @@ export function useSchedule(places: Place[], canPersist = false) {
         const nextStops: ScheduleStop[] = [...day.stops];
         const [moved] = nextStops.splice(fromIndex, 1);
         nextStops.splice(toIndex, 0, moved);
-        return clearDayRouteSelection({ ...day, stops: nextStops });
+        return clearDayRouteSelection({ ...day, stops: clearLocksAroundMove(nextStops, fromIndex, toIndex) });
       })
+    );
+  }
+
+  function toggleStopEdgeLock(dayId: string, stopId: string) {
+    updateDays((current) =>
+      current.map((day) =>
+        day.id === dayId
+          ? {
+              ...day,
+              stops: day.stops.map((stop) =>
+                stop.id === stopId
+                  ? {
+                      ...stop,
+                      lockedFromPrevious: stop.lockedFromPrevious !== true
+                    }
+                  : stop
+              )
+            }
+          : day
+      )
+    );
+  }
+
+  function toggleReturnEdgeLock(dayId: string) {
+    updateDays((current) =>
+      current.map((day) =>
+        day.id === dayId && day.stops.length > 0
+          ? {
+              ...day,
+              lockedReturnRoute: day.lockedReturnRoute !== true
+            }
+          : day
+      )
     );
   }
 
@@ -292,6 +327,7 @@ export function useSchedule(places: Place[], canPersist = false) {
     if (dayPlaces.length < 1) return;
 
     const hotelPlace = getScheduleHotelPlace(day, placesById);
+    const optimizationLocks = createLockedOptimizationPlan(scheduledStops, day);
     const departureByPlaceId = new Map(
       scheduledStops.map(({ stop, place }) => [place.id, normalizeDepartureTimeMinutes(stop.departureTimeMinutes)])
     );
@@ -345,7 +381,10 @@ export function useSchedule(places: Place[], canPersist = false) {
       setRouteLegValue(key, leg);
     });
 
-    const optimized = optimizePlaceOrder(dayPlaces, routeLegsRef.current, hotelPlace, hotelPlace, { keyForEdge });
+    const optimized = optimizePlaceOrder(dayPlaces, routeLegsRef.current, hotelPlace, hotelPlace, {
+      keyForEdge,
+      ...optimizationLocks
+    });
     if (!optimized) {
       setScheduleStatus('error');
       setScheduleError('동선 최적화에 필요한 이동 시간을 계산하지 못했습니다.');
@@ -353,6 +392,7 @@ export function useSchedule(places: Place[], canPersist = false) {
     }
 
     const stopsByPlaceId = new Map(day.stops.map((stop) => [stop.placeId, stop]));
+    const lockedFromPreviousByPlaceId = createOptimizedLockMap(day, optimized.segments);
     updateDays((current) =>
       current.map((candidate) => {
         if (candidate.id !== dayId) return candidate;
@@ -363,8 +403,10 @@ export function useSchedule(places: Place[], canPersist = false) {
           stops: optimized.places.map((place, index) => ({
             ...(stopsByPlaceId.get(place.id) ?? { id: createId('stop'), placeId: place.id }),
             placeId: place.id,
-            selectedRouteMode: optimized.selectedModes[index]
-          }))
+            selectedRouteMode: optimized.selectedModes[index],
+            lockedFromPrevious: lockedFromPreviousByPlaceId.get(place.id) === true
+          })),
+          lockedReturnRoute: day.lockedReturnRoute === true
         };
       })
     );
@@ -411,7 +453,85 @@ export function useSchedule(places: Place[], canPersist = false) {
     setDayHotel,
     setDayDepartureTime,
     setStopDepartureTime,
+    toggleStopEdgeLock,
+    toggleReturnEdgeLock,
     optimizeDayRoutes,
     refreshDayRoutes
   };
+}
+
+function clearLocksAroundMove(stops: ScheduleStop[], fromIndex: number, toIndex: number) {
+  const affectedIndices = new Set([fromIndex, fromIndex + 1, toIndex, toIndex + 1]);
+
+  return stops.map((stop, index) =>
+    affectedIndices.has(index)
+      ? {
+          ...stop,
+          lockedFromPrevious: false
+        }
+      : stop
+  );
+}
+
+function removeStopAndClearEdgeLocks(day: ScheduleDay, stopId: string): ScheduleDay {
+  const removedIndex = day.stops.findIndex((stop) => stop.id === stopId);
+  if (removedIndex < 0) return day;
+
+  const nextStops = day.stops.filter((stop) => stop.id !== stopId);
+
+  return {
+    ...day,
+    lockedReturnRoute: removedIndex === day.stops.length - 1 ? false : day.lockedReturnRoute,
+    stops: nextStops.map((stop, index) =>
+      index === removedIndex
+        ? {
+            ...stop,
+            lockedFromPrevious: false
+          }
+        : stop
+    )
+  };
+}
+
+type ScheduledStopPlace = {
+  stop: ScheduleStop;
+  place: Place;
+};
+
+function createLockedOptimizationPlan(scheduledStops: ScheduledStopPlace[], day: ScheduleDay) {
+  const segments: Place[][] = [];
+  let currentSegment: Place[] = [];
+
+  scheduledStops.forEach(({ stop, place }, index) => {
+    if (index === 0 || stop.lockedFromPrevious === true) {
+      currentSegment.push(place);
+      return;
+    }
+
+    segments.push(currentSegment);
+    currentSegment = [place];
+  });
+
+  if (currentSegment.length) {
+    segments.push(currentSegment);
+  }
+
+  return {
+    segments,
+    fixedFirstSegmentIndex: day.stops[0]?.lockedFromPrevious === true ? 0 : null,
+    fixedLastSegmentIndex: day.lockedReturnRoute === true ? segments.length - 1 : null
+  };
+}
+
+function createOptimizedLockMap(day: ScheduleDay, segments: Place[][]) {
+  const lockedByPlaceId = new Map<string, boolean>();
+  const shouldLockFirstEdge = day.stops[0]?.lockedFromPrevious === true;
+
+  segments.forEach((segment, segmentIndex) => {
+    segment.forEach((place, placeIndex) => {
+      lockedByPlaceId.set(place.id, placeIndex > 0 || (shouldLockFirstEdge && segmentIndex === 0 && placeIndex === 0));
+    });
+  });
+
+  return lockedByPlaceId;
 }

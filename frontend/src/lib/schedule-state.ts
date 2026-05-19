@@ -16,6 +16,7 @@ export function loadStoredDays() {
         selectedReturnRouteMode: isRouteMode(day.selectedReturnRouteMode) ? day.selectedReturnRouteMode : null,
         hotelPlaceId: typeof day.hotelPlaceId === 'string' && day.hotelPlaceId.trim() ? day.hotelPlaceId : null,
         departureTimeMinutes: normalizeDepartureTimeMinutes(day.departureTimeMinutes),
+        lockedReturnRoute: day.lockedReturnRoute === true,
         stops: Array.isArray(day.stops)
           ? day.stops
               .filter((stop) => typeof stop?.placeId === 'string')
@@ -23,7 +24,8 @@ export function loadStoredDays() {
                 id: typeof stop.id === 'string' ? stop.id : createId('stop'),
                 placeId: stop.placeId,
                 selectedRouteMode: isRouteMode(stop.selectedRouteMode) ? stop.selectedRouteMode : null,
-                departureTimeMinutes: normalizeDepartureTimeMinutes(stop.departureTimeMinutes)
+                departureTimeMinutes: normalizeDepartureTimeMinutes(stop.departureTimeMinutes),
+                lockedFromPrevious: stop.lockedFromPrevious === true
               }))
           : []
       })
@@ -63,6 +65,7 @@ export function alignDayDepartureTimes(day: ScheduleDay): ScheduleDay {
   return {
     ...day,
     departureTimeMinutes: previousDepartureTime,
+    lockedReturnRoute: day.lockedReturnRoute === true && day.stops.length > 0,
     stops: day.stops.map((stop) => {
       let departureTimeMinutes = normalizeDepartureTimeMinutes(stop.departureTimeMinutes);
 
@@ -80,7 +83,8 @@ export function alignDayDepartureTimes(day: ScheduleDay): ScheduleDay {
 
       return {
         ...stop,
-        departureTimeMinutes
+        departureTimeMinutes,
+        lockedFromPrevious: stop.lockedFromPrevious === true
       };
     })
   };
@@ -148,7 +152,8 @@ function createEmptyScheduleDays(): ScheduleDay[] {
       stops: [],
       selectedReturnRouteMode: null,
       hotelPlaceId: null,
-      departureTimeMinutes: null
+      departureTimeMinutes: null,
+      lockedReturnRoute: false
     }
   ];
 }
