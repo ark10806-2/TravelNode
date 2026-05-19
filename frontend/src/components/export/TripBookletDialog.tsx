@@ -135,6 +135,14 @@ function BookletArticle({
   const coverPhotos = snapshot.places
     .flatMap((place) => photoCache[place.id]?.photos[0]?.url ?? [])
     .slice(0, 5);
+  const reservationGroups = groupReservationsByDay(snapshot.reservations, snapshot.scheduleDays);
+  const placeGroups = mergeKnownCategories(snapshot.categories)
+    .map((category) => ({
+      category,
+      places: snapshot.places.filter((place) => place.category === category.id)
+    }))
+    .filter((group) => group.places.length > 0);
+  const todoGroups = createTodoBookletGroups(todos, snapshot.scheduleDays);
 
   return (
     <article className={cn('trip-booklet-article grid gap-6 bg-[#f4efe8] p-4 text-neutral-950', className)}>
@@ -148,73 +156,119 @@ function BookletArticle({
         checkedTodoCount={checkedTodoCount}
       />
 
-      <BookletSection
-        sectionNumber="01"
-        title="DAY별 일정"
-        subtitle="숙소 출발과 도착을 기준으로 방문 순서를 정리했습니다."
-        icon={<CalendarDays className="h-5 w-5" />}
-      >
-        <div className="grid gap-4">
-          {snapshot.scheduleDays.length ? (
-            snapshot.scheduleDays.map((day, dayIndex) => (
+      {snapshot.scheduleDays.length ? (
+        snapshot.scheduleDays.map((day, dayIndex) => {
+          const hotelPlace = getScheduleHotelPlace(day, placesById);
+
+          return (
+            <BookletSection
+              key={day.id}
+              sectionNumber="01"
+              title={`DAY ${dayIndex + 1} 일정`}
+              subtitle={[
+                day.travelDate ? formatTravelDate(day.travelDate) : '날짜 미지정',
+                `출발 ${formatDepartureTime(day.departureTimeMinutes)}`,
+                `기준 숙소 ${hotelPlace.name}`
+              ].join(' · ')}
+              icon={<CalendarDays className="h-5 w-5" />}
+            >
               <DayBookletCard
-                key={day.id}
                 day={day}
                 dayIndex={dayIndex}
                 placesById={placesById}
                 reservations={snapshot.reservations}
                 todos={todos}
               />
-            ))
-          ) : (
-            <EmptyBookletState text="등록된 일정이 없습니다." />
-          )}
-        </div>
-      </BookletSection>
+            </BookletSection>
+          );
+        })
+      ) : (
+        <BookletSection
+          sectionNumber="01"
+          title="DAY별 일정"
+          subtitle="숙소 출발과 도착을 기준으로 방문 순서를 정리했습니다."
+          icon={<CalendarDays className="h-5 w-5" />}
+        >
+          <EmptyBookletState text="등록된 일정이 없습니다." />
+        </BookletSection>
+      )}
 
-      <BookletSection
-        sectionNumber="02"
-        title="예약/티켓"
-        subtitle="예약번호, 링크, 첨부파일 이름을 함께 확인할 수 있습니다."
-        icon={<TicketCheck className="h-5 w-5" />}
-      >
-        <div className="grid gap-3">
-          {snapshot.reservations.length ? (
-            snapshot.reservations.map((reservation) => (
-              <ReservationBookletCard
-                key={reservation.id}
-                reservation={reservation}
-                place={reservation.placeId ? placesById.get(reservation.placeId) ?? null : null}
-                scheduleDays={snapshot.scheduleDays}
-              />
-            ))
-          ) : (
-            <EmptyBookletState text="등록된 예약/티켓이 없습니다." />
-          )}
-        </div>
-      </BookletSection>
+      {reservationGroups.length ? (
+        reservationGroups.map((group) => (
+          <BookletSection
+            key={group.key}
+            sectionNumber="02"
+            title={`예약/티켓 · ${group.label}`}
+            subtitle={`${group.reservations.length}개 항목을 같은 여행 흐름 안에서 확인합니다.`}
+            icon={<TicketCheck className="h-5 w-5" />}
+          >
+            <ReservationGroupBooklet
+              reservations={group.reservations}
+              placesById={placesById}
+              scheduleDays={snapshot.scheduleDays}
+            />
+          </BookletSection>
+        ))
+      ) : (
+        <BookletSection
+          sectionNumber="02"
+          title="예약/티켓"
+          subtitle="예약번호, 링크, 첨부파일 이름을 함께 확인할 수 있습니다."
+          icon={<TicketCheck className="h-5 w-5" />}
+        >
+          <EmptyBookletState text="등록된 예약/티켓이 없습니다." />
+        </BookletSection>
+      )}
 
-      <BookletSection
-        sectionNumber="03"
-        title="장소 모음"
-        subtitle="카테고리별 장소, 대표 항목, 주소, 메모를 한 번에 볼 수 있습니다."
-        icon={<MapPin className="h-5 w-5" />}
-      >
-        <PlaceDirectory
-          categories={snapshot.categories}
-          places={snapshot.places}
-          photoCache={photoCache}
-        />
-      </BookletSection>
+      {placeGroups.length ? (
+        placeGroups.map((group) => (
+          <BookletSection
+            key={group.category.id}
+            sectionNumber="03"
+            title={`장소 · ${group.category.emoji} ${group.category.label}`}
+            subtitle={`${group.places.length}곳의 대표 항목, 주소, 메모를 정리했습니다.`}
+            icon={<MapPin className="h-5 w-5" />}
+          >
+            <PlaceCategoryBooklet
+              category={group.category}
+              places={group.places}
+              photoCache={photoCache}
+            />
+          </BookletSection>
+        ))
+      ) : (
+        <BookletSection
+          sectionNumber="03"
+          title="장소 모음"
+          subtitle="카테고리별 장소, 대표 항목, 주소, 메모를 한 번에 볼 수 있습니다."
+          icon={<MapPin className="h-5 w-5" />}
+        >
+          <EmptyBookletState text="등록된 장소가 없습니다." />
+        </BookletSection>
+      )}
 
-      <BookletSection
-        sectionNumber="04"
-        title="체크리스트"
-        subtitle="여행 전, DAY별, 여행 후, 커스텀 체크리스트를 모았습니다."
-        icon={<CheckCircle2 className="h-5 w-5" />}
-      >
-        <TodoBooklet todos={todos} scheduleDays={snapshot.scheduleDays} />
-      </BookletSection>
+      {todoGroups.length ? (
+        todoGroups.map((group) => (
+          <BookletSection
+            key={group.key}
+            sectionNumber="04"
+            title={`체크리스트 · ${group.title}`}
+            subtitle={`${group.doneCount}/${group.items.length}개 완료 상태로 저장했습니다.`}
+            icon={<CheckCircle2 className="h-5 w-5" />}
+          >
+            <TodoMiniList title={group.title} items={group.items} />
+          </BookletSection>
+        ))
+      ) : (
+        <BookletSection
+          sectionNumber="04"
+          title="체크리스트"
+          subtitle="여행 전, DAY별, 여행 후, 커스텀 체크리스트를 모았습니다."
+          icon={<CheckCircle2 className="h-5 w-5" />}
+        >
+          <EmptyBookletState text="등록된 체크리스트가 없습니다." />
+        </BookletSection>
+      )}
     </article>
   );
 }
@@ -383,7 +437,7 @@ function DayBookletCard({
   const dayTodos = todos.days.find((todoDay) => todoDay.dayIndex === dayIndex)?.items ?? [];
 
   return (
-    <article className="booklet-avoid-break overflow-hidden rounded-2xl border border-[#eadfd2] bg-[#fffaf6] shadow-sm">
+    <article className="overflow-hidden rounded-2xl border border-[#eadfd2] bg-[#fffaf6] shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3 bg-[#2b211f] px-5 py-4 text-white">
         <div>
           <h3 className="text-xl font-black">DAY {dayIndex + 1}</h3>
@@ -527,43 +581,55 @@ function ReservationBookletCard({
   );
 }
 
-function PlaceDirectory({
-  categories,
+function ReservationGroupBooklet({
+  reservations,
+  placesById,
+  scheduleDays
+}: {
+  reservations: Reservation[];
+  placesById: Map<string, Place>;
+  scheduleDays: ScheduleDay[];
+}) {
+  return (
+    <div className="grid gap-3">
+      {reservations.map((reservation) => (
+        <ReservationBookletCard
+          key={reservation.id}
+          reservation={reservation}
+          place={reservation.placeId ? placesById.get(reservation.placeId) ?? null : null}
+          scheduleDays={scheduleDays}
+        />
+      ))}
+    </div>
+  );
+}
+
+function PlaceCategoryBooklet({
+  category,
   places,
   photoCache
 }: {
-  categories: CategoryOption[];
+  category: CategoryOption;
   places: Place[];
   photoCache: Record<string, PhotoState>;
 }) {
-  const orderedCategories = mergeKnownCategories(categories);
-
   return (
-    <div className="grid gap-5">
-      {orderedCategories.map((category) => {
-        const categoryPlaces = places.filter((place) => place.category === category.id);
-        if (!categoryPlaces.length) return null;
-
-        return (
-          <section key={category.id} className="booklet-category-section grid gap-3">
-            <h3 className="flex items-center gap-2 rounded-2xl border border-neutral-200 bg-[#fffaf6] px-3.5 py-2.5 text-base font-black text-neutral-950">
-              <span className="grid h-7 w-7 place-items-center rounded-full bg-white text-sm ring-1 ring-neutral-200">{category.emoji}</span>
-              <span>{category.label}</span>
-              <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-neutral-500 ring-1 ring-neutral-200">{categoryPlaces.length}</span>
-            </h3>
-            <div className="booklet-two-column-grid grid gap-3 md:grid-cols-2 print:grid-cols-2">
-              {categoryPlaces.map((place) => (
-                <PlaceBookletCard
-                  key={place.id}
-                  place={place}
-                  category={category}
-                  photoUrl={photoCache[place.id]?.photos[0]?.url ?? null}
-                />
-              ))}
-            </div>
-          </section>
-        );
-      })}
+    <div className="booklet-category-section grid gap-3">
+      <h3 className="flex items-center gap-2 rounded-2xl border border-neutral-200 bg-[#fffaf6] px-3.5 py-2.5 text-base font-black text-neutral-950">
+        <span className="grid h-7 w-7 place-items-center rounded-full bg-white text-sm ring-1 ring-neutral-200">{category.emoji}</span>
+        <span>{category.label}</span>
+        <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-neutral-500 ring-1 ring-neutral-200">{places.length}</span>
+      </h3>
+      <div className="booklet-two-column-grid grid gap-3 md:grid-cols-2 print:grid-cols-2">
+        {places.map((place) => (
+          <PlaceBookletCard
+            key={place.id}
+            place={place}
+            category={category}
+            photoUrl={photoCache[place.id]?.photos[0]?.url ?? null}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -603,28 +669,9 @@ function PlaceBookletCard({
   );
 }
 
-function TodoBooklet({ todos, scheduleDays }: { todos: TodoList; scheduleDays: ScheduleDay[] }) {
-  return (
-    <div className="booklet-two-column-grid grid gap-3 md:grid-cols-2 print:grid-cols-2">
-      <TodoMiniList title="여행 전 체크리스트" items={todos.before} />
-      {todos.days.map((day) => (
-        <TodoMiniList
-          key={day.dayIndex}
-          title={formatDayLabel(day.dayIndex, scheduleDays)}
-          items={day.items}
-        />
-      ))}
-      {todos.custom.map((checklist) => (
-        <TodoMiniList key={checklist.id} title={checklist.title} items={checklist.items} />
-      ))}
-      <TodoMiniList title="여행 후 체크리스트" items={todos.after} />
-    </div>
-  );
-}
-
 function TodoMiniList({ title, items }: { title: string; items: { id: string; text: string; done: boolean }[] }) {
   return (
-    <div className="booklet-avoid-break rounded-2xl border border-neutral-200 bg-white p-3 shadow-[0_6px_16px_rgba(80,60,45,0.04)]">
+    <div className="rounded-2xl border border-neutral-200 bg-white p-3 shadow-[0_6px_16px_rgba(80,60,45,0.04)]">
       <div className="flex items-center justify-between gap-2">
         <h4 className="text-sm font-black text-neutral-950">{title}</h4>
         <span className="rounded-full bg-[#fff3f0] px-2 py-0.5 text-[10px] font-bold text-rose-600">
@@ -681,6 +728,49 @@ function EmptyBookletState({ text }: { text: string }) {
       {text}
     </div>
   );
+}
+
+function groupReservationsByDay(reservations: Reservation[], scheduleDays: ScheduleDay[]) {
+  const groups = new Map<string, { key: string; label: string; reservations: Reservation[] }>();
+  const orderedReservations = [...reservations].sort((a, b) => {
+    const dayCompare = reservationDayOrder(a) - reservationDayOrder(b);
+    if (dayCompare !== 0) return dayCompare;
+    return [a.timeLabel, a.title].join(' ').localeCompare([b.timeLabel, b.title].join(' '));
+  });
+
+  orderedReservations.forEach((reservation) => {
+    const key = reservation.dayIndex == null ? 'unscheduled' : `day-${reservation.dayIndex}`;
+    const label = formatDayLabel(reservation.dayIndex, scheduleDays);
+    const group = groups.get(key) ?? { key, label, reservations: [] };
+    group.reservations.push(reservation);
+    groups.set(key, group);
+  });
+
+  return Array.from(groups.values());
+}
+
+function reservationDayOrder(reservation: Reservation) {
+  return reservation.dayIndex == null ? Number.MAX_SAFE_INTEGER : reservation.dayIndex;
+}
+
+function createTodoBookletGroups(todos: TodoList, scheduleDays: ScheduleDay[]) {
+  const groups: { key: string; title: string; items: TodoList['before']; doneCount: number }[] = [
+    createTodoBookletGroup('before', '여행 전 체크리스트', todos.before),
+    ...todos.days.map((day) => createTodoBookletGroup(`day-${day.dayIndex}`, formatDayLabel(day.dayIndex, scheduleDays), day.items)),
+    ...todos.custom.map((checklist) => createTodoBookletGroup(`custom-${checklist.id}`, checklist.title, checklist.items)),
+    createTodoBookletGroup('after', '여행 후 체크리스트', todos.after)
+  ];
+
+  return groups.filter((group) => group.items.length > 0);
+}
+
+function createTodoBookletGroup(key: string, title: string, items: TodoList['before']) {
+  return {
+    key,
+    title,
+    items,
+    doneCount: items.filter((item) => item.done).length
+  };
 }
 
 function formatDayLabel(dayIndex: number | null, scheduleDays: ScheduleDay[]) {
