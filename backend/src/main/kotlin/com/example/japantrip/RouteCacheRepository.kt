@@ -128,7 +128,8 @@ class RouteCacheRepository(
       status = status,
       durationLabel = getString("${mode}_duration_label") ?: return null,
       distanceLabel = getString("${mode}_distance_label") ?: return null,
-      error = getString("${mode}_error")
+      error = getString("${mode}_error"),
+      updatedAt = updatedAt.toInstant().toString()
     )
   }
 

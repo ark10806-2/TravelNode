@@ -20,6 +20,7 @@ type DayScheduleCardProps = {
   placesById: Map<string, Place>;
   routeLegs: Record<string, RouteLeg>;
   visibleRouteModes: RouteMode[];
+  routeCalculatedAtLabel?: string | null;
   isEditing: boolean;
   isDarkMode: boolean;
   onRemoveDay: (dayId: string) => void;
@@ -49,6 +50,7 @@ export function DayScheduleCard({
   placesById,
   routeLegs,
   visibleRouteModes,
+  routeCalculatedAtLabel,
   isEditing,
   isDarkMode,
   onRemoveDay,
@@ -112,6 +114,11 @@ export function DayScheduleCard({
             <span className="shrink-0">숙소</span>
             <span className="truncate font-semibold text-foreground">{hotelPlace.name}</span>
           </div>
+          {routeCalculatedAtLabel ? (
+            <div className="mt-1.5 text-xs font-medium text-muted-foreground">
+              {routeCalculatedAtLabel}
+            </div>
+          ) : null}
           {isEditing ? (
             <div className="mt-3 max-w-xl">
               <DepartureTimePicker

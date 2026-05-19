@@ -6,6 +6,8 @@ import { PageContainer } from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
 import { useSchedule } from '@/hooks/useSchedule';
 import { loadEnabledRouteModes } from '@/lib/route-preferences';
+import { scheduleRoutePairs } from '@/lib/schedule-state';
+import type { RouteLeg, RouteMode, ScheduleDay } from '@/types/schedule';
 import type { CategoryOption, PhotoState, Place } from '@/types/travel';
 import { DayScheduleCard } from './DayScheduleCard';
 
@@ -56,6 +58,15 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
   } = useSchedule(places, isEditing, enabledRouteModes);
   const currentDetailTarget = detailTarget ? placesById.get(detailTarget.id) ?? detailTarget : null;
   const currentPhotoTarget = photoTarget ? placesById.get(photoTarget.id) ?? photoTarget : null;
+  const routeCalculatedAtByDay = useMemo(
+    () => Object.fromEntries(
+      days.map((day) => [
+        day.id,
+        formatRouteCalculatedAt(getLatestRouteCalculatedAt(day, placesById, routeLegs, enabledRouteModes))
+      ])
+    ),
+    [days, enabledRouteModes, placesById, routeLegs]
+  );
   const hasActiveRefreshCooldown = useMemo(
     () => Object.values(routeRefreshAvailableAtByDay).some((availableAt) => availableAt > currentTime),
     [routeRefreshAvailableAtByDay, currentTime]
@@ -162,6 +173,7 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
             placesById={placesById}
             routeLegs={routeLegs}
             visibleRouteModes={enabledRouteModes}
+            routeCalculatedAtLabel={routeCalculatedAtByDay[day.id]}
             isEditing={isEditing}
             isDarkMode={isDarkMode}
             onRemoveDay={removeDay}
@@ -209,4 +221,34 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
       ) : null}
     </PageContainer>
   );
+}
+
+function getLatestRouteCalculatedAt(
+  day: ScheduleDay,
+  placesById: Map<string, Place>,
+  routeLegs: Record<string, RouteLeg>,
+  visibleRouteModes: RouteMode[]
+) {
+  const timestamps = scheduleRoutePairs(day, placesById)
+    .flatMap(({ key }) =>
+      visibleRouteModes.flatMap((mode) => {
+        const modeLeg = routeLegs[key]?.[mode];
+        return modeLeg?.status === 'ready' && modeLeg.updatedAt ? [Date.parse(modeLeg.updatedAt)] : [];
+      })
+    )
+    .filter((timestamp) => Number.isFinite(timestamp));
+
+  return timestamps.length ? Math.max(...timestamps) : null;
+}
+
+function formatRouteCalculatedAt(timestamp: number | null) {
+  if (timestamp == null) return null;
+
+  const date = new Date(timestamp);
+  const year = String(date.getFullYear()).slice(2);
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hour = String(date.getHours()).padStart(2, '0');
+  const minute = String(date.getMinutes()).padStart(2, '0');
+  return `${year}${month}${day} ${hour}:${minute} 기준으로 계산됨`;
 }

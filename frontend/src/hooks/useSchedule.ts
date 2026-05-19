@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getAuthToken } from '@/api/auth';
+import { fetchCachedRouteLeg } from '@/api/routes';
 import { fetchSchedule, saveSchedule } from '@/api/schedule';
 import { haversineKm } from '@/lib/place-utils';
 import { optimizePlaceOrder } from '@/lib/route-optimizer';
@@ -23,6 +24,7 @@ import {
   getScheduleHotelPlace,
   maxStopsPerDay,
   normalizeDepartureTimeMinutes,
+  routeCacheOriginKey,
   routeLegKey
 } from '@/lib/schedule-utils';
 import type { RouteLeg, RouteMode, ScheduleDay, ScheduleStop } from '@/types/schedule';
@@ -113,6 +115,34 @@ export function useSchedule(places: Place[], canPersist = false, enabledRouteMod
     pendingLocalMigrationRef.current = null;
     void persistSchedule(pendingDays, { silent: true });
   }, [canPersist]);
+
+  useEffect(() => {
+    if (scheduleStatus === 'loading' || places.length === 0 || days.length === 0) return undefined;
+
+    let cancelled = false;
+    const pairs = uniqueRoutePairs(days.flatMap((day) => scheduleRoutePairs(day, placesById)))
+      .filter(({ key }) => !isResolvedRouteLeg(routeLegsRef.current[key], enabledRouteModes));
+
+    if (!pairs.length) return undefined;
+
+    void mapWithConcurrency(pairs, 4, async ({ from, to, key, departureTimeMinutes }) => {
+      const standardOriginKey = routeCacheOriginKey(from, departureTimeMinutes);
+      const preciseOriginKey = routeCacheOriginKey(from, departureTimeMinutes, true);
+      const [standardLeg, preciseLeg] = await Promise.all([
+        fetchCachedRouteLeg(standardOriginKey, to.id).catch(() => null),
+        fetchCachedRouteLeg(preciseOriginKey, to.id).catch(() => null)
+      ]);
+      const cachedLeg = pickNewestRouteLeg(standardLeg, preciseLeg, enabledRouteModes);
+
+      if (!cancelled && cachedLeg) {
+        setRouteLegValue(key, cachedLeg);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [days, enabledRouteModes, places.length, placesById, scheduleStatus]);
 
   function setRouteLegValue(key: string, leg: RouteLeg) {
     routeLegsRef.current = {
@@ -585,6 +615,40 @@ function selectTopRouteCandidatePairs(pairs: RoutePair[], requiredPairs: RoutePa
   });
 
   return [...selected.values()];
+}
+
+function uniqueRoutePairs(pairs: RoutePair[]) {
+  const pairByKey = new Map<string, RoutePair>();
+  pairs.forEach((pair) => {
+    if (!pairByKey.has(pair.key)) {
+      pairByKey.set(pair.key, pair);
+    }
+  });
+  return [...pairByKey.values()];
+}
+
+function pickNewestRouteLeg(
+  standardLeg: RouteLeg | null,
+  preciseLeg: RouteLeg | null,
+  modes: RouteMode[]
+): RouteLeg | null {
+  const entries = modes.flatMap((mode) => {
+    const modeLeg = pickNewestModeLeg(standardLeg?.[mode], preciseLeg?.[mode]);
+    return modeLeg ? [[mode, modeLeg] as const] : [];
+  });
+
+  return entries.length ? Object.fromEntries(entries) as RouteLeg : null;
+}
+
+function pickNewestModeLeg(...legs: Array<RouteLeg[RouteMode] | undefined>) {
+  return legs
+    .filter((leg): leg is NonNullable<RouteLeg[RouteMode]> => leg?.status === 'ready')
+    .sort((a, b) => routeModeUpdatedAtMillis(b) - routeModeUpdatedAtMillis(a))[0] ?? null;
+}
+
+function routeModeUpdatedAtMillis(leg: NonNullable<RouteLeg[RouteMode]>) {
+  const value = leg.updatedAt ? Date.parse(leg.updatedAt) : 0;
+  return Number.isFinite(value) ? value : 0;
 }
 
 function removeStopAndClearEdgeLocks(day: ScheduleDay, stopId: string): ScheduleDay {

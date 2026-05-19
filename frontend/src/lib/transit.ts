@@ -43,10 +43,14 @@ export async function fetchRouteLeg(from: Place, to: Place, options: FetchRouteL
   try {
     const maps = await loadGoogleMaps(googleMapsApiKey);
     const routes = (await maps.importLibrary('routes')) as google.maps.RoutesLibrary;
+    const fetchedAt = new Date().toISOString();
     const entries = await Promise.all(
       missingModes.map(async (mode) => [
         mode,
-        await fetchRouteModeLeg(maps, routes.Route, from, to, mode, departureTimeMinutes, options.precise === true)
+        withRouteTimestamp(
+          await fetchRouteModeLeg(maps, routes.Route, from, to, mode, departureTimeMinutes, options.precise === true),
+          fetchedAt
+        )
       ] as const)
     );
     const fetchedLeg = Object.fromEntries(entries) as RouteLeg;
@@ -83,6 +87,10 @@ function hasAllModes(leg: RouteLeg, modes: RouteMode[]) {
 
 function isReadyModeLeg(leg: RouteModeLeg | undefined) {
   return leg?.status === 'ready';
+}
+
+function withRouteTimestamp(leg: RouteModeLeg, updatedAt: string): RouteModeLeg {
+  return isReadyModeLeg(leg) ? { ...leg, updatedAt } : leg;
 }
 
 function cacheableModes(leg: RouteLeg) {

@@ -4,7 +4,8 @@ data class RouteModeLegResponse(
   val status: String,
   val durationLabel: String,
   val distanceLabel: String,
-  val error: String? = null
+  val error: String? = null,
+  val updatedAt: String? = null
 )
 
 data class RouteLegResponse(
@@ -17,7 +18,8 @@ data class RouteModeLegRequest(
   val status: String? = null,
   val durationLabel: String? = null,
   val distanceLabel: String? = null,
-  val error: String? = null
+  val error: String? = null,
+  val updatedAt: String? = null
 )
 
 data class RouteCacheRequest(

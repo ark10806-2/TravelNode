@@ -26,6 +26,7 @@ export type RouteModeLeg = {
   durationLabel: string;
   distanceLabel: string;
   error?: string;
+  updatedAt?: string | null;
 };
 
 export type RouteLeg = Partial<Record<RouteMode, RouteModeLeg>>;
