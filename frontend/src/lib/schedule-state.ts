@@ -1,4 +1,11 @@
-import { createId, getScheduleHotelPlace, normalizeDepartureTimeMinutes, routeLegKey, scheduleStorageKey } from '@/lib/schedule-utils';
+import {
+  createId,
+  getScheduleHotelPlace,
+  normalizeDepartureTimeMinutes,
+  normalizeTravelDate,
+  routeLegKey,
+  scheduleStorageKey
+} from '@/lib/schedule-utils';
 import type { RouteMode, ScheduleDay, ScheduleStop } from '@/types/schedule';
 import type { Place } from '@/types/travel';
 
@@ -16,6 +23,7 @@ export function loadStoredDays() {
         selectedReturnRouteMode: isRouteMode(day.selectedReturnRouteMode) ? day.selectedReturnRouteMode : null,
         hotelPlaceId: typeof day.hotelPlaceId === 'string' && day.hotelPlaceId.trim() ? day.hotelPlaceId : null,
         departureTimeMinutes: normalizeDepartureTimeMinutes(day.departureTimeMinutes),
+        travelDate: normalizeTravelDate(day.travelDate),
         lockedReturnRoute: day.lockedReturnRoute === true,
         stops: Array.isArray(day.stops)
           ? day.stops
@@ -65,6 +73,7 @@ export function alignDayDepartureTimes(day: ScheduleDay): ScheduleDay {
   return {
     ...day,
     departureTimeMinutes: previousDepartureTime,
+    travelDate: normalizeTravelDate(day.travelDate),
     lockedReturnRoute: day.lockedReturnRoute === true && day.stops.length > 0,
     stops: day.stops.map((stop) => {
       let departureTimeMinutes = normalizeDepartureTimeMinutes(stop.departureTimeMinutes);
@@ -101,6 +110,7 @@ export function scheduleRoutePairs(day: ScheduleDay, placesById: Map<string, Pla
 
   if (!dayPlaces.length) return [];
   const hotelPlace = getScheduleHotelPlace(day, placesById);
+  const travelDate = normalizeTravelDate(day.travelDate);
   const first = scheduledStops[0];
   const last = scheduledStops[scheduledStops.length - 1];
 
@@ -111,7 +121,8 @@ export function scheduleRoutePairs(day: ScheduleDay, placesById: Map<string, Pla
           from: hotelPlace,
           to: first.place,
           departureTimeMinutes: day.departureTimeMinutes ?? null,
-          key: routeLegKey(hotelPlace, first.place, day.departureTimeMinutes)
+          departureDate: travelDate,
+          key: routeLegKey(hotelPlace, first.place, day.departureTimeMinutes, travelDate)
         }]),
     ...scheduledStops.slice(1).map(({ place }, index) => {
       const previous = scheduledStops[index];
@@ -119,7 +130,8 @@ export function scheduleRoutePairs(day: ScheduleDay, placesById: Map<string, Pla
         from: previous.place,
         to: place,
         departureTimeMinutes: previous.stop.departureTimeMinutes ?? null,
-        key: routeLegKey(previous.place, place, previous.stop.departureTimeMinutes)
+        departureDate: travelDate,
+        key: routeLegKey(previous.place, place, previous.stop.departureTimeMinutes, travelDate)
       };
     }),
     ...(last.place.id === hotelPlace.id
@@ -128,7 +140,8 @@ export function scheduleRoutePairs(day: ScheduleDay, placesById: Map<string, Pla
           from: last.place,
           to: hotelPlace,
           departureTimeMinutes: last.stop.departureTimeMinutes ?? null,
-          key: routeLegKey(last.place, hotelPlace, last.stop.departureTimeMinutes)
+          departureDate: travelDate,
+          key: routeLegKey(last.place, hotelPlace, last.stop.departureTimeMinutes, travelDate)
         }])
   ];
 }
@@ -153,6 +166,7 @@ function createEmptyScheduleDays(): ScheduleDay[] {
       selectedReturnRouteMode: null,
       hotelPlaceId: null,
       departureTimeMinutes: null,
+      travelDate: null,
       lockedReturnRoute: false
     }
   ];

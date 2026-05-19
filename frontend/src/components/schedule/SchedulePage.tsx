@@ -49,6 +49,7 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
     moveStop,
     setDayHotel,
     setDayDepartureTime,
+    setDayTravelDate,
     setStopDepartureTime,
     toggleStopEdgeLock,
     toggleReturnEdgeLock,
@@ -184,6 +185,7 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
             onMoveStop={moveStop}
             onSetDayHotel={setDayHotel}
             onSetDayDepartureTime={setDayDepartureTime}
+            onSetDayTravelDate={setDayTravelDate}
             onSetStopDepartureTime={setStopDepartureTime}
             onToggleStopEdgeLock={toggleStopEdgeLock}
             onToggleReturnEdgeLock={toggleReturnEdgeLock}

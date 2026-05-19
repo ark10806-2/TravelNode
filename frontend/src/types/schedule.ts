@@ -14,6 +14,7 @@ export type ScheduleDay = {
   selectedReturnRouteMode?: RouteMode | null;
   hotelPlaceId?: string | null;
   departureTimeMinutes?: number | null;
+  travelDate?: string | null;
   lockedReturnRoute?: boolean;
 };
 

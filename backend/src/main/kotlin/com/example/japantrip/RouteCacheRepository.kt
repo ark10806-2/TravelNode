@@ -111,18 +111,21 @@ class RouteCacheRepository(
     setTimestamp(startIndex + 4, Timestamp.from(Instant.now()))
   }
 
-  private fun ResultSet.toRouteLeg() = RouteLegResponse(
-    driving = toModeLeg("driving", DrivingCacheTtl),
-    transit = toModeLeg("transit", TransitCacheTtl),
-    walking = toModeLeg("walking", WalkingCacheTtl)
-  )
+  private fun ResultSet.toRouteLeg(): RouteLegResponse {
+    val hasFixedTravelDate = getString("from_place_key")?.let(::hasFixedTravelDate) == true
+    return RouteLegResponse(
+      driving = toModeLeg("driving", DrivingCacheTtl, hasFixedTravelDate),
+      transit = toModeLeg("transit", TransitCacheTtl, hasFixedTravelDate),
+      walking = toModeLeg("walking", WalkingCacheTtl, hasFixedTravelDate)
+    )
+  }
 
-  private fun ResultSet.toModeLeg(mode: String, ttl: Duration): RouteModeLegResponse? {
+  private fun ResultSet.toModeLeg(mode: String, ttl: Duration, hasFixedTravelDate: Boolean): RouteModeLegResponse? {
     val status = getString("${mode}_status") ?: return null
     if (status != "ready") return null
 
     val updatedAt = getTimestamp("${mode}_updated_at") ?: getTimestamp("updated_at") ?: return null
-    if (updatedAt.toInstant().isBefore(Instant.now().minus(ttl))) return null
+    if (!hasFixedTravelDate && updatedAt.toInstant().isBefore(Instant.now().minus(ttl))) return null
 
     return RouteModeLegResponse(
       status = status,
@@ -136,10 +139,14 @@ class RouteCacheRepository(
   private fun RouteLegResponse.hasAnyMode() =
     driving != null || transit != null || walking != null
 
+  private fun hasFixedTravelDate(fromPlaceKey: String) =
+    DatedRouteKeyPattern.containsMatchIn(fromPlaceKey)
+
   private companion object {
     const val RouteCalculationVersion = 6
     val DrivingCacheTtl: Duration = Duration.ofHours(6)
     val TransitCacheTtl: Duration = Duration.ofHours(2)
     val WalkingCacheTtl: Duration = Duration.ofDays(7)
+    val DatedRouteKeyPattern = Regex("(^|:)d\\d{8}(:|$)")
   }
 }

@@ -2,21 +2,29 @@ import { fetchCachedRouteLeg, saveRouteLegCache } from '@/api/routes';
 import { recordApiUsage } from '@/api/usage';
 import { googleMapsApiKey } from '@/config/env';
 import { loadGoogleMaps } from '@/lib/google-maps';
-import { estimateRouteModeLeg, normalizeDepartureTimeMinutes, routeCacheOriginKey, routeModes } from '@/lib/schedule-utils';
+import {
+  estimateRouteModeLeg,
+  normalizeDepartureTimeMinutes,
+  normalizeTravelDate,
+  routeCacheOriginKey,
+  routeModes
+} from '@/lib/schedule-utils';
 import type { RouteLeg, RouteMode, RouteModeLeg } from '@/types/schedule';
 import type { Place } from '@/types/travel';
 
 type FetchRouteLegOptions = {
   forceRefresh?: boolean;
   departureTimeMinutes?: number | null;
+  departureDate?: string | null;
   modes?: RouteMode[];
   precise?: boolean;
 };
 
 export async function fetchRouteLeg(from: Place, to: Place, options: FetchRouteLegOptions = {}): Promise<RouteLeg> {
   const departureTimeMinutes = normalizeDepartureTimeMinutes(options.departureTimeMinutes);
+  const departureDate = normalizeTravelDate(options.departureDate);
   const requestedModes = normalizeRequestedModes(options.modes);
-  const fromCacheKey = routeCacheOriginKey(from, departureTimeMinutes, options.precise === true);
+  const fromCacheKey = routeCacheOriginKey(from, departureTimeMinutes, options.precise === true, departureDate);
   let leg: RouteLeg = {};
 
   if (!options.forceRefresh) {
@@ -48,7 +56,16 @@ export async function fetchRouteLeg(from: Place, to: Place, options: FetchRouteL
       missingModes.map(async (mode) => [
         mode,
         withRouteTimestamp(
-          await fetchRouteModeLeg(maps, routes.Route, from, to, mode, departureTimeMinutes, options.precise === true),
+          await fetchRouteModeLeg(
+            maps,
+            routes.Route,
+            from,
+            to,
+            mode,
+            departureTimeMinutes,
+            departureDate,
+            options.precise === true
+          ),
           fetchedAt
         )
       ] as const)
@@ -113,10 +130,11 @@ async function fetchRouteModeLeg(
   to: Place,
   mode: RouteMode,
   departureTimeMinutes: number | null,
+  departureDate: string | null,
   precise: boolean
 ): Promise<RouteModeLeg> {
   try {
-    const result = await fetchUsableRouteResult(maps, Route, from, to, mode, departureTimeMinutes, precise);
+    const result = await fetchUsableRouteResult(maps, Route, from, to, mode, departureTimeMinutes, departureDate, precise);
     void recordApiUsage('routes').catch(() => undefined);
     const labels = getRouteLabels(result);
 
@@ -148,10 +166,11 @@ async function fetchUsableRouteResult(
   to: Place,
   mode: RouteMode,
   departureTimeMinutes: number | null,
+  departureDate: string | null,
   precise: boolean
 ) {
   const includeLiveOptions = mode === 'transit' || (mode === 'driving' && precise);
-  return routeModeLeg(maps, Route, from, to, mode, includeLiveOptions, departureTimeMinutes, precise);
+  return routeModeLeg(maps, Route, from, to, mode, includeLiveOptions, departureTimeMinutes, departureDate, precise);
 }
 
 function routeModeLeg(
@@ -162,6 +181,7 @@ function routeModeLeg(
   mode: RouteMode,
   includeLiveOptions: boolean,
   departureTimeMinutes: number | null,
+  departureDate: string | null,
   precise: boolean
 ) {
   const request: google.maps.routes.ComputeRoutesRequest = {
@@ -180,13 +200,13 @@ function routeModeLeg(
   };
 
   if (mode === 'driving' && includeLiveOptions && precise) {
-    request.departureTime = createDepartureDate(departureTimeMinutes);
+    request.departureTime = createDepartureDate(departureTimeMinutes, departureDate);
     request.routingPreference = google.maps.routes.RoutingPreference.TRAFFIC_AWARE_OPTIMAL;
     request.trafficModel = maps.TrafficModel.BEST_GUESS;
   }
 
   if (mode === 'transit' && includeLiveOptions) {
-    request.departureTime = createDepartureDate(departureTimeMinutes);
+    request.departureTime = createDepartureDate(departureTimeMinutes, departureDate);
   }
 
   return Route.computeRoutes(request);
@@ -253,9 +273,15 @@ function formatDistanceMeters(distanceMeters: number | null | undefined) {
   return `${(distanceMeters / 1000).toFixed(1)}km`;
 }
 
-function createDepartureDate(departureTimeMinutes: number | null) {
+function createDepartureDate(departureTimeMinutes: number | null, departureDate: string | null) {
   const now = new Date();
   if (departureTimeMinutes == null) return now;
+
+  const normalizedDate = normalizeTravelDate(departureDate);
+  if (normalizedDate != null) {
+    const [year, month, day] = normalizedDate.split('-').map(Number);
+    return new Date(year, month - 1, day, Math.floor(departureTimeMinutes / 60), departureTimeMinutes % 60, 0, 0);
+  }
 
   const candidate = new Date(now);
   candidate.setHours(Math.floor(departureTimeMinutes / 60), departureTimeMinutes % 60, 0, 0);

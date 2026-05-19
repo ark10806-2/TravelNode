@@ -1,5 +1,8 @@
 package com.example.japantrip
 
+import java.time.LocalDate
+import java.time.format.DateTimeParseException
+
 data class ScheduleStopResponse(
   val id: String,
   val placeId: String,
@@ -14,6 +17,7 @@ data class ScheduleDayResponse(
   val selectedReturnRouteMode: String? = null,
   val hotelPlaceId: String? = null,
   val departureTimeMinutes: Int? = null,
+  val travelDate: String? = null,
   val lockedReturnRoute: Boolean = false
 )
 
@@ -27,6 +31,7 @@ data class ScheduleDayRequest(
   val selectedReturnRouteMode: String? = null,
   val hotelPlaceId: String? = null,
   val departureTimeMinutes: Int? = null,
+  val travelDate: String? = null,
   val lockedReturnRoute: Boolean? = false
 )
 
@@ -73,6 +78,7 @@ fun ScheduleSaveRequest.validate(): List<String> {
     }
 
     validateDepartureTimeMinutes("days[$dayIndex].departureTimeMinutes", day.departureTimeMinutes)?.let { errors += it }
+    validateTravelDate("days[$dayIndex].travelDate", day.travelDate)?.let { errors += it }
 
     val stops = day.stops.orEmpty()
     if (stops.size > MaxScheduleStopsPerDay) {
@@ -118,6 +124,16 @@ private fun validateDepartureTimeMinutes(field: String, value: Int?) =
     value < 0 || value >= 1440 || value % 30 != 0 -> "$field must be a 30-minute value between 0 and 1410"
     else -> null
   }
+
+private fun validateTravelDate(field: String, value: String?): String? {
+  val trimmed = value?.trim()?.takeIf { it.isNotBlank() } ?: return null
+  return try {
+    LocalDate.parse(trimmed)
+    null
+  } catch (_: DateTimeParseException) {
+    "$field must be YYYY-MM-DD"
+  }
+}
 
 private val ScheduleIdPattern = Regex("^[A-Za-z0-9_-]+$")
 const val MaxScheduleDays = 30

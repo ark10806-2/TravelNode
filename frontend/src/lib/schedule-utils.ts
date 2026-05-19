@@ -36,20 +36,53 @@ export function buildPlaceDirectionsUrl(from: Place, to: Place, mode: RouteMode 
   return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=${mode}&hl=ko`;
 }
 
-export function routeLegKey(from: Place, to: Place, departureTimeMinutes?: number | null) {
-  return `${routeCacheOriginKey(from, departureTimeMinutes)}:${to.id}`;
+export function routeLegKey(from: Place, to: Place, departureTimeMinutes?: number | null, travelDate?: string | null) {
+  return `${routeCacheOriginKey(from, departureTimeMinutes, false, travelDate)}:${to.id}`;
 }
 
-export function routeCacheOriginKey(place: Place, departureTimeMinutes?: number | null, precise?: boolean) {
+export function routeCacheOriginKey(
+  place: Place,
+  departureTimeMinutes?: number | null,
+  precise?: boolean,
+  travelDate?: string | null
+) {
+  const normalizedDate = normalizeTravelDate(travelDate);
   const normalized = normalizeDepartureTimeMinutes(departureTimeMinutes);
+  const dateSuffix = normalizedDate == null || normalized == null ? '' : `:d${normalizedDate.replace(/-/g, '')}`;
   const timeSuffix = normalized == null ? '' : `:m${String(normalized).padStart(4, '0')}`;
-  return `${place.id}${timeSuffix}${precise ? ':precise' : ''}`;
+  return `${place.id}${dateSuffix}${timeSuffix}${precise ? ':precise' : ''}`;
 }
 
 export function normalizeDepartureTimeMinutes(value: unknown) {
   if (typeof value !== 'number' || !Number.isInteger(value)) return null;
   if (value < 0 || value >= 24 * 60 || value % departureTimeStepMinutes !== 0) return null;
   return value;
+}
+
+export function normalizeTravelDate(value: unknown) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return null;
+
+  const [year, month, day] = trimmed.split('-').map(Number);
+  const candidate = new Date(year, month - 1, day);
+  if (
+    candidate.getFullYear() !== year ||
+    candidate.getMonth() !== month - 1 ||
+    candidate.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return trimmed;
+}
+
+export function formatTravelDate(value: string | null | undefined) {
+  const normalized = normalizeTravelDate(value);
+  if (normalized == null) return '날짜 미지정';
+
+  const [year, month, day] = normalized.split('-');
+  return `${year}.${month}.${day}`;
 }
 
 export function departureTimeOptions() {

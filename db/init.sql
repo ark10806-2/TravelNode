@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS schedule_days (
   sort_order integer NOT NULL,
   selected_return_route_mode text CHECK (selected_return_route_mode IN ('driving', 'transit', 'walking')),
   departure_time_minutes integer CHECK (departure_time_minutes >= 0 AND departure_time_minutes < 1440 AND departure_time_minutes % 30 = 0),
+  travel_date date,
   hotel_place_id uuid REFERENCES restaurants(id) ON DELETE SET NULL,
   locked_return_route boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -104,6 +105,7 @@ CREATE TABLE IF NOT EXISTS schedule_days (
 ALTER TABLE schedule_days ADD COLUMN IF NOT EXISTS selected_return_route_mode text;
 ALTER TABLE schedule_days ADD COLUMN IF NOT EXISTS hotel_place_id uuid REFERENCES restaurants(id) ON DELETE SET NULL;
 ALTER TABLE schedule_days ADD COLUMN IF NOT EXISTS departure_time_minutes integer;
+ALTER TABLE schedule_days ADD COLUMN IF NOT EXISTS travel_date date;
 ALTER TABLE schedule_days ADD COLUMN IF NOT EXISTS locked_return_route boolean NOT NULL DEFAULT false;
 
 DO $$

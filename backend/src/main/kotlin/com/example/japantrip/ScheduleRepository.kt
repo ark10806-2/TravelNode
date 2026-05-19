@@ -2,6 +2,7 @@ package com.example.japantrip
 
 import java.sql.ResultSet
 import java.sql.Types
+import java.time.LocalDate
 import java.util.UUID
 import javax.sql.DataSource
 
@@ -14,6 +15,7 @@ class ScheduleRepository(
         d.id AS day_id,
         d.selected_return_route_mode AS selected_return_route_mode,
         d.departure_time_minutes AS day_departure_time_minutes,
+        d.travel_date AS travel_date,
         d.locked_return_route AS locked_return_route,
         d.hotel_place_id AS hotel_place_id,
         s.id AS stop_id,
@@ -36,6 +38,7 @@ class ScheduleRepository(
               ScheduleDayAccumulator(
                 selectedReturnRouteMode = rows.getString("selected_return_route_mode"),
                 departureTimeMinutes = rows.getNullableInt("day_departure_time_minutes"),
+                travelDate = rows.getObject("travel_date", LocalDate::class.java)?.toString(),
                 lockedReturnRoute = rows.getBoolean("locked_return_route"),
                 hotelPlaceId = rows.getObject("hotel_place_id", UUID::class.java)?.toString(),
                 stops = mutableListOf()
@@ -54,6 +57,7 @@ class ScheduleRepository(
               selectedReturnRouteMode = day.selectedReturnRouteMode,
               hotelPlaceId = day.hotelPlaceId,
               departureTimeMinutes = day.departureTimeMinutes,
+              travelDate = day.travelDate,
               lockedReturnRoute = day.lockedReturnRoute
             )
           }
@@ -65,8 +69,8 @@ class ScheduleRepository(
   fun replaceAll(request: ScheduleSaveRequest): List<ScheduleDayResponse> {
     val requestedDays = request.days.orEmpty()
     val insertDaySql = """
-      INSERT INTO schedule_days (id, sort_order, selected_return_route_mode, hotel_place_id, departure_time_minutes, locked_return_route)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO schedule_days (id, sort_order, selected_return_route_mode, hotel_place_id, departure_time_minutes, travel_date, locked_return_route)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     """.trimIndent()
     val insertStopSql = """
       INSERT INTO schedule_stops (id, day_id, restaurant_id, sort_order, selected_route_mode, departure_time_minutes, locked_from_previous)
@@ -97,7 +101,13 @@ class ScheduleRepository(
             } else {
               statement.setInt(5, day.departureTimeMinutes)
             }
-            statement.setBoolean(6, day.lockedReturnRoute == true)
+            val travelDate = day.travelDate?.trim()?.takeIf { it.isNotBlank() }
+            if (travelDate == null) {
+              statement.setNull(6, Types.DATE)
+            } else {
+              statement.setObject(6, LocalDate.parse(travelDate))
+            }
+            statement.setBoolean(7, day.lockedReturnRoute == true)
             statement.addBatch()
           }
           statement.executeBatch()
@@ -150,6 +160,7 @@ class ScheduleRepository(
     val selectedReturnRouteMode: String?,
     val hotelPlaceId: String?,
     val departureTimeMinutes: Int?,
+    val travelDate: String?,
     val lockedReturnRoute: Boolean,
     val stops: MutableList<ScheduleStopResponse>
   )

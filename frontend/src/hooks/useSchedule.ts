@@ -34,6 +34,7 @@ type ScheduleStatus = 'loading' | 'ready' | 'error';
 type RouteRequestOptions = {
   forceRefresh?: boolean;
   departureTimeMinutes?: number | null;
+  departureDate?: string | null;
   modes?: RouteMode[];
   precise?: boolean;
 };
@@ -43,6 +44,7 @@ type RoutePair = {
   to: Place;
   key: string;
   departureTimeMinutes: number | null;
+  departureDate: string | null;
 };
 
 function isResolvedRouteLeg(leg: RouteLeg | undefined, modes: RouteMode[]) {
@@ -125,9 +127,9 @@ export function useSchedule(places: Place[], canPersist = false, enabledRouteMod
 
     if (!pairs.length) return undefined;
 
-    void mapWithConcurrency(pairs, 4, async ({ from, to, key, departureTimeMinutes }) => {
-      const standardOriginKey = routeCacheOriginKey(from, departureTimeMinutes);
-      const preciseOriginKey = routeCacheOriginKey(from, departureTimeMinutes, true);
+    void mapWithConcurrency(pairs, 4, async ({ from, to, key, departureTimeMinutes, departureDate }) => {
+      const standardOriginKey = routeCacheOriginKey(from, departureTimeMinutes, false, departureDate);
+      const preciseOriginKey = routeCacheOriginKey(from, departureTimeMinutes, true, departureDate);
       const [standardLeg, preciseLeg] = await Promise.all([
         fetchCachedRouteLeg(standardOriginKey, to.id).catch(() => null),
         fetchCachedRouteLeg(preciseOriginKey, to.id).catch(() => null)
@@ -222,6 +224,7 @@ export function useSchedule(places: Place[], canPersist = false, enabledRouteMod
         selectedReturnRouteMode: null,
         hotelPlaceId: null,
         departureTimeMinutes: null,
+        travelDate: null,
         lockedReturnRoute: false
       }
     ]);
@@ -345,6 +348,19 @@ export function useSchedule(places: Place[], canPersist = false, enabledRouteMod
     );
   }
 
+  function setDayTravelDate(dayId: string, travelDate: string | null) {
+    updateDays((current) =>
+      current.map((day) =>
+        day.id === dayId
+          ? clearDayRouteSelection({
+              ...day,
+              travelDate
+            })
+          : day
+      )
+    );
+  }
+
   function setStopDepartureTime(dayId: string, stopId: string, departureTimeMinutes: number | null) {
     updateDays((current) =>
       current.map((day) =>
@@ -389,18 +405,21 @@ export function useSchedule(places: Place[], canPersist = false, enabledRouteMod
       place.id === hotelPlace.id
         ? normalizeDepartureTimeMinutes(day.departureTimeMinutes)
         : departureByPlaceId.get(place.id) ?? null;
-    const keyForEdge = (from: Place, to: Place) => routeLegKey(from, to, departureForOrigin(from));
+    const departureDate = day.travelDate ?? null;
+    const keyForEdge = (from: Place, to: Place) => routeLegKey(from, to, departureForOrigin(from), departureDate);
     const pairs: RoutePair[] = [
       ...dayPlaces.map((place) => ({
         from: hotelPlace,
         to: place,
         departureTimeMinutes: departureForOrigin(hotelPlace),
+        departureDate,
         key: keyForEdge(hotelPlace, place)
       })),
       ...dayPlaces.map((place) => ({
         from: place,
         to: hotelPlace,
         departureTimeMinutes: departureForOrigin(place),
+        departureDate,
         key: keyForEdge(place, hotelPlace)
       })),
       ...dayPlaces.flatMap((from) =>
@@ -411,6 +430,7 @@ export function useSchedule(places: Place[], canPersist = false, enabledRouteMod
                 from,
                 to,
                 departureTimeMinutes: departureForOrigin(from),
+                departureDate,
                 key: keyForEdge(from, to)
               }]
         )
@@ -431,8 +451,8 @@ export function useSchedule(places: Place[], canPersist = false, enabledRouteMod
       }));
     }
 
-    await mapWithConcurrency(missingPairs, 4, async ({ from, to, key, departureTimeMinutes }) => {
-      const leg = await requestRouteLeg(from, to, key, { departureTimeMinutes, modes: optimizationModes });
+    await mapWithConcurrency(missingPairs, 4, async ({ from, to, key, departureTimeMinutes, departureDate }) => {
+      const leg = await requestRouteLeg(from, to, key, { departureTimeMinutes, departureDate, modes: optimizationModes });
       setRouteLegValue(key, leg);
     });
 
@@ -494,8 +514,8 @@ export function useSchedule(places: Place[], canPersist = false, enabledRouteMod
     }));
 
     await Promise.all(
-      pairs.map(async ({ from, to, key, departureTimeMinutes }) => {
-        const leg = await requestRouteLeg(from, to, key, { departureTimeMinutes, modes: enabledRouteModes });
+      pairs.map(async ({ from, to, key, departureTimeMinutes, departureDate }) => {
+        const leg = await requestRouteLeg(from, to, key, { departureTimeMinutes, departureDate, modes: enabledRouteModes });
         setRouteLegValue(key, leg);
       })
     );
@@ -521,10 +541,11 @@ export function useSchedule(places: Place[], canPersist = false, enabledRouteMod
     }));
 
     await Promise.all(
-      pairs.map(async ({ from, to, key, departureTimeMinutes }) => {
+      pairs.map(async ({ from, to, key, departureTimeMinutes, departureDate }) => {
         const leg = await requestRouteLeg(from, to, key, {
           forceRefresh: true,
           departureTimeMinutes,
+          departureDate,
           modes: enabledRouteModes,
           precise: true
         });
@@ -547,6 +568,7 @@ export function useSchedule(places: Place[], canPersist = false, enabledRouteMod
     moveStop,
     setDayHotel,
     setDayDepartureTime,
+    setDayTravelDate,
     setStopDepartureTime,
     toggleStopEdgeLock,
     toggleReturnEdgeLock,
@@ -571,7 +593,7 @@ function clearLocksAroundMove(stops: ScheduleStop[], fromIndex: number, toIndex:
 
 function routeRequestKey(key: string, options: RouteRequestOptions) {
   const modes = [...(options.modes ?? defaultEnabledRouteModes)].sort().join(',');
-  return `${key}:${modes}:${options.precise === true ? 'precise' : 'standard'}`;
+  return `${key}:${modes}:${options.departureDate ?? 'floating'}:${options.precise === true ? 'precise' : 'standard'}`;
 }
 
 function mergeRouteLegRecords(...records: Record<string, RouteLeg>[]) {

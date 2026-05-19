@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Building2, Gauge, MapPinPlus, MapPinned, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Building2, CalendarDays, Gauge, MapPinPlus, MapPinned, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
 import { AccommodationSelectorDialog } from '@/components/dialogs/AccommodationSelectorDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getCategoryBadgeClass, getCategoryOption, getGoogleMapsNoteLabel } from '@/lib/place-utils';
-import { formatDepartureTime, getScheduleHotelPlace, maxStopsPerDay, routeLegKey } from '@/lib/schedule-utils';
+import { formatDepartureTime, formatTravelDate, getScheduleHotelPlace, maxStopsPerDay, routeLegKey } from '@/lib/schedule-utils';
 import type { RouteLeg, RouteMode, ScheduleDay } from '@/types/schedule';
 import type { CategoryOption, Place } from '@/types/travel';
 import { DayRouteMapDialog } from './DayRouteMapDialog';
@@ -30,6 +30,7 @@ type DayScheduleCardProps = {
   onMoveStop: (dayId: string, stopId: string, direction: -1 | 1) => void;
   onSetDayHotel: (dayId: string, placeId: string | null) => void;
   onSetDayDepartureTime: (dayId: string, departureTimeMinutes: number | null) => void;
+  onSetDayTravelDate: (dayId: string, travelDate: string | null) => void;
   onSetStopDepartureTime: (dayId: string, stopId: string, departureTimeMinutes: number | null) => void;
   onToggleStopEdgeLock: (dayId: string, stopId: string) => void;
   onToggleReturnEdgeLock: (dayId: string) => void;
@@ -61,6 +62,7 @@ export function DayScheduleCard({
   onMoveStop,
   onSetDayHotel,
   onSetDayDepartureTime,
+  onSetDayTravelDate,
   onSetStopDepartureTime,
   onToggleStopEdgeLock,
   onToggleReturnEdgeLock,
@@ -88,7 +90,7 @@ export function DayScheduleCard({
   const lastStop = day.stops[day.stops.length - 1] ?? null;
   const returnLeg =
     lastScheduledPlace && lastScheduledPlace.id !== hotelPlace.id
-      ? routeLegs[routeLegKey(lastScheduledPlace, hotelPlace, lastStop?.departureTimeMinutes)]
+      ? routeLegs[routeLegKey(lastScheduledPlace, hotelPlace, lastStop?.departureTimeMinutes, day.travelDate)]
       : undefined;
 
   function addPlaces(selectedPlaces: Place[]) {
@@ -122,7 +124,20 @@ export function DayScheduleCard({
             </div>
           ) : null}
           {isEditing ? (
-            <div className="mt-3 max-w-xl">
+            <div className="mt-3 grid max-w-2xl gap-3 sm:grid-cols-[13rem_minmax(0,1fr)]">
+              <label className="rounded-xl border bg-background p-2.5 shadow-sm shadow-black/0">
+                <span className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                  <CalendarDays className="h-3.5 w-3.5 text-primary" />
+                  DAY 날짜
+                </span>
+                <input
+                  type="date"
+                  className="mt-2 h-9 w-full rounded-md border bg-background px-2 text-sm font-semibold text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  value={day.travelDate ?? ''}
+                  onChange={(event) => onSetDayTravelDate(day.id, event.currentTarget.value || null)}
+                />
+                <p className="mt-1 text-[11px] leading-4 text-muted-foreground">날짜와 출발 기준이 캐시 키가 됩니다.</p>
+              </label>
               <DepartureTimePicker
                 label="숙소 출발 기준"
                 value={day.departureTimeMinutes}
@@ -131,9 +146,16 @@ export function DayScheduleCard({
                 onChange={(value) => onSetDayDepartureTime(day.id, value)}
               />
             </div>
-          ) : day.departureTimeMinutes != null ? (
-            <div className="mt-2 inline-flex rounded-full bg-background px-2.5 py-1 text-xs font-semibold text-muted-foreground">
-              숙소 출발 {formatDepartureTime(day.departureTimeMinutes)}
+          ) : day.travelDate || day.departureTimeMinutes != null ? (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {day.travelDate ? (
+                <span className="inline-flex rounded-full bg-background px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+                  여행일 {formatTravelDate(day.travelDate)}
+                </span>
+              ) : null}
+              <span className="inline-flex rounded-full bg-background px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+                숙소 출발 {formatDepartureTime(day.departureTimeMinutes)}
+              </span>
             </div>
           ) : null}
         </div>
@@ -233,7 +255,7 @@ export function DayScheduleCard({
                   ? previousStop.departureTimeMinutes ?? null
                   : day.departureTimeMinutes ?? null;
                 const leg = place && edgeFrom.id !== place.id
-                  ? routeLegs[routeLegKey(edgeFrom, place, edgeDepartureTimeMinutes)]
+                  ? routeLegs[routeLegKey(edgeFrom, place, edgeDepartureTimeMinutes, day.travelDate)]
                   : undefined;
 
                 return (
