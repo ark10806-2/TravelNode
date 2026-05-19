@@ -186,6 +186,29 @@
   page-break-inside: avoid;
 }
 
+.booklet-muted-markdown {
+  line-height: 1.45;
+}
+
+.booklet-muted-markdown > * + * {
+  margin-top: 0.25rem !important;
+}
+
+.booklet-muted-markdown ul,
+.booklet-muted-markdown ol {
+  padding-left: 1rem;
+}
+
+.booklet-muted-markdown table {
+  font-size: 0.625rem;
+  line-height: 1.35;
+}
+
+.booklet-muted-markdown th,
+.booklet-muted-markdown td {
+  padding: 0.25rem 0.375rem;
+}
+
 @media (max-width: 767px) {
   * {
     -webkit-tap-highlight-color: transparent;

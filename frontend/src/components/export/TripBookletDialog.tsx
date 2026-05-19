@@ -257,7 +257,7 @@ function BookletCover({
             <h1 className="mt-4 max-w-2xl text-6xl font-black leading-[0.95] tracking-normal text-neutral-950 print:text-6xl">
               나의<br />여행 책자
             </h1>
-            <p className="mt-6 max-w-xl text-base leading-8 text-neutral-600">
+            <p className="mt-6 max-w-xl text-sm leading-7 text-neutral-600">
               일정, 장소, 예약, 체크리스트를 오프라인에서도 보기 좋게 묶은 개인 여행 가이드입니다.
               현장에서 바로 확인할 수 있도록 핵심 정보와 링크를 한 장씩 분리했습니다.
             </p>
@@ -312,7 +312,7 @@ function CoverMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-[#eadfd2] bg-white/85 p-4 shadow-sm">
       <div className="text-xs font-bold text-neutral-500">{label}</div>
-      <div className="mt-2 text-2xl font-black text-neutral-950">{value}</div>
+      <div className="mt-1.5 text-xl font-black text-neutral-950">{value}</div>
     </div>
   );
 }
@@ -346,10 +346,10 @@ function BookletSection({
           {icon}
         </div>
         <div>
-          <h2 className="text-3xl font-black tracking-normal text-neutral-950">{title}</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">{subtitle}</p>
+          <h2 className="text-2xl font-black tracking-normal text-neutral-950">{title}</h2>
+          <p className="mt-1.5 max-w-2xl text-xs leading-5 text-neutral-500">{subtitle}</p>
         </div>
-        <div className="hidden text-7xl font-black leading-none text-neutral-100 sm:block">{sectionNumber}</div>
+        <div className="hidden text-6xl font-black leading-none text-neutral-100 sm:block">{sectionNumber}</div>
       </div>
 
       {children}
@@ -395,7 +395,7 @@ function DayBookletCard({
         </div>
       </div>
 
-      <div className="grid gap-5 p-4">
+      <div className="grid gap-4 p-4">
         <div className="grid gap-2">
           <RouteLine label="출발" place={hotelPlace} mode={null} />
           {stops.map(({ stop, place }, index) => (
@@ -442,21 +442,21 @@ function RouteLine({
   locked?: boolean;
 }) {
   return (
-    <div className="grid grid-cols-[3rem_minmax(0,1fr)] gap-3">
-      <div className="grid h-9 w-9 place-items-center rounded-full bg-white text-xs font-black text-neutral-700 ring-1 ring-neutral-200">
+    <div className="grid grid-cols-[2.4rem_minmax(0,1fr)] gap-2.5">
+      <div className="grid h-7 w-7 place-items-center rounded-full bg-white text-[10px] font-black text-neutral-700 ring-1 ring-neutral-200">
         {label}
       </div>
-      <div className="rounded-xl border border-neutral-200 bg-white px-3 py-2.5 shadow-[0_6px_16px_rgba(80,60,45,0.04)]">
+      <div className="rounded-xl border border-neutral-200 bg-white px-3 py-2 shadow-[0_6px_16px_rgba(80,60,45,0.04)]">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="font-bold text-neutral-950">{place.name}</div>
+          <div className="text-sm font-bold leading-snug text-neutral-950">{place.name}</div>
           {mode || locked ? (
-            <div className="text-xs text-neutral-500">
+            <div className="text-[10px] font-semibold text-neutral-400">
               {mode ? routeModeLabel[mode] : '이동수단 미지정'}
               {locked ? ' · 고정' : ''}
             </div>
           ) : null}
         </div>
-        <div className="mt-1 text-xs leading-5 text-neutral-500">
+        <div className="mt-1 text-[10px] leading-4 text-neutral-400">
           {departureTimeMinutes != null ? `출발 기준 ${formatDepartureTime(departureTimeMinutes)} · ` : ''}
           {place.address}
         </div>
@@ -479,33 +479,33 @@ function ReservationBookletCard({
   const otherAttachments = reservation.attachments.filter((attachment) => !attachment.contentType.startsWith('image/'));
 
   return (
-    <article className="booklet-avoid-break rounded-2xl border border-[#eadfd2] bg-[#fffaf6] p-4 shadow-sm">
+    <article className="booklet-avoid-break rounded-2xl border border-[#eadfd2] bg-[#fffaf6] p-3.5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-xs font-bold text-rose-600">{reservationTypeLabel[reservation.reservationType]}</div>
-          <h3 className="mt-1 text-lg font-black text-neutral-950">{reservation.title}</h3>
+          <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-rose-600">{reservationTypeLabel[reservation.reservationType]}</div>
+          <h3 className="mt-1 text-base font-black leading-snug text-neutral-950">{reservation.title}</h3>
         </div>
-        <div className="rounded-full bg-white px-3 py-1 text-xs font-bold text-neutral-600 ring-1 ring-neutral-200">
+        <div className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-neutral-500 ring-1 ring-neutral-200">
           {formatDayLabel(reservation.dayIndex, scheduleDays)}
         </div>
       </div>
-      <div className="mt-3 grid gap-2 text-sm text-neutral-600">
-        {reservation.timeLabel ? <div>시간: {reservation.timeLabel}</div> : null}
-        {place ? <div>연결 장소: {place.name}</div> : null}
-        {reservation.referenceNumber ? <div>예약번호: {reservation.referenceNumber}</div> : null}
+      <div className="mt-2 grid gap-1 text-xs leading-5 text-neutral-500">
+        {reservation.timeLabel ? <div><span className="font-bold text-neutral-600">시간</span> {reservation.timeLabel}</div> : null}
+        {place ? <div><span className="font-bold text-neutral-600">장소</span> {place.name}</div> : null}
+        {reservation.referenceNumber ? <div><span className="font-bold text-neutral-600">예약번호</span> {reservation.referenceNumber}</div> : null}
         {link ? (
-          <a className="inline-flex items-center gap-1 text-rose-600 underline underline-offset-4" href={link} target="_blank" rel="noreferrer">
+          <a className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-600 underline underline-offset-4" href={link} target="_blank" rel="noreferrer">
             링크 열기 <ExternalLink className="h-3.5 w-3.5" />
           </a>
         ) : null}
       </div>
-      {reservation.notes ? <MarkdownText className="mt-3 text-sm" text={reservation.notes} fallback="" /> : null}
+      {reservation.notes ? <MarkdownText className="booklet-muted-markdown mt-2 text-[11px] leading-4 text-neutral-500" text={reservation.notes} fallback="" /> : null}
       {imageAttachments.length ? (
-        <div className="mt-3 grid grid-cols-3 gap-2">
+        <div className="mt-2 grid grid-cols-3 gap-1.5">
           {imageAttachments.slice(0, 3).map((attachment) => (
             <img
               key={attachment.id}
-              className="h-24 w-full rounded-xl border border-white object-cover shadow-sm"
+              className="h-20 w-full rounded-lg border border-white object-cover shadow-sm"
               src={attachment.dataUrl}
               alt={attachment.fileName}
               loading="eager"
@@ -514,7 +514,7 @@ function ReservationBookletCard({
         </div>
       ) : null}
       {otherAttachments.length ? (
-        <div className="mt-3 grid gap-1 text-xs text-neutral-500">
+        <div className="mt-2 grid gap-1 text-[10px] leading-4 text-neutral-400">
           {otherAttachments.map((attachment) => (
             <div key={attachment.id} className="inline-flex items-center gap-1">
               <FileText className="h-3.5 w-3.5" />
@@ -546,10 +546,10 @@ function PlaceDirectory({
 
         return (
           <section key={category.id} className="booklet-category-section grid gap-3">
-            <h3 className="flex items-center gap-2 rounded-2xl border border-neutral-200 bg-[#fffaf6] px-4 py-3 text-lg font-black text-neutral-950">
-              <span className="grid h-8 w-8 place-items-center rounded-full bg-white ring-1 ring-neutral-200">{category.emoji}</span>
+            <h3 className="flex items-center gap-2 rounded-2xl border border-neutral-200 bg-[#fffaf6] px-3.5 py-2.5 text-base font-black text-neutral-950">
+              <span className="grid h-7 w-7 place-items-center rounded-full bg-white text-sm ring-1 ring-neutral-200">{category.emoji}</span>
               <span>{category.label}</span>
-              <span className="rounded-full bg-white px-2 py-0.5 text-xs font-bold text-neutral-500 ring-1 ring-neutral-200">{categoryPlaces.length}</span>
+              <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-neutral-500 ring-1 ring-neutral-200">{categoryPlaces.length}</span>
             </h3>
             <div className="grid gap-3 md:grid-cols-2 print:grid-cols-2">
               {categoryPlaces.map((place) => (
@@ -578,23 +578,23 @@ function PlaceBookletCard({
   photoUrl: string | null;
 }) {
   return (
-    <article className="booklet-avoid-break grid grid-cols-[80px_minmax(0,1fr)] gap-3 rounded-2xl border border-neutral-200 bg-white p-3 shadow-[0_6px_16px_rgba(80,60,45,0.04)]">
+    <article className="booklet-avoid-break grid grid-cols-[68px_minmax(0,1fr)] gap-2.5 rounded-2xl border border-neutral-200 bg-white p-2.5 shadow-[0_6px_16px_rgba(80,60,45,0.04)]">
       {photoUrl ? (
-        <img className="h-20 w-20 rounded-xl object-cover" src={photoUrl} alt={place.name} loading="eager" />
+        <img className="h-[68px] w-[68px] rounded-xl object-cover" src={photoUrl} alt={place.name} loading="eager" />
       ) : (
-        <div className="grid h-20 w-20 place-items-center rounded-xl bg-neutral-100 text-xl">{category.emoji}</div>
+        <div className="grid h-[68px] w-[68px] place-items-center rounded-xl bg-neutral-100 text-lg">{category.emoji}</div>
       )}
       <div className="min-w-0">
-        <div className="text-xs font-bold text-neutral-500">{category.emoji} {category.label}</div>
-        <h4 className="mt-1 text-base font-black leading-snug text-neutral-950">{place.name}</h4>
-        <div className="mt-1 text-xs font-bold text-neutral-700">{place.menu}</div>
-        {place.description ? <MarkdownText className="mt-1 text-xs leading-5 text-neutral-500" text={place.description} fallback="" /> : null}
-        <div className="mt-2 text-xs leading-5 text-neutral-500">
+        <div className="text-[10px] font-bold text-neutral-400">{category.emoji} {category.label}</div>
+        <h4 className="mt-0.5 text-sm font-black leading-snug text-neutral-950">{place.name}</h4>
+        <div className="mt-0.5 text-[11px] font-bold leading-4 text-neutral-700">{place.menu}</div>
+        {place.description ? <MarkdownText className="booklet-muted-markdown mt-1 text-[10px] leading-4 text-neutral-500" text={place.description} fallback="" /> : null}
+        <div className="mt-1.5 text-[10px] leading-4 text-neutral-400">
           {place.distanceLabel} · {place.travelMode === 'walk' ? '도보' : '대중교통'} {place.travelMinutes}분
         </div>
-        <div className="mt-1 text-xs leading-5 text-neutral-500">{place.address}</div>
-        {place.googleMapsNote ? <MarkdownText className="mt-2 text-xs leading-5" text={place.googleMapsNote} fallback="" /> : null}
-        <a className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-rose-600 underline underline-offset-4" href={getPlaceInfoUrl(place)} target="_blank" rel="noreferrer">
+        <div className="mt-0.5 text-[10px] leading-4 text-neutral-400">{place.address}</div>
+        {place.googleMapsNote ? <MarkdownText className="booklet-muted-markdown mt-1 text-[10px] leading-4 text-neutral-500" text={place.googleMapsNote} fallback="" /> : null}
+        <a className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 underline underline-offset-4" href={getPlaceInfoUrl(place)} target="_blank" rel="noreferrer">
           Google Maps
           <ExternalLink className="h-3 w-3" />
         </a>
@@ -626,22 +626,22 @@ function TodoMiniList({ title, items }: { title: string; items: { id: string; te
   return (
     <div className="booklet-avoid-break rounded-2xl border border-neutral-200 bg-white p-3 shadow-[0_6px_16px_rgba(80,60,45,0.04)]">
       <div className="flex items-center justify-between gap-2">
-        <h4 className="font-black text-neutral-950">{title}</h4>
-        <span className="rounded-full bg-[#fff3f0] px-2 py-0.5 text-xs font-bold text-rose-600">
+        <h4 className="text-sm font-black text-neutral-950">{title}</h4>
+        <span className="rounded-full bg-[#fff3f0] px-2 py-0.5 text-[10px] font-bold text-rose-600">
           {items.filter((item) => item.done).length}/{items.length}
         </span>
       </div>
       {items.length ? (
-        <ul className="mt-3 grid gap-2">
+        <ul className="mt-2.5 grid gap-1.5">
           {items.map((item) => (
-            <li key={item.id} className="flex items-start gap-2 text-sm leading-5 text-neutral-700">
-              {item.done ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" /> : <Circle className="mt-0.5 h-4 w-4 shrink-0 text-neutral-300" />}
+            <li key={item.id} className="flex items-start gap-2 text-xs leading-5 text-neutral-700">
+              {item.done ? <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" /> : <Circle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-neutral-300" />}
               <span className={cn(item.done && 'text-neutral-400 line-through')}>{item.text}</span>
             </li>
           ))}
         </ul>
       ) : (
-        <div className="mt-3 rounded-lg bg-neutral-50 px-3 py-2 text-sm text-neutral-500">항목 없음</div>
+        <div className="mt-2.5 rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-400">항목 없음</div>
       )}
     </div>
   );
@@ -658,18 +658,18 @@ function MiniList({
 }) {
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-3 shadow-[0_6px_16px_rgba(80,60,45,0.04)]">
-      <h4 className="font-black text-neutral-950">{title}</h4>
+      <h4 className="text-sm font-black text-neutral-950">{title}</h4>
       {items.length ? (
-        <ul className="mt-3 grid gap-2">
+        <ul className="mt-2.5 grid gap-1.5">
           {items.map((item) => (
-            <li key={item.id} className="text-sm leading-5">
+            <li key={item.id} className="text-xs leading-5">
               <div className="font-bold text-neutral-800">{item.primary}</div>
-              {item.secondary ? <div className="text-xs text-neutral-500">{item.secondary}</div> : null}
+              {item.secondary ? <div className="text-[10px] text-neutral-400">{item.secondary}</div> : null}
             </li>
           ))}
         </ul>
       ) : (
-        <div className="mt-3 rounded-lg bg-neutral-50 px-3 py-2 text-sm text-neutral-500">{emptyText}</div>
+        <div className="mt-2.5 rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-400">{emptyText}</div>
       )}
     </div>
   );
