@@ -588,7 +588,18 @@ function ReservationCard({
 function ReservationCelebration({ title, onDone }: { title: string; onDone: () => void }) {
   useEffect(() => {
     const timer = window.setTimeout(onDone, 1800);
-    return () => window.clearTimeout(timer);
+    const dismissOnInteraction = () => onDone();
+    const interactionTimer = window.setTimeout(() => {
+      window.addEventListener('pointerdown', dismissOnInteraction, { capture: true, passive: true });
+      window.addEventListener('keydown', dismissOnInteraction, true);
+    }, 120);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.clearTimeout(interactionTimer);
+      window.removeEventListener('pointerdown', dismissOnInteraction, true);
+      window.removeEventListener('keydown', dismissOnInteraction, true);
+    };
   }, [onDone]);
 
   return (
