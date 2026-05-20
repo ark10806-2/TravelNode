@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { fetchSchedule } from '@/api/schedule';
 import { AccommodationSelectorDialog } from '@/components/dialogs/AccommodationSelectorDialog';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { AppHeader } from '@/components/place/AppHeader';
@@ -14,6 +15,7 @@ import type { TravelPlacesState } from '@/hooks/useTravelPlaces';
 import { toHotelDistancePlaces } from '@/lib/place-utils';
 import { hotelSchedulePlace } from '@/lib/schedule-utils';
 import type { Reservation } from '@/types/reservation';
+import type { ScheduleDay } from '@/types/schedule';
 import type { CategoryId, NearbyPlace, PhotoState, Place } from '@/types/travel';
 
 const emptyPhotoState: PhotoState = {
@@ -69,6 +71,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
   const [mobilePlaceListViewMode, setMobilePlaceListViewMode] = useState<PlaceListViewMode>('table');
   const [placeListViewMode, setPlaceListViewMode] = useState<PlaceListViewMode>('table');
   const [reservationTarget, setReservationTarget] = useState<{ place: Place; reservations: Reservation[] } | null>(null);
+  const [scheduleDays, setScheduleDays] = useState<ScheduleDay[]>([]);
   const { reservations } = useReservations(false);
   const [referencePlaceId, setReferencePlaceId] = usePersistedState<string | null>(
     placeReferenceStorageKey,
@@ -78,6 +81,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
   const [isReferenceDialogOpen, setIsReferenceDialogOpen] = useState(false);
   const canModify = isEditing && canEdit;
   const reservationsByPlaceId = useMemo(() => groupReservationsByPlaceId(reservations), [reservations]);
+  const scheduleLabelsByPlaceId = useMemo(() => groupScheduleLabelsByPlaceId(scheduleDays), [scheduleDays]);
   const referencePlace = useMemo(
     () => (referencePlaceId ? places.find((place) => place.id === referencePlaceId) ?? hotelSchedulePlace : hotelSchedulePlace),
     [places, referencePlaceId]
@@ -123,6 +127,22 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
   }, [loadPhotos, selectedPlace]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    fetchSchedule()
+      .then((days) => {
+        if (!cancelled) setScheduleDays(days);
+      })
+      .catch(() => {
+        if (!cancelled) setScheduleDays([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (canModify) return;
     setAddPlaceCategory(null);
     setIsCategoryDialogOpen(false);
@@ -163,6 +183,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
             categories={categories}
             photoState={selectedPlace ? photoCache[selectedPlace.id] ?? emptyPhotoState : emptyPhotoState}
             reservations={selectedPlace ? reservationsByPlaceId[selectedPlace.id] ?? [] : []}
+            scheduleLabels={selectedPlace ? scheduleLabelsByPlaceId[selectedPlace.id] ?? [] : []}
             isEditing={canModify}
             movingCategoryPlaceId={movingCategoryPlaceId}
             onEditPlace={(place) => (canEdit ? setEditTarget(place) : onRequireAuth())}
@@ -193,6 +214,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
               categories={categories}
               photoCache={photoCache}
               reservationsByPlaceId={reservationsByPlaceId}
+              scheduleLabelsByPlaceId={scheduleLabelsByPlaceId}
               onLoadPhotos={loadPhotos}
               onAdd={() => (canEdit ? setAddPlaceCategory(selectedCategoryId) : onRequireAuth())}
               onDelete={(place) => (canEdit ? void deletePlace(place) : onRequireAuth())}
@@ -217,6 +239,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
               categories={categories}
               photoCache={photoCache}
               reservationsByPlaceId={reservationsByPlaceId}
+              scheduleLabelsByPlaceId={scheduleLabelsByPlaceId}
               onLoadPhotos={loadPhotos}
               onAdd={() => (canEdit ? setAddPlaceCategory(selectedCategoryId) : onRequireAuth())}
               onDelete={(place) => (canEdit ? void deletePlace(place) : onRequireAuth())}
@@ -282,6 +305,20 @@ function groupReservationsByPlaceId(reservations: Reservation[]) {
   return reservations.reduce<Record<string, Reservation[]>>((groups, reservation) => {
     if (!reservation.placeId) return groups;
     groups[reservation.placeId] = [...(groups[reservation.placeId] ?? []), reservation];
+    return groups;
+  }, {});
+}
+
+function groupScheduleLabelsByPlaceId(days: ScheduleDay[]) {
+  return days.reduce<Record<string, string[]>>((groups, day, dayIndex) => {
+    const dayLabel = `DAY-${dayIndex + 1}`;
+    const placeIds = new Set(day.stops.map((stop) => stop.placeId));
+    if (day.hotelPlaceId) placeIds.add(day.hotelPlaceId);
+
+    placeIds.forEach((placeId) => {
+      groups[placeId] = [...(groups[placeId] ?? []), dayLabel];
+    });
+
     return groups;
   }, {});
 }

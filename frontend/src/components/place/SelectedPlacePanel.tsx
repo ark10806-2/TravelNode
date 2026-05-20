@@ -8,6 +8,7 @@ import type { Reservation } from '@/types/reservation';
 import type { CategoryId, CategoryOption, PhotoState, Place } from '@/types/travel';
 import { CategoryMoveSelect } from './CategoryMoveSelect';
 import { PhotoBundlePreview } from './PhotoBundlePreview';
+import { PlaceScheduleBadges } from './PlaceScheduleBadges';
 
 type SelectedPlacePanelProps = {
   place: Place | null;
@@ -15,6 +16,7 @@ type SelectedPlacePanelProps = {
   categories: CategoryOption[];
   photoState: PhotoState;
   reservations: Reservation[];
+  scheduleLabels: string[];
   isEditing: boolean;
   movingCategoryPlaceId: string | null;
   onEditPlace: (place: Place) => void;
@@ -29,6 +31,7 @@ export function SelectedPlacePanel({
   categories,
   photoState,
   reservations,
+  scheduleLabels,
   isEditing,
   movingCategoryPlaceId,
   onEditPlace,
@@ -62,6 +65,7 @@ export function SelectedPlacePanel({
                 compact
                 onOpen={() => onOpenReservations(place, reservations)}
               />
+              <PlaceScheduleBadges labels={scheduleLabels} compact />
             </div>
             <h2 className="mt-2 line-clamp-2 text-lg font-bold leading-snug tracking-tight sm:mt-3 sm:text-2xl">{place.name}</h2>
           </div>

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { Reservation } from '@/types/reservation';
 import type { CategoryId, CategoryOption, NearbyPlace, PhotoState, Place } from '@/types/travel';
 import { PlaceExpandedDetails } from './PlaceExpandedDetails';
+import { PlaceScheduleBadges } from './PlaceScheduleBadges';
 import { PlaceThumbnailButton } from './PlaceThumbnailButton';
 
 type PlaceExpandableRowProps = {
@@ -16,6 +17,7 @@ type PlaceExpandableRowProps = {
   category: CategoryOption;
   photoState: PhotoState;
   reservations: Reservation[];
+  scheduleLabels: string[];
   isExpanded: boolean;
   isSelected: boolean;
   enableExpandedDetails: boolean;
@@ -39,6 +41,7 @@ export function PlaceExpandableRow({
   category,
   photoState,
   reservations,
+  scheduleLabels,
   isExpanded,
   isSelected,
   enableExpandedDetails,
@@ -94,6 +97,7 @@ export function PlaceExpandableRow({
                 onOpen={() => onOpenReservations(place, reservations)}
               />
             ) : null}
+            <PlaceScheduleBadges labels={scheduleLabels} compact />
           </div>
           <h3 className="mt-1.5 line-clamp-2 text-base font-bold leading-snug sm:truncate">{place.name}</h3>
           <div className="mt-1 line-clamp-1 text-xs font-medium text-foreground/75">

@@ -9,11 +9,13 @@ import { cn } from '@/lib/utils';
 import type { Reservation } from '@/types/reservation';
 import type { CategoryId, CategoryOption, NearbyPlace, PhotoState, Place } from '@/types/travel';
 import { CategoryMoveSelect } from './CategoryMoveSelect';
+import { PlaceScheduleBadges } from './PlaceScheduleBadges';
 
 type PlaceGalleryProps = {
   places: NearbyPlace[];
   photoCache: Record<string, PhotoState>;
   reservationsByPlaceId?: Record<string, Reservation[]>;
+  scheduleLabelsByPlaceId?: Record<string, string[]>;
   onLoadPhotos: (place: Place) => Promise<void>;
   onOpenPhotos: (place: Place) => void;
   onOpenReservations?: (place: Place, reservations: Reservation[]) => void;
@@ -28,6 +30,7 @@ export function PlaceGallery({
   places,
   photoCache,
   reservationsByPlaceId = {},
+  scheduleLabelsByPlaceId = {},
   onLoadPhotos,
   onOpenPhotos,
   onOpenReservations,
@@ -49,6 +52,7 @@ export function PlaceGallery({
   const activePhotos = activePhotoState?.photos ?? [];
   const activePhoto = activePhotos[activePhotoIndex] ?? activePhotos[0] ?? null;
   const activeReservations = activePlace ? reservationsByPlaceId[activePlace.id] ?? [] : [];
+  const activeScheduleLabels = activePlace ? scheduleLabelsByPlaceId[activePlace.id] ?? [] : [];
   const isActivePhotoVisible = Boolean(activePhoto && !failedPhotoUrls.has(activePhoto.url));
 
   useEffect(() => {
@@ -228,6 +232,7 @@ export function PlaceGallery({
                     onOpen={() => onOpenReservations(activePlace, activeReservations)}
                   />
                 ) : null}
+                <PlaceScheduleBadges labels={activeScheduleLabels} compact />
               </div>
               <div className="flex shrink-0 gap-1">
                 <Button
@@ -316,6 +321,7 @@ export function PlaceGallery({
           {places.map((place, index) => {
             const photo = photoCache[place.id]?.photos[0] ?? null;
             const isActive = index === activeIndex;
+            const scheduleLabels = scheduleLabelsByPlaceId[place.id] ?? [];
 
             return (
               <button
@@ -347,6 +353,11 @@ export function PlaceGallery({
                   <div className="text-[10px] font-medium text-muted-foreground/80">
                     {place.distanceFromSelectedKm.toFixed(1)}km
                   </div>
+                  {scheduleLabels.length ? (
+                    <div className="truncate text-[10px] font-black text-emerald-700 dark:text-emerald-200">
+                      {scheduleLabels.join(' · ')}
+                    </div>
+                  ) : null}
                 </div>
               </button>
             );

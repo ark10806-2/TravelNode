@@ -21,6 +21,7 @@ type PlaceListProps = {
   categories: CategoryOption[];
   photoCache: Record<string, PhotoState>;
   reservationsByPlaceId?: Record<string, Reservation[]>;
+  scheduleLabelsByPlaceId?: Record<string, string[]>;
   onLoadPhotos: (place: Place) => Promise<void>;
   onAdd: () => void;
   onDelete: (place: Place) => void;
@@ -51,6 +52,7 @@ export function PlaceList({
   categories,
   photoCache,
   reservationsByPlaceId = {},
+  scheduleLabelsByPlaceId = {},
   onLoadPhotos,
   onAdd,
   onDelete,
@@ -101,6 +103,7 @@ export function PlaceList({
           places={places}
           photoCache={photoCache}
           reservationsByPlaceId={reservationsByPlaceId}
+          scheduleLabelsByPlaceId={scheduleLabelsByPlaceId}
           onLoadPhotos={onLoadPhotos}
           onOpenPhotos={onOpenPhotos}
           onOpenReservations={onOpenReservations}
@@ -129,6 +132,7 @@ export function PlaceList({
                   category={getCategoryOption(categories, place.category)}
                   photoState={photoCache[place.id] ?? emptyPhotoState}
                   reservations={reservationsByPlaceId[place.id] ?? []}
+                  scheduleLabels={scheduleLabelsByPlaceId[place.id] ?? []}
                   isExpanded={enableExpandedDetails && expandedPlaceId === place.id}
                   isSelected={selectedPlaceId === place.id}
                   enableExpandedDetails={enableExpandedDetails}
