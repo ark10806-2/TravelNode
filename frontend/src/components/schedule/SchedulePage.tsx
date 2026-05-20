@@ -3,10 +3,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { PlaceDetailDialog } from '@/components/dialogs/PlaceDetailDialog';
 import { PlacePhotoDialog } from '@/components/dialogs/PlacePhotoDialog';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { ReservationDetailDialog } from '@/components/reservation/ReservationDetailDialog';
 import { Button } from '@/components/ui/button';
+import { useReservations } from '@/hooks/useReservations';
 import { useSchedule } from '@/hooks/useSchedule';
 import { loadEnabledRouteModes } from '@/lib/route-preferences';
 import { scheduleRoutePairs } from '@/lib/schedule-state';
+import type { Reservation } from '@/types/reservation';
 import type { RouteLeg, RouteMode, ScheduleDay } from '@/types/schedule';
 import type { CategoryOption, PhotoState, Place } from '@/types/travel';
 import { DayScheduleCard } from './DayScheduleCard';
@@ -32,9 +35,11 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
   const [refreshingDayId, setRefreshingDayId] = useState<string | null>(null);
   const [preciseDayId, setPreciseDayId] = useState<string | null>(null);
   const [optimizingDayId, setOptimizingDayId] = useState<string | null>(null);
+  const [reservationTarget, setReservationTarget] = useState<{ place: Place; reservations: Reservation[] } | null>(null);
   const [enabledRouteModes] = useState(loadEnabledRouteModes);
   const [routeRefreshAvailableAtByDay, setRouteRefreshAvailableAtByDay] = useState<Record<string, number>>({});
   const [currentTime, setCurrentTime] = useState(() => Date.now());
+  const { reservations } = useReservations(false);
   const {
     days,
     scheduleStatus,
@@ -59,6 +64,7 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
   } = useSchedule(places, isEditing, enabledRouteModes);
   const currentDetailTarget = detailTarget ? placesById.get(detailTarget.id) ?? detailTarget : null;
   const currentPhotoTarget = photoTarget ? placesById.get(photoTarget.id) ?? photoTarget : null;
+  const reservationsByPlaceId = useMemo(() => groupReservationsByPlaceId(reservations), [reservations]);
   const canCalculatePreciseRoutes = enabledRouteModes.includes('driving');
   const routeCalculatedAtByDay = useMemo(
     () => Object.fromEntries(
@@ -89,6 +95,11 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
   function openPhotos(place: Place) {
     setPhotoTarget(place);
     void onLoadPhotos(place);
+  }
+
+  function openReservations(place: Place, linkedReservations: Reservation[]) {
+    if (!linkedReservations.length) return;
+    setReservationTarget({ place, reservations: linkedReservations });
   }
 
   async function refreshRoutes(dayId: string) {
@@ -178,6 +189,7 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
             routeCalculatedAtLabel={routeCalculatedAtByDay[day.id]}
             canCalculatePreciseRoutes={canCalculatePreciseRoutes}
             photoCache={photoCache}
+            reservationsByPlaceId={reservationsByPlaceId}
             isEditing={isEditing}
             isDarkMode={isDarkMode}
             onLoadPhotos={onLoadPhotos}
@@ -202,6 +214,7 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
             onRefreshRoutes={() => void refreshRoutes(day.id)}
             onPreciseRoutes={() => void preciseRoutes(day.id)}
             onOpenPlaceDetails={openDetails}
+            onOpenReservations={openReservations}
           />
         ))}
       </div>
@@ -211,8 +224,10 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
           place={currentDetailTarget}
           categories={categories}
           photoState={photoCache[currentDetailTarget.id] ?? emptyPhotoState}
+          reservations={reservationsByPlaceId[currentDetailTarget.id] ?? []}
           onClose={() => setDetailTarget(null)}
           onOpenPhotos={openPhotos}
+          onOpenReservations={openReservations}
         />
       ) : null}
 
@@ -225,8 +240,24 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
           onRetry={() => void onLoadPhotos(currentPhotoTarget, true)}
         />
       ) : null}
+      {reservationTarget ? (
+        <ReservationDetailDialog
+          place={reservationTarget.place}
+          reservations={reservationTarget.reservations}
+          scheduleDays={days}
+          onClose={() => setReservationTarget(null)}
+        />
+      ) : null}
     </PageContainer>
   );
+}
+
+function groupReservationsByPlaceId(reservations: Reservation[]) {
+  return reservations.reduce<Record<string, Reservation[]>>((groups, reservation) => {
+    if (!reservation.placeId) return groups;
+    groups[reservation.placeId] = [...(groups[reservation.placeId] ?? []), reservation];
+    return groups;
+  }, {});
 }
 
 function getLatestRouteCalculatedAt(

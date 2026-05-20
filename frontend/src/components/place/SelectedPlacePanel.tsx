@@ -1,8 +1,10 @@
 import { ExternalLink, Navigation, Pencil, Utensils } from 'lucide-react';
 import { MarkdownText } from '@/components/common/MarkdownText';
+import { PlaceReservationBadge } from '@/components/reservation/PlaceReservationBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getCategoryBadgeClass, getCategoryOption, getPlaceInfoUrl, haversineKm } from '@/lib/place-utils';
+import type { Reservation } from '@/types/reservation';
 import type { CategoryId, CategoryOption, PhotoState, Place } from '@/types/travel';
 import { CategoryMoveSelect } from './CategoryMoveSelect';
 import { PhotoBundlePreview } from './PhotoBundlePreview';
@@ -12,11 +14,13 @@ type SelectedPlacePanelProps = {
   referencePlace: Place;
   categories: CategoryOption[];
   photoState: PhotoState;
+  reservations: Reservation[];
   isEditing: boolean;
   movingCategoryPlaceId: string | null;
   onEditPlace: (place: Place) => void;
   onMoveCategory: (place: Place, categoryId: CategoryId) => void;
   onOpenPhotos: (place: Place) => void;
+  onOpenReservations: (place: Place, reservations: Reservation[]) => void;
 };
 
 export function SelectedPlacePanel({
@@ -24,11 +28,13 @@ export function SelectedPlacePanel({
   referencePlace,
   categories,
   photoState,
+  reservations,
   isEditing,
   movingCategoryPlaceId,
   onEditPlace,
   onMoveCategory,
-  onOpenPhotos
+  onOpenPhotos,
+  onOpenReservations
 }: SelectedPlacePanelProps) {
   if (!place) {
     return (
@@ -47,9 +53,16 @@ export function SelectedPlacePanel({
       <div className="flex h-full flex-col gap-3.5 sm:gap-4">
         <div className="flex items-start justify-between gap-2 sm:gap-3">
           <div className="min-w-0">
-            <Badge variant="outline" className={`rounded-full ${getCategoryBadgeClass(place.category)}`}>
-              {category.emoji} {category.label}
-            </Badge>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Badge variant="outline" className={`rounded-full ${getCategoryBadgeClass(place.category)}`}>
+                {category.emoji} {category.label}
+              </Badge>
+              <PlaceReservationBadge
+                reservations={reservations}
+                compact
+                onOpen={() => onOpenReservations(place, reservations)}
+              />
+            </div>
             <h2 className="mt-2 line-clamp-2 text-lg font-bold leading-snug tracking-tight sm:mt-3 sm:text-2xl">{place.name}</h2>
           </div>
           <div className="flex shrink-0 items-center gap-1">

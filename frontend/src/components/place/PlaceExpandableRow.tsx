@@ -1,9 +1,11 @@
 import { ChevronDown, MapPin } from 'lucide-react';
 import { MarkdownInline } from '@/components/common/MarkdownText';
+import { PlaceReservationBadge } from '@/components/reservation/PlaceReservationBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getCategoryBadgeClass } from '@/lib/place-utils';
 import { cn } from '@/lib/utils';
+import type { Reservation } from '@/types/reservation';
 import type { CategoryId, CategoryOption, NearbyPlace, PhotoState, Place } from '@/types/travel';
 import { PlaceExpandedDetails } from './PlaceExpandedDetails';
 import { PlaceThumbnailButton } from './PlaceThumbnailButton';
@@ -13,6 +15,7 @@ type PlaceExpandableRowProps = {
   referencePlace: Place;
   category: CategoryOption;
   photoState: PhotoState;
+  reservations: Reservation[];
   isExpanded: boolean;
   isSelected: boolean;
   enableExpandedDetails: boolean;
@@ -24,6 +27,7 @@ type PlaceExpandableRowProps = {
   onToggle: (place: NearbyPlace) => void;
   onSelect?: (place: Place) => void;
   onOpenPhotos: (place: Place) => void;
+  onOpenReservations?: (place: Place, reservations: Reservation[]) => void;
   onEditPlace: (place: Place) => void;
   onDelete: (place: Place) => void;
   onMoveCategory: (place: Place, categoryId: CategoryId) => void;
@@ -34,6 +38,7 @@ export function PlaceExpandableRow({
   referencePlace,
   category,
   photoState,
+  reservations,
   isExpanded,
   isSelected,
   enableExpandedDetails,
@@ -45,6 +50,7 @@ export function PlaceExpandableRow({
   onToggle,
   onSelect,
   onOpenPhotos,
+  onOpenReservations,
   onEditPlace,
   onDelete,
   onMoveCategory
@@ -81,6 +87,13 @@ export function PlaceExpandableRow({
               <MapPin className="h-3.5 w-3.5" />
               {place.distanceFromSelectedKm.toFixed(1)}km
             </span>
+            {onOpenReservations ? (
+              <PlaceReservationBadge
+                reservations={reservations}
+                compact
+                onOpen={() => onOpenReservations(place, reservations)}
+              />
+            ) : null}
           </div>
           <h3 className="mt-1.5 line-clamp-2 text-base font-bold leading-snug sm:truncate">{place.name}</h3>
           <div className="mt-1 line-clamp-1 text-xs font-medium text-foreground/75">

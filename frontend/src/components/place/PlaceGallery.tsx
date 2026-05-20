@@ -1,18 +1,22 @@
 import { useEffect, useMemo, useRef, useState, type TouchEvent } from 'react';
 import { ChevronLeft, ChevronRight, Images, MapPin, Pencil } from 'lucide-react';
 import { MarkdownInline } from '@/components/common/MarkdownText';
+import { PlaceReservationBadge } from '@/components/reservation/PlaceReservationBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { travelLabel } from '@/constants/travel';
 import { cn } from '@/lib/utils';
+import type { Reservation } from '@/types/reservation';
 import type { CategoryId, CategoryOption, NearbyPlace, PhotoState, Place } from '@/types/travel';
 import { CategoryMoveSelect } from './CategoryMoveSelect';
 
 type PlaceGalleryProps = {
   places: NearbyPlace[];
   photoCache: Record<string, PhotoState>;
+  reservationsByPlaceId?: Record<string, Reservation[]>;
   onLoadPhotos: (place: Place) => Promise<void>;
   onOpenPhotos: (place: Place) => void;
+  onOpenReservations?: (place: Place, reservations: Reservation[]) => void;
   onEditPlace: (place: Place) => void;
   isEditing: boolean;
   categories: CategoryOption[];
@@ -23,8 +27,10 @@ type PlaceGalleryProps = {
 export function PlaceGallery({
   places,
   photoCache,
+  reservationsByPlaceId = {},
   onLoadPhotos,
   onOpenPhotos,
+  onOpenReservations,
   onEditPlace,
   isEditing,
   categories,
@@ -42,6 +48,7 @@ export function PlaceGallery({
   const activePhotoState = activePlace ? photoCache[activePlace.id] : undefined;
   const activePhotos = activePhotoState?.photos ?? [];
   const activePhoto = activePhotos[activePhotoIndex] ?? activePhotos[0] ?? null;
+  const activeReservations = activePlace ? reservationsByPlaceId[activePlace.id] ?? [] : [];
   const isActivePhotoVisible = Boolean(activePhoto && !failedPhotoUrls.has(activePhoto.url));
 
   useEffect(() => {
@@ -210,9 +217,18 @@ export function PlaceGallery({
 
           <div className="flex min-w-0 flex-col gap-2 border-t p-2.5 sm:gap-3 sm:p-4 lg:border-l lg:border-t-0">
             <div className="flex min-w-0 items-center justify-between gap-2">
-              <Badge variant="outline" className="rounded-full px-2 py-0.5 text-[10px] sm:text-xs">
-                {activePosition}
-              </Badge>
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                <Badge variant="outline" className="rounded-full px-2 py-0.5 text-[10px] sm:text-xs">
+                  {activePosition}
+                </Badge>
+                {onOpenReservations ? (
+                  <PlaceReservationBadge
+                    reservations={activeReservations}
+                    compact
+                    onOpen={() => onOpenReservations(activePlace, activeReservations)}
+                  />
+                ) : null}
+              </div>
               <div className="flex shrink-0 gap-1">
                 <Button
                   variant="outline"

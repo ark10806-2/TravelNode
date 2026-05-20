@@ -7,10 +7,13 @@ import { PlaceList, type PlaceListViewMode } from '@/components/place/PlaceList'
 import { PlacesPageDialogs } from '@/components/place/PlacesPageDialogs';
 import { SelectedPlacePanel } from '@/components/place/SelectedPlacePanel';
 import { TravelMap } from '@/components/place/TravelMap';
+import { ReservationDetailDialog } from '@/components/reservation/ReservationDetailDialog';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import { useReservations } from '@/hooks/useReservations';
 import type { TravelPlacesState } from '@/hooks/useTravelPlaces';
 import { toHotelDistancePlaces } from '@/lib/place-utils';
 import { hotelSchedulePlace } from '@/lib/schedule-utils';
+import type { Reservation } from '@/types/reservation';
 import type { CategoryId, NearbyPlace, PhotoState, Place } from '@/types/travel';
 
 const emptyPhotoState: PhotoState = {
@@ -65,6 +68,8 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
   const [isGoogleSyncDialogOpen, setIsGoogleSyncDialogOpen] = useState(false);
   const [mobilePlaceListViewMode, setMobilePlaceListViewMode] = useState<PlaceListViewMode>('table');
   const [placeListViewMode, setPlaceListViewMode] = useState<PlaceListViewMode>('table');
+  const [reservationTarget, setReservationTarget] = useState<{ place: Place; reservations: Reservation[] } | null>(null);
+  const { reservations } = useReservations(false);
   const [referencePlaceId, setReferencePlaceId] = usePersistedState<string | null>(
     placeReferenceStorageKey,
     null,
@@ -72,6 +77,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
   );
   const [isReferenceDialogOpen, setIsReferenceDialogOpen] = useState(false);
   const canModify = isEditing && canEdit;
+  const reservationsByPlaceId = useMemo(() => groupReservationsByPlaceId(reservations), [reservations]);
   const referencePlace = useMemo(
     () => (referencePlaceId ? places.find((place) => place.id === referencePlaceId) ?? hotelSchedulePlace : hotelSchedulePlace),
     [places, referencePlaceId]
@@ -105,6 +111,11 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
     },
     [loadPhotos]
   );
+
+  const openReservations = useCallback((place: Place, linkedReservations: Reservation[]) => {
+    if (!linkedReservations.length) return;
+    setReservationTarget({ place, reservations: linkedReservations });
+  }, []);
 
   useEffect(() => {
     if (!selectedPlace) return;
@@ -151,11 +162,13 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
             referencePlace={referencePlace}
             categories={categories}
             photoState={selectedPlace ? photoCache[selectedPlace.id] ?? emptyPhotoState : emptyPhotoState}
+            reservations={selectedPlace ? reservationsByPlaceId[selectedPlace.id] ?? [] : []}
             isEditing={canModify}
             movingCategoryPlaceId={movingCategoryPlaceId}
             onEditPlace={(place) => (canEdit ? setEditTarget(place) : onRequireAuth())}
             onMoveCategory={(place, categoryId) => (canEdit ? void movePlaceToCategory(place, categoryId) : onRequireAuth())}
             onOpenPhotos={openPhotoDialog}
+            onOpenReservations={openReservations}
           />
         </section>
 
@@ -179,6 +192,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
               isEditing={canModify}
               categories={categories}
               photoCache={photoCache}
+              reservationsByPlaceId={reservationsByPlaceId}
               onLoadPhotos={loadPhotos}
               onAdd={() => (canEdit ? setAddPlaceCategory(selectedCategoryId) : onRequireAuth())}
               onDelete={(place) => (canEdit ? void deletePlace(place) : onRequireAuth())}
@@ -186,6 +200,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
               deletingId={deletingId}
               movingCategoryPlaceId={movingCategoryPlaceId}
               onOpenPhotos={openPhotoDialog}
+              onOpenReservations={openReservations}
               onEditPlace={(place) => (canEdit ? setEditTarget(place) : onRequireAuth())}
               onSelectPlace={selectPlace}
             />
@@ -201,6 +216,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
               isEditing={canModify}
               categories={categories}
               photoCache={photoCache}
+              reservationsByPlaceId={reservationsByPlaceId}
               onLoadPhotos={loadPhotos}
               onAdd={() => (canEdit ? setAddPlaceCategory(selectedCategoryId) : onRequireAuth())}
               onDelete={(place) => (canEdit ? void deletePlace(place) : onRequireAuth())}
@@ -208,6 +224,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
               deletingId={deletingId}
               movingCategoryPlaceId={movingCategoryPlaceId}
               onOpenPhotos={openPhotoDialog}
+              onOpenReservations={openReservations}
               onEditPlace={(place) => (canEdit ? setEditTarget(place) : onRequireAuth())}
               selectedPlaceId={selectedPlace?.id ?? null}
               enableExpandedDetails={false}
@@ -250,6 +267,21 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
           onClose={() => setIsReferenceDialogOpen(false)}
         />
       ) : null}
+      {reservationTarget ? (
+        <ReservationDetailDialog
+          place={reservationTarget.place}
+          reservations={reservationTarget.reservations}
+          onClose={() => setReservationTarget(null)}
+        />
+      ) : null}
     </>
   );
+}
+
+function groupReservationsByPlaceId(reservations: Reservation[]) {
+  return reservations.reduce<Record<string, Reservation[]>>((groups, reservation) => {
+    if (!reservation.placeId) return groups;
+    groups[reservation.placeId] = [...(groups[reservation.placeId] ?? []), reservation];
+    return groups;
+  }, {});
 }

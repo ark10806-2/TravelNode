@@ -3,6 +3,7 @@ import { LayoutGrid, Plus, Table2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getCategoryOption } from '@/lib/place-utils';
+import type { Reservation } from '@/types/reservation';
 import type { CategoryId, CategoryOption, NearbyPlace, PhotoState, Place } from '@/types/travel';
 import { PlaceExpandableRow } from './PlaceExpandableRow';
 import { PlaceGallery } from './PlaceGallery';
@@ -19,6 +20,7 @@ type PlaceListProps = {
   isEditing: boolean;
   categories: CategoryOption[];
   photoCache: Record<string, PhotoState>;
+  reservationsByPlaceId?: Record<string, Reservation[]>;
   onLoadPhotos: (place: Place) => Promise<void>;
   onAdd: () => void;
   onDelete: (place: Place) => void;
@@ -26,6 +28,7 @@ type PlaceListProps = {
   deletingId: string | null;
   movingCategoryPlaceId: string | null;
   onOpenPhotos: (place: Place) => void;
+  onOpenReservations?: (place: Place, reservations: Reservation[]) => void;
   onEditPlace: (place: Place) => void;
   selectedPlaceId?: string | null;
   enableExpandedDetails?: boolean;
@@ -47,6 +50,7 @@ export function PlaceList({
   isEditing,
   categories,
   photoCache,
+  reservationsByPlaceId = {},
   onLoadPhotos,
   onAdd,
   onDelete,
@@ -54,6 +58,7 @@ export function PlaceList({
   deletingId,
   movingCategoryPlaceId,
   onOpenPhotos,
+  onOpenReservations,
   onEditPlace,
   selectedPlaceId = null,
   enableExpandedDetails = true,
@@ -95,8 +100,10 @@ export function PlaceList({
         <PlaceGallery
           places={places}
           photoCache={photoCache}
+          reservationsByPlaceId={reservationsByPlaceId}
           onLoadPhotos={onLoadPhotos}
           onOpenPhotos={onOpenPhotos}
+          onOpenReservations={onOpenReservations}
           onEditPlace={onEditPlace}
           isEditing={isEditing}
           categories={categories}
@@ -121,6 +128,7 @@ export function PlaceList({
                   referencePlace={referencePlace}
                   category={getCategoryOption(categories, place.category)}
                   photoState={photoCache[place.id] ?? emptyPhotoState}
+                  reservations={reservationsByPlaceId[place.id] ?? []}
                   isExpanded={enableExpandedDetails && expandedPlaceId === place.id}
                   isSelected={selectedPlaceId === place.id}
                   enableExpandedDetails={enableExpandedDetails}
@@ -132,6 +140,7 @@ export function PlaceList({
                   onToggle={togglePlace}
                   onSelect={onSelectPlace}
                   onOpenPhotos={onOpenPhotos}
+                  onOpenReservations={onOpenReservations}
                   onEditPlace={onEditPlace}
                   onDelete={onDelete}
                   onMoveCategory={onMoveCategory}

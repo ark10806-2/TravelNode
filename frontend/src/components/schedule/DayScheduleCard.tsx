@@ -2,10 +2,12 @@ import { useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, Building2, CalendarDays, Gauge, MapPinPlus, MapPinned, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
 import { AccommodationSelectorDialog } from '@/components/dialogs/AccommodationSelectorDialog';
 import { MarkdownInline } from '@/components/common/MarkdownText';
+import { PlaceReservationBadge } from '@/components/reservation/PlaceReservationBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getCategoryBadgeClass, getCategoryOption } from '@/lib/place-utils';
 import { formatDepartureTime, formatTravelDate, getScheduleHotelPlace, maxStopsPerDay, routeLegKey } from '@/lib/schedule-utils';
+import type { Reservation } from '@/types/reservation';
 import type { RouteLeg, RouteMode, ScheduleDay } from '@/types/schedule';
 import type { CategoryOption, PhotoState, Place } from '@/types/travel';
 import { DayRouteMapDialog } from './DayRouteMapDialog';
@@ -24,6 +26,7 @@ type DayScheduleCardProps = {
   routeCalculatedAtLabel?: string | null;
   canCalculatePreciseRoutes: boolean;
   photoCache: Record<string, PhotoState>;
+  reservationsByPlaceId: Record<string, Reservation[]>;
   isEditing: boolean;
   isDarkMode: boolean;
   onLoadPhotos: (place: Place, force?: boolean) => Promise<void>;
@@ -45,6 +48,7 @@ type DayScheduleCardProps = {
   onRefreshRoutes: () => void;
   onPreciseRoutes: () => void;
   onOpenPlaceDetails: (place: Place) => void;
+  onOpenReservations: (place: Place, reservations: Reservation[]) => void;
 };
 
 export function DayScheduleCard({
@@ -58,6 +62,7 @@ export function DayScheduleCard({
   routeCalculatedAtLabel,
   canCalculatePreciseRoutes,
   photoCache,
+  reservationsByPlaceId,
   isEditing,
   isDarkMode,
   onLoadPhotos,
@@ -78,7 +83,8 @@ export function DayScheduleCard({
   routeRefreshRemainingSeconds,
   onRefreshRoutes,
   onPreciseRoutes,
-  onOpenPlaceDetails
+  onOpenPlaceDetails,
+  onOpenReservations
 }: DayScheduleCardProps) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [isHotelPickerOpen, setIsHotelPickerOpen] = useState(false);
@@ -253,6 +259,7 @@ export function DayScheduleCard({
             <>
               {day.stops.map((stop, index) => {
                 const place = placesById.get(stop.placeId);
+                const placeReservations = place ? reservationsByPlaceId[place.id] ?? [] : [];
                 const previousStop = index > 0 ? day.stops[index - 1] : null;
                 const previousPlace = index > 0 ? placesById.get(day.stops[index - 1].placeId) : null;
                 const edgeFrom = previousPlace ?? hotelPlace;
@@ -290,6 +297,11 @@ export function DayScheduleCard({
                                 {getCategoryOption(categories, place.category).emoji}{' '}
                                 {getCategoryOption(categories, place.category).label}
                               </Badge>
+                              <PlaceReservationBadge
+                                reservations={placeReservations}
+                                compact
+                                onOpen={() => onOpenReservations(place, placeReservations)}
+                              />
                             </div>
                             <button
                               type="button"

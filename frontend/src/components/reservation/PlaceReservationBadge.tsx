@@ -1,0 +1,33 @@
+import { TicketCheck } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import type { Reservation } from '@/types/reservation';
+
+type PlaceReservationBadgeProps = {
+  reservations: Reservation[];
+  className?: string;
+  compact?: boolean;
+  onOpen: () => void;
+};
+
+export function PlaceReservationBadge({ reservations, className, compact = false, onOpen }: PlaceReservationBadgeProps) {
+  if (!reservations.length) return null;
+
+  return (
+    <button
+      type="button"
+      className={cn(
+        'inline-flex h-7 max-w-full items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-2.5 text-xs font-bold text-primary transition hover:border-primary/40 hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        compact && 'h-6 px-2 text-[11px]',
+        className
+      )}
+      onClick={(event) => {
+        event.stopPropagation();
+        onOpen();
+      }}
+    >
+      <TicketCheck className={cn('h-3.5 w-3.5 shrink-0', compact && 'h-3 w-3')} />
+      <span className="truncate">예약</span>
+      <span className="tabular-nums">{reservations.length}</span>
+    </button>
+  );
+}

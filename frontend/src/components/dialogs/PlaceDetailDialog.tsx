@@ -1,9 +1,11 @@
 import { ExternalLink, MapPin, Navigation } from 'lucide-react';
 import { MarkdownText } from '@/components/common/MarkdownText';
+import { PlaceReservationBadge } from '@/components/reservation/PlaceReservationBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { travelLabel } from '@/constants/travel';
 import { getCategoryBadgeClass, getCategoryOption, getPlaceInfoUrl } from '@/lib/place-utils';
+import type { Reservation } from '@/types/reservation';
 import type { CategoryOption, PhotoState, Place } from '@/types/travel';
 import { PhotoBundlePreview } from '@/components/place/PhotoBundlePreview';
 import { ModalFrame } from './ModalFrame';
@@ -12,11 +14,21 @@ type PlaceDetailDialogProps = {
   place: Place;
   categories: CategoryOption[];
   photoState: PhotoState;
+  reservations?: Reservation[];
   onClose: () => void;
   onOpenPhotos: (place: Place) => void;
+  onOpenReservations?: (place: Place, reservations: Reservation[]) => void;
 };
 
-export function PlaceDetailDialog({ place, categories, photoState, onClose, onOpenPhotos }: PlaceDetailDialogProps) {
+export function PlaceDetailDialog({
+  place,
+  categories,
+  photoState,
+  reservations = [],
+  onClose,
+  onOpenPhotos,
+  onOpenReservations
+}: PlaceDetailDialogProps) {
   const category = getCategoryOption(categories, place.category);
 
   return (
@@ -26,9 +38,18 @@ export function PlaceDetailDialog({ place, categories, photoState, onClose, onOp
       scroll
       onClose={onClose}
       eyebrow={
-        <Badge variant="outline" className={getCategoryBadgeClass(place.category)}>
-          {category.emoji} {category.label}
-        </Badge>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Badge variant="outline" className={getCategoryBadgeClass(place.category)}>
+            {category.emoji} {category.label}
+          </Badge>
+          {onOpenReservations ? (
+            <PlaceReservationBadge
+              reservations={reservations}
+              compact
+              onOpen={() => onOpenReservations(place, reservations)}
+            />
+          ) : null}
+        </div>
       }
     >
       <div className="grid gap-4 p-4 sm:p-5">
