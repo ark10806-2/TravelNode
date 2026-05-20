@@ -3,7 +3,6 @@ package com.example.japantrip
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.Timestamp
-import java.time.Duration
 import java.time.Instant
 import javax.sql.DataSource
 
@@ -112,20 +111,18 @@ class RouteCacheRepository(
   }
 
   private fun ResultSet.toRouteLeg(): RouteLegResponse {
-    val hasFixedTravelDate = getString("from_place_key")?.let(::hasFixedTravelDate) == true
     return RouteLegResponse(
-      driving = toModeLeg("driving", DrivingCacheTtl, hasFixedTravelDate),
-      transit = toModeLeg("transit", TransitCacheTtl, hasFixedTravelDate),
-      walking = toModeLeg("walking", WalkingCacheTtl, hasFixedTravelDate)
+      driving = toModeLeg("driving"),
+      transit = toModeLeg("transit"),
+      walking = toModeLeg("walking")
     )
   }
 
-  private fun ResultSet.toModeLeg(mode: String, ttl: Duration, hasFixedTravelDate: Boolean): RouteModeLegResponse? {
+  private fun ResultSet.toModeLeg(mode: String): RouteModeLegResponse? {
     val status = getString("${mode}_status") ?: return null
     if (status != "ready") return null
 
     val updatedAt = getTimestamp("${mode}_updated_at") ?: getTimestamp("updated_at") ?: return null
-    if (!hasFixedTravelDate && updatedAt.toInstant().isBefore(Instant.now().minus(ttl))) return null
 
     return RouteModeLegResponse(
       status = status,
@@ -139,14 +136,7 @@ class RouteCacheRepository(
   private fun RouteLegResponse.hasAnyMode() =
     driving != null || transit != null || walking != null
 
-  private fun hasFixedTravelDate(fromPlaceKey: String) =
-    DatedRouteKeyPattern.containsMatchIn(fromPlaceKey)
-
   private companion object {
     const val RouteCalculationVersion = 6
-    val DrivingCacheTtl: Duration = Duration.ofHours(6)
-    val TransitCacheTtl: Duration = Duration.ofHours(2)
-    val WalkingCacheTtl: Duration = Duration.ofDays(7)
-    val DatedRouteKeyPattern = Regex("(^|:)d\\d{8}(:|$)")
   }
 }
