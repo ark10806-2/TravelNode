@@ -6,6 +6,12 @@ const authTokenKey = 'japan-trip-auth-token';
 export type AuthSession = {
   token: string;
   expiresAt: string;
+  username: string;
+};
+
+export type AuthSessionStatus = {
+  authenticated: boolean;
+  username: string;
 };
 
 export function getAuthToken() {
@@ -25,11 +31,11 @@ export function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-export async function login(password: string) {
+export async function login(username: string, password: string) {
   const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password })
+    body: JSON.stringify({ username, password })
   });
   return readData<AuthSession>(response, '로그인하지 못했습니다.');
 }
@@ -38,7 +44,8 @@ export async function verifySession() {
   const response = await fetch(`${apiBaseUrl}/api/auth/session`, {
     headers: authHeaders()
   });
-  return response.ok;
+  if (!response.ok) return null;
+  return readData<AuthSessionStatus>(response, '세션을 확인하지 못했습니다.');
 }
 
 export async function changePassword(currentPassword: string, newPassword: string) {

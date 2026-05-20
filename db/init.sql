@@ -198,11 +198,21 @@ CREATE TABLE IF NOT EXISTS app_auth (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS app_users (
+  username text PRIMARY KEY,
+  password_hash text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS auth_sessions (
   token text PRIMARY KEY,
+  username text NOT NULL REFERENCES app_users(username) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT now(),
   expires_at timestamptz NOT NULL
 );
+
+ALTER TABLE auth_sessions ADD COLUMN IF NOT EXISTS username text REFERENCES app_users(username) ON DELETE CASCADE;
 
 CREATE TABLE IF NOT EXISTS reservations (
   id text PRIMARY KEY,
@@ -287,6 +297,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS restaurants_google_sync_key_idx
   WHERE google_sync_key IS NOT NULL;
 CREATE INDEX IF NOT EXISTS restaurant_photos_restaurant_idx ON restaurant_photos (restaurant_id, sort_order);
 CREATE INDEX IF NOT EXISTS auth_sessions_expires_at_idx ON auth_sessions (expires_at);
+CREATE INDEX IF NOT EXISTS auth_sessions_username_idx ON auth_sessions (username);
 CREATE INDEX IF NOT EXISTS categories_sort_order_idx ON categories (sort_order, label);
 CREATE INDEX IF NOT EXISTS schedule_days_sort_order_idx ON schedule_days (sort_order);
 CREATE INDEX IF NOT EXISTS schedule_stops_day_sort_order_idx ON schedule_stops (day_id, sort_order);

@@ -11,6 +11,8 @@ import io.ktor.server.routing.route
 fun Route.scheduleRoutes(repository: ScheduleRepository, authRepository: AuthRepository) {
   route("/api/schedule") {
     get {
+      if (!call.requireAuth(authRepository)) return@get
+
       call.respond(DataResponse(repository.findAll()))
     }
 

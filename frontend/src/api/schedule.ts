@@ -4,7 +4,9 @@ import { readData } from './client';
 import type { ScheduleDay } from '@/types/schedule';
 
 export async function fetchSchedule() {
-  const response = await fetch(`${apiBaseUrl}/api/schedule`);
+  const response = await fetch(`${apiBaseUrl}/api/schedule`, {
+    headers: authHeaders()
+  });
   return readData<ScheduleDay[]>(response, '일정을 불러오지 못했습니다.');
 }
 

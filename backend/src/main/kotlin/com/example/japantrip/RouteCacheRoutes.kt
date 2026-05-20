@@ -8,9 +8,11 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 
-fun Route.routeCacheRoutes(repository: RouteCacheRepository) {
+fun Route.routeCacheRoutes(repository: RouteCacheRepository, authRepository: AuthRepository) {
   route("/api/route-cache") {
     get("{fromPlaceId}/{toPlaceId}") {
+      if (!call.requireAuth(authRepository)) return@get
+
       val fromPlaceId = call.parameters["fromPlaceId"]
       val toPlaceId = call.parameters["toPlaceId"]
       val errors = listOfNotNull(
@@ -33,6 +35,8 @@ fun Route.routeCacheRoutes(repository: RouteCacheRepository) {
     }
 
     post {
+      if (!call.requireAuth(authRepository)) return@post
+
       val request = call.receive<RouteCacheRequest>()
       val errors = request.validate()
 

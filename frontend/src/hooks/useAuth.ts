@@ -10,37 +10,56 @@ import {
 
 export function useAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState(Boolean(getAuthToken()));
+  const [username, setUsername] = useState('');
+  const [isCheckingSession, setIsCheckingSession] = useState(Boolean(getAuthToken()));
 
   useEffect(() => {
     if (!getAuthToken()) return;
 
-    void verifySession().then((valid) => {
-      if (!valid) {
+    void verifySession()
+      .then((session) => {
+        if (!session) {
+          clearAuthToken();
+          setIsAuthenticated(false);
+          setUsername('');
+          return;
+        }
+
+        setIsAuthenticated(true);
+        setUsername(session.username);
+      })
+      .catch(() => {
         clearAuthToken();
         setIsAuthenticated(false);
-      }
-    });
+        setUsername('');
+      })
+      .finally(() => setIsCheckingSession(false));
   }, []);
 
-  async function login(password: string) {
-    const session = await loginRequest(password);
+  async function login(username: string, password: string) {
+    const session = await loginRequest(username, password);
     setAuthToken(session.token);
     setIsAuthenticated(true);
+    setUsername(session.username);
   }
 
   function logout() {
     clearAuthToken();
     setIsAuthenticated(false);
+    setUsername('');
   }
 
   async function changePassword(currentPassword: string, newPassword: string) {
     const session = await changePasswordRequest(currentPassword, newPassword);
     setAuthToken(session.token);
     setIsAuthenticated(true);
+    setUsername(session.username);
   }
 
   return {
     isAuthenticated,
+    isCheckingSession,
+    username,
     login,
     logout,
     changePassword

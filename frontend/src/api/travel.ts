@@ -13,7 +13,9 @@ import type {
 } from '@/types/travel';
 
 export async function fetchCategories() {
-  const response = await fetch(`${apiBaseUrl}/api/categories`);
+  const response = await fetch(`${apiBaseUrl}/api/categories`, {
+    headers: authHeaders()
+  });
   return readData<CategoryOption[]>(response, '카테고리 목록을 불러오지 못했습니다.');
 }
 
@@ -39,7 +41,9 @@ export async function deleteCategory(categoryId: CategoryId) {
 }
 
 export async function fetchPlaces() {
-  const response = await fetch(`${apiBaseUrl}/api/restaurants`);
+  const response = await fetch(`${apiBaseUrl}/api/restaurants`, {
+    headers: authHeaders()
+  });
   return readData<Place[]>(response, '장소 목록을 불러오지 못했습니다.');
 }
 
@@ -115,6 +119,8 @@ export async function deletePlace(placeId: string) {
 }
 
 export async function fetchPlacePhotos(placeId: string) {
-  const response = await fetch(`${apiBaseUrl}/api/restaurants/${placeId}/photos`);
+  const response = await fetch(`${apiBaseUrl}/api/restaurants/${placeId}/photos`, {
+    headers: authHeaders()
+  });
   return readData<PlacePhoto[]>(response, '사진을 불러오지 못했습니다.');
 }

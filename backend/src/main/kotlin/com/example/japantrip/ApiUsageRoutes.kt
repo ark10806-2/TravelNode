@@ -12,10 +12,14 @@ import io.ktor.server.routing.route
 fun Route.apiUsageRoutes(repository: ApiUsageRepository, authRepository: AuthRepository) {
   route("/api/api-usage") {
     get {
+      if (!call.requireAuth(authRepository)) return@get
+
       call.respond(DataResponse(repository.summary()))
     }
 
     post("events") {
+      if (!call.requireAuth(authRepository)) return@post
+
       val request = call.receive<ApiUsageEventRequest>()
       val errors = listOfNotNull(repository.validateServiceId(request.serviceId)) + repository.validateEvent(request)
 

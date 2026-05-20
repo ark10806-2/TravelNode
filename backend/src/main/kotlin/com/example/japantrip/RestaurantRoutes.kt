@@ -28,6 +28,8 @@ fun Route.restaurantRoutes(
 ) {
   route("/api/restaurants") {
     get {
+      if (!call.requireAuth(authRepository)) return@get
+
       val category = call.request.queryParameters["category"]
       val travelMode = call.request.queryParameters["travelMode"]
       val errors = validateFilters(category, travelMode)
@@ -118,6 +120,8 @@ fun Route.restaurantRoutes(
     }
 
     get("{id}/photos") {
+      if (!call.requireAuth(authRepository)) return@get
+
       val id = call.parameters["id"]
       val idError = validateUuid(id)
       if (idError != null) {

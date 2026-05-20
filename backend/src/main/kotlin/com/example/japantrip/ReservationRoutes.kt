@@ -11,6 +11,8 @@ import io.ktor.server.routing.route
 fun Route.reservationRoutes(repository: ReservationRepository, authRepository: AuthRepository) {
   route("/api/reservations") {
     get {
+      if (!call.requireAuth(authRepository)) return@get
+
       call.respond(DataResponse(repository.findAll()))
     }
 

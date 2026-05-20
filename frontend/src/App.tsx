@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import { fetchReservations } from '@/api/reservations';
 import { fetchSchedule } from '@/api/schedule';
 import { fetchTodos } from '@/api/todos';
 import { fetchCategories, fetchPlacePhotos, fetchPlaces } from '@/api/travel';
+import { LoginPage } from '@/components/auth/LoginPage';
 import { AuthDialog } from '@/components/dialogs/AuthDialog';
 import { TripBookletDialog, type TripBookletSnapshot } from '@/components/export/TripBookletDialog';
 import { AppTabs } from '@/components/layout/AppTabs';
@@ -25,47 +27,35 @@ function isAppTab(value: unknown): value is AppTab {
 }
 
 function App() {
-  const travelPlaces = useTravelPlaces();
   const auth = useAuth();
+
+  if (auth.isCheckingSession) {
+    return <AuthLoadingPage />;
+  }
+
+  if (!auth.isAuthenticated) {
+    return <LoginPage onLogin={auth.login} />;
+  }
+
+  return <AuthenticatedApp auth={auth} />;
+}
+
+function AuthenticatedApp({ auth }: { auth: ReturnType<typeof useAuth> }) {
+  const travelPlaces = useTravelPlaces();
   const { theme, resolvedTheme, setTheme } = useTheme();
   const [activeTab, setActiveTab] = usePersistedState<AppTab>(activeTabStorageKey, 'places', isAppTab);
-  const [authDialogMode, setAuthDialogMode] = useState<'login' | 'change' | null>(null);
+  const [authDialogMode, setAuthDialogMode] = useState<'change' | null>(null);
   const [bookletSnapshot, setBookletSnapshot] = useState<TripBookletSnapshot | null>(null);
   const [bookletPhotoCache, setBookletPhotoCache] = useState<Record<string, PhotoState>>({});
   const [isBookletLoading, setIsBookletLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editAfterLogin, setEditAfterLogin] = useState(false);
-
-  useEffect(() => {
-    if (!auth.isAuthenticated) setIsEditing(false);
-  }, [auth.isAuthenticated]);
 
   function toggleEditMode() {
-    if (isEditing) {
-      setIsEditing(false);
-      return;
-    }
-
-    if (!auth.isAuthenticated) {
-      setEditAfterLogin(true);
-      setAuthDialogMode('login');
-      return;
-    }
-
-    setIsEditing(true);
+    setIsEditing((current) => !current);
   }
 
   function closeAuthDialog() {
-    if (authDialogMode === 'login') setEditAfterLogin(false);
     setAuthDialogMode(null);
-  }
-
-  async function login(password: string) {
-    await auth.login(password);
-    if (editAfterLogin) {
-      setIsEditing(true);
-      setEditAfterLogin(false);
-    }
   }
 
   function logout() {
@@ -123,7 +113,7 @@ function App() {
           canEdit={auth.isAuthenticated}
           isEditing={isEditing}
           isDarkMode={resolvedTheme === 'dark'}
-          onRequireAuth={() => setAuthDialogMode('login')}
+          onRequireAuth={auth.logout}
         />
       ) : null}
       {activeTab === 'schedule' ? (
@@ -144,7 +134,7 @@ function App() {
           isEditing={isEditing}
           photoCache={travelPlaces.photoCache}
           onLoadPhotos={travelPlaces.loadPhotos}
-          onRequireAuth={() => setAuthDialogMode('login')}
+          onRequireAuth={auth.logout}
         />
       ) : null}
       {activeTab === 'todo' ? <TodoPage isEditing={isEditing} /> : null}
@@ -156,7 +146,7 @@ function App() {
         <AuthDialog
           mode={authDialogMode}
           onClose={closeAuthDialog}
-          onLogin={login}
+          onLogin={auth.login}
           onChangePassword={auth.changePassword}
         />
       ) : null}
@@ -167,6 +157,17 @@ function App() {
           onClose={() => setBookletSnapshot(null)}
         />
       ) : null}
+    </main>
+  );
+}
+
+function AuthLoadingPage() {
+  return (
+    <main className="app-background grid min-h-[100dvh] place-items-center">
+      <div className="grid justify-items-center gap-3 rounded-2xl border bg-background/90 px-6 py-5 text-sm font-semibold text-muted-foreground shadow-xl shadow-black/10 backdrop-blur">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        세션 확인 중
+      </div>
     </main>
   );
 }

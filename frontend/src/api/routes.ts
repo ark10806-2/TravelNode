@@ -1,11 +1,14 @@
 import { apiBaseUrl } from '@/config/env';
+import { authHeaders } from '@/api/auth';
 import { readData } from './client';
 import type { RouteLeg, RouteMode } from '@/types/schedule';
 
 export async function fetchCachedRouteLeg(fromPlaceId: string, toPlaceId: string) {
   const fromKey = encodeURIComponent(fromPlaceId);
   const toKey = encodeURIComponent(toPlaceId);
-  const response = await fetch(`${apiBaseUrl}/api/route-cache/${fromKey}/${toKey}`);
+  const response = await fetch(`${apiBaseUrl}/api/route-cache/${fromKey}/${toKey}`, {
+    headers: authHeaders()
+  });
 
   if (response.status === 404) return null;
 
@@ -15,7 +18,7 @@ export async function fetchCachedRouteLeg(fromPlaceId: string, toPlaceId: string
 export async function saveRouteLegCache(fromPlaceId: string, toPlaceId: string, leg: RouteLeg) {
   const response = await fetch(`${apiBaseUrl}/api/route-cache`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ fromPlaceId, toPlaceId, ...toRouteLegCachePayload(leg) })
   });
 

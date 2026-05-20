@@ -7,11 +7,12 @@ import { ModalFrame } from './ModalFrame';
 type AuthDialogProps = {
   mode: 'login' | 'change';
   onClose: () => void;
-  onLogin: (password: string) => Promise<void>;
+  onLogin: (username: string, password: string) => Promise<void>;
   onChangePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 };
 
 export function AuthDialog({ mode, onClose, onLogin, onChangePassword }: AuthDialogProps) {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -26,7 +27,7 @@ export function AuthDialog({ mode, onClose, onLogin, onChangePassword }: AuthDia
 
     try {
       if (isLogin) {
-        await onLogin(password);
+        await onLogin(username, password);
       } else {
         if (newPassword !== confirmPassword) throw new Error('새 비밀번호가 서로 다릅니다.');
         await onChangePassword(currentPassword, newPassword);
@@ -40,19 +41,32 @@ export function AuthDialog({ mode, onClose, onLogin, onChangePassword }: AuthDia
   }
 
   return (
-    <ModalFrame title={isLogin ? '편집 잠금 해제' : '비밀번호 변경'} maxWidth="max-w-md" onClose={onClose}>
+    <ModalFrame title={isLogin ? '로그인' : '비밀번호 변경'} maxWidth="max-w-md" onClose={onClose}>
       <div className="grid gap-4 p-5">
         {isLogin ? (
-          <label className="grid gap-2 text-sm font-semibold">
-            비밀번호
-            <input
-              className={inputClass}
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              autoFocus
-            />
-          </label>
+          <>
+            <label className="grid gap-2 text-sm font-semibold">
+              ID
+              <input
+                className={inputClass}
+                type="text"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                autoComplete="username"
+                autoFocus
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold">
+              비밀번호
+              <input
+                className={inputClass}
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                autoComplete="current-password"
+              />
+            </label>
+          </>
         ) : (
           <>
             <label className="grid gap-2 text-sm font-semibold">
@@ -100,11 +114,11 @@ export function AuthDialog({ mode, onClose, onLogin, onChangePassword }: AuthDia
             onClick={submit}
             disabled={
               isSaving ||
-              (isLogin ? !password : !currentPassword || !newPassword || !confirmPassword || newPassword.length < 4)
+              (isLogin ? !username.trim() || !password : !currentPassword || !newPassword || !confirmPassword || newPassword.length < 4)
             }
           >
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
-            {isLogin ? '해제' : '변경'}
+            {isLogin ? '로그인' : '변경'}
           </Button>
         </div>
       </div>

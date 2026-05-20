@@ -8,7 +8,9 @@ export type ReservationSaveScope = {
 };
 
 export async function fetchReservations() {
-  const response = await fetch(`${apiBaseUrl}/api/reservations`);
+  const response = await fetch(`${apiBaseUrl}/api/reservations`, {
+    headers: authHeaders()
+  });
   return readData<Reservation[]>(response, '예약/티켓을 불러오지 못했습니다.');
 }
 

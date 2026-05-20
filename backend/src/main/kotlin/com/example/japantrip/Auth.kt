@@ -12,6 +12,7 @@ import javax.crypto.spec.PBEKeySpec
 import javax.sql.DataSource
 
 data class AuthLoginRequest(
+  val username: String? = null,
   val password: String? = null
 )
 
@@ -22,85 +23,125 @@ data class AuthChangePasswordRequest(
 
 data class AuthSessionResponse(
   val token: String,
-  val expiresAt: OffsetDateTime
+  val expiresAt: OffsetDateTime,
+  val username: String
+)
+
+private data class InitialAuthUser(
+  val username: String,
+  val passwordHash: String
 )
 
 class AuthRepository(
-  private val dataSource: DataSource,
-  private val initialPassword: String = System.getenv("APP_INITIAL_PASSWORD") ?: "1234"
+  private val dataSource: DataSource
 ) {
   private val secureRandom = SecureRandom()
+  private val initialUsers = listOf(
+    InitialAuthUser(
+      username = "seungchan",
+      passwordHash = "120000:sWbYK9Jpj9Xg4lu3lSH5qA==:sqN0uLD8kRoosbP4Rnd+V6IHyNMgNNQoFwpY/iZzlBU="
+    ),
+    InitialAuthUser(
+      username = "boyoung",
+      passwordHash = "120000:GI38uNn/jPnAeQcsInLXFg==:tBS2keYk+xjgL0uvrlt9qO2lPwYq6dQdC8BOQkzkP2s="
+    )
+  )
 
   fun ensureInitialized() {
     dataSource.connection.use { connection ->
-      connection.prepareStatement("SELECT password_hash FROM app_auth WHERE id = true").use { statement ->
-        statement.executeQuery().use { rows ->
-          if (rows.next()) return
+      connection.prepareStatement(
+        """
+        INSERT INTO app_users (username, password_hash)
+        VALUES (?, ?)
+        ON CONFLICT (username) DO NOTHING
+        """.trimIndent()
+      ).use { statement ->
+        initialUsers.forEach { user ->
+          statement.setString(1, user.username)
+          statement.setString(2, user.passwordHash)
+          statement.addBatch()
         }
+        statement.executeBatch()
       }
-
-      connection.prepareStatement("INSERT INTO app_auth (id, password_hash) VALUES (true, ?)").use { statement ->
-        statement.setString(1, hashPassword(initialPassword))
+      connection.prepareStatement("DELETE FROM auth_sessions WHERE username IS NULL").use { statement ->
         statement.executeUpdate()
       }
     }
   }
 
-  fun createSession(password: String): AuthSessionResponse? {
-    if (!verifyPassword(password)) return null
+  fun createSession(username: String, password: String): AuthSessionResponse? {
+    val normalizedUsername = normalizeUsername(username)
+    if (!verifyPassword(normalizedUsername, password)) return null
 
     val token = generateToken()
     val expiresAt = OffsetDateTime.now().plusDays(30)
 
     cleanupExpiredSessions()
     dataSource.connection.use { connection ->
-      connection.prepareStatement("INSERT INTO auth_sessions (token, expires_at) VALUES (?, ?)").use { statement ->
+      connection.prepareStatement("INSERT INTO auth_sessions (token, username, expires_at) VALUES (?, ?, ?)").use { statement ->
         statement.setString(1, token)
-        statement.setObject(2, expiresAt)
+        statement.setString(2, normalizedUsername)
+        statement.setObject(3, expiresAt)
         statement.executeUpdate()
       }
     }
 
-    return AuthSessionResponse(token, expiresAt)
+    return AuthSessionResponse(token, expiresAt, normalizedUsername)
   }
 
   fun isValidToken(token: String?): Boolean {
-    if (token.isNullOrBlank()) return false
+    return usernameForToken(token) != null
+  }
 
+  fun usernameForToken(token: String?): String? {
+    if (token.isNullOrBlank()) return null
     cleanupExpiredSessions()
+
     dataSource.connection.use { connection ->
-      connection.prepareStatement("SELECT 1 FROM auth_sessions WHERE token = ? AND expires_at > now()").use { statement ->
+      connection.prepareStatement(
+        """
+        SELECT username
+        FROM auth_sessions
+        WHERE token = ?
+          AND username IS NOT NULL
+          AND expires_at > now()
+        """.trimIndent()
+      ).use { statement ->
         statement.setString(1, token)
         statement.executeQuery().use { rows ->
-          return rows.next()
+          return if (rows.next()) rows.getString("username") else null
         }
       }
     }
   }
 
-  fun changePassword(currentPassword: String, newPassword: String): AuthSessionResponse? {
-    if (!verifyPassword(currentPassword)) return null
+  fun changePassword(token: String?, currentPassword: String, newPassword: String): AuthSessionResponse? {
+    val username = usernameForToken(token) ?: return null
+    if (!verifyPassword(username, currentPassword)) return null
 
     dataSource.connection.use { connection ->
       connection.autoCommit = false
       try {
-        connection.prepareStatement("UPDATE app_auth SET password_hash = ?, updated_at = now() WHERE id = true").use { statement ->
+        connection.prepareStatement("UPDATE app_users SET password_hash = ?, updated_at = now() WHERE username = ?").use { statement ->
           statement.setString(1, hashPassword(newPassword))
+          statement.setString(2, username)
           statement.executeUpdate()
         }
-        connection.prepareStatement("DELETE FROM auth_sessions").use { statement ->
+        connection.prepareStatement("DELETE FROM auth_sessions WHERE username = ?").use { statement ->
+          statement.setString(1, username)
           statement.executeUpdate()
         }
 
         val token = generateToken()
         val expiresAt = OffsetDateTime.now().plusDays(30)
-        connection.prepareStatement("INSERT INTO auth_sessions (token, expires_at) VALUES (?, ?)").use { statement ->
+        connection.prepareStatement("INSERT INTO auth_sessions (token, username, expires_at) VALUES (?, ?, ?)").use { statement ->
           statement.setString(1, token)
-          statement.setObject(2, expiresAt)
+          statement.setString(2, username)
+          statement.setObject(3, expiresAt)
           statement.executeUpdate()
         }
         connection.commit()
-        return AuthSessionResponse(token, expiresAt)
+        return AuthSessionResponse(token, expiresAt, username)
       } catch (cause: Exception) {
         connection.rollback()
         throw cause
@@ -110,9 +151,10 @@ class AuthRepository(
     }
   }
 
-  private fun verifyPassword(password: String): Boolean {
+  private fun verifyPassword(username: String, password: String): Boolean {
     val storedHash = dataSource.connection.use { connection ->
-      connection.prepareStatement("SELECT password_hash FROM app_auth WHERE id = true").use { statement ->
+      connection.prepareStatement("SELECT password_hash FROM app_users WHERE username = ?").use { statement ->
+        statement.setString(1, username)
         statement.executeQuery().use { rows ->
           if (rows.next()) rows.getString("password_hash") else null
         }
@@ -161,16 +203,22 @@ class AuthRepository(
       }
     }
   }
+
+  private fun normalizeUsername(username: String): String = username.trim().lowercase()
 }
 
 suspend fun ApplicationCall.requireAuth(authRepository: AuthRepository): Boolean {
-  val token = request.headers[HttpHeaders.Authorization]
-    ?.removePrefix("Bearer")
-    ?.trim()
-    ?.takeIf(String::isNotBlank)
+  val token = bearerToken()
 
   if (authRepository.isValidToken(token)) return true
 
   respondError(HttpStatusCode.Unauthorized, "authentication required")
   return false
+}
+
+fun ApplicationCall.bearerToken(): String? {
+  return request.headers[HttpHeaders.Authorization]
+    ?.removePrefix("Bearer")
+    ?.trim()
+    ?.takeIf(String::isNotBlank)
 }

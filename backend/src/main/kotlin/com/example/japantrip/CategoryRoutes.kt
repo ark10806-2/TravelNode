@@ -12,6 +12,8 @@ import io.ktor.server.routing.route
 fun Route.categoryRoutes(categoryRepository: CategoryRepository, authRepository: AuthRepository) {
   route("/api/categories") {
     get {
+      if (!call.requireAuth(authRepository)) return@get
+
       call.respond(DataResponse(categoryRepository.findAll()))
     }
 

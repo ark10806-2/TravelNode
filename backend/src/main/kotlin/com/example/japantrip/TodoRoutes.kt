@@ -11,6 +11,8 @@ import io.ktor.server.routing.route
 fun Route.todoRoutes(repository: TodoRepository, authRepository: AuthRepository) {
   route("/api/todos") {
     get {
+      if (!call.requireAuth(authRepository)) return@get
+
       call.respond(DataResponse(repository.findAll()))
     }
 

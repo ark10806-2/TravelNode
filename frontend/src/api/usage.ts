@@ -43,7 +43,9 @@ export type ApiUsageSummary = {
 };
 
 export async function fetchApiUsage() {
-  const response = await fetch(`${apiBaseUrl}/api/api-usage`);
+  const response = await fetch(`${apiBaseUrl}/api/api-usage`, {
+    headers: authHeaders()
+  });
   return readData<ApiUsageSummary>(response, 'API 사용량을 불러오지 못했습니다.');
 }
 
@@ -54,7 +56,7 @@ export async function recordApiUsage(
 ) {
   const response = await fetch(`${apiBaseUrl}/api/api-usage/events`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ serviceId, count, ...metrics })
   });
 
