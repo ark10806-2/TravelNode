@@ -10,7 +10,8 @@ data class ReservationResponse(
   val referenceNumber: String = "",
   val linkUrl: String = "",
   val notes: String = "",
-  val attachments: List<ReservationAttachmentResponse> = emptyList()
+  val attachments: List<ReservationAttachmentResponse> = emptyList(),
+  val completed: Boolean = false
 )
 
 data class ReservationSaveRequest(
@@ -28,7 +29,8 @@ data class ReservationRequest(
   val referenceNumber: String? = "",
   val linkUrl: String? = "",
   val notes: String? = "",
-  val attachments: List<ReservationAttachmentRequest>? = emptyList()
+  val attachments: List<ReservationAttachmentRequest>? = emptyList(),
+  val completed: Boolean? = false
 )
 
 data class ReservationAttachmentResponse(

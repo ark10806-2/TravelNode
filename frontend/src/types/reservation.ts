@@ -11,6 +11,7 @@ export type Reservation = {
   linkUrl: string;
   notes: string;
   attachments: ReservationAttachment[];
+  completed: boolean;
 };
 
 export type ReservationAttachment = {

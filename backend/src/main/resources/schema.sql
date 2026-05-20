@@ -288,12 +288,14 @@ CREATE TABLE IF NOT EXISTS reservations (
   link_url text NOT NULL DEFAULT '',
   notes text NOT NULL DEFAULT '',
   attachments jsonb NOT NULL DEFAULT '[]'::jsonb,
+  completed boolean NOT NULL DEFAULT false,
   sort_order integer NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 ALTER TABLE reservations ADD COLUMN IF NOT EXISTS attachments jsonb NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE reservations ADD COLUMN IF NOT EXISTS completed boolean NOT NULL DEFAULT false;
 
 CREATE TABLE IF NOT EXISTS api_usage_daily (
   usage_date date NOT NULL,

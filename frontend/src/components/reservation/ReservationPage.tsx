@@ -1,7 +1,8 @@
-import { FormEvent, useEffect, useMemo, useState, type DragEvent, type ReactNode } from 'react';
+import { FormEvent, useEffect, useMemo, useState, type CSSProperties, type DragEvent, type ReactNode } from 'react';
 import {
   CalendarClock,
   ChevronDown,
+  CheckCircle2,
   DownloadCloud,
   ExternalLink,
   FileText,
@@ -11,6 +12,8 @@ import {
   Pencil,
   Plus,
   ReceiptText,
+  RotateCcw,
+  Sparkles,
   TicketCheck,
   TrainFront,
   Trash2,
@@ -58,7 +61,8 @@ const emptyDraft: ReservationDraft = {
   referenceNumber: '',
   linkUrl: '',
   notes: '',
-  attachments: []
+  attachments: [],
+  completed: false
 };
 
 const maxReservationAttachmentBytes = 5 * 1024 * 1024;
@@ -92,17 +96,74 @@ function formatReservationDayLabel(dayIndex: number | null, scheduleDays: Schedu
   return travelDate ? `${dayLabel} · ${formatTravelDate(travelDate)}` : dayLabel;
 }
 
+function sortReservationsBySchedule(reservations: Reservation[], scheduleDays: ScheduleDay[]) {
+  return [...reservations].sort((left, right) => {
+    if (left.completed !== right.completed) return left.completed ? 1 : -1;
+
+    const leftKey = reservationSortKey(left, scheduleDays);
+    const rightKey = reservationSortKey(right, scheduleDays);
+    return (
+      leftKey.dayOrder - rightKey.dayOrder ||
+      leftKey.timeMinutes - rightKey.timeMinutes ||
+      left.title.localeCompare(right.title, 'ko') ||
+      left.id.localeCompare(right.id)
+    );
+  });
+}
+
+function reservationSortKey(reservation: Reservation, scheduleDays: ScheduleDay[]) {
+  const dayOrder = reservation.dayIndex == null ? Number.MAX_SAFE_INTEGER : reservation.dayIndex;
+  return {
+    dayOrder,
+    timeMinutes: parseReservationTimeMinutes(reservation.timeLabel)
+  };
+}
+
+function parseReservationTimeMinutes(value: string) {
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  if (!normalized) return Number.MAX_SAFE_INTEGER;
+
+  const koreanMatch = normalized.match(/(오전|오후)\s*([0-9]{1,2})(?::([0-9]{2}))?/);
+  if (koreanMatch) {
+    let hour = Number(koreanMatch[2]);
+    const minute = Number(koreanMatch[3] ?? 0);
+    if (koreanMatch[1] === '오전' && hour === 12) hour = 0;
+    if (koreanMatch[1] === '오후' && hour < 12) hour += 12;
+    return hour * 60 + minute;
+  }
+
+  const amPmMatch = normalized.match(/\b([0-9]{1,2})(?::([0-9]{2}))?\s*(AM|PM)\b/i);
+  if (amPmMatch) {
+    let hour = Number(amPmMatch[1]);
+    const minute = Number(amPmMatch[2] ?? 0);
+    const period = amPmMatch[3].toUpperCase();
+    if (period === 'AM' && hour === 12) hour = 0;
+    if (period === 'PM' && hour < 12) hour += 12;
+    return hour * 60 + minute;
+  }
+
+  const timeMatch = normalized.match(/\b([01]?[0-9]|2[0-3]):([0-5][0-9])\b/);
+  if (timeMatch) return Number(timeMatch[1]) * 60 + Number(timeMatch[2]);
+
+  return Number.MAX_SAFE_INTEGER;
+}
+
 export function ReservationPage({ categories, places, isEditing, photoCache, onLoadPhotos }: ReservationPageProps) {
   const [scheduleDays, setScheduleDays] = useState<ScheduleDay[]>([]);
   const [editingReservationId, setEditingReservationId] = useState<string | null>(null);
   const [isGoogleImportOpen, setIsGoogleImportOpen] = useState(false);
   const [detailTarget, setDetailTarget] = useState<Place | null>(null);
   const [photoTarget, setPhotoTarget] = useState<Place | null>(null);
-  const { reservations, status, error, isSaving, addReservation, addReservations, updateReservation, removeReservation } =
+  const [celebrationTitle, setCelebrationTitle] = useState('');
+  const { reservations, status, error, isSaving, addReservation, addReservations, updateReservation, setReservationCompleted, removeReservation } =
     useReservations(isEditing);
   const placesById = useMemo(() => new Map(places.map((place) => [place.id, place])), [places]);
   const currentDetailTarget = detailTarget ? placesById.get(detailTarget.id) ?? detailTarget : null;
   const currentPhotoTarget = photoTarget ? placesById.get(photoTarget.id) ?? photoTarget : null;
+  const sortedReservations = useMemo(
+    () => sortReservationsBySchedule(reservations, scheduleDays),
+    [reservations, scheduleDays]
+  );
   const dayCount = Math.max(
     scheduleDays.length,
     ...reservations.map((reservation) => (reservation.dayIndex == null ? 0 : reservation.dayIndex + 1)),
@@ -130,6 +191,13 @@ export function ReservationPage({ categories, places, isEditing, photoCache, onL
   function openDetails(place: Place) {
     setDetailTarget(place);
     void onLoadPhotos(place);
+  }
+
+  function completeReservation(reservation: Reservation, completed: boolean) {
+    setReservationCompleted(reservation.id, completed);
+    if (completed) {
+      setCelebrationTitle(reservation.title);
+    }
   }
 
   function openPhotos(place: Place) {
@@ -207,9 +275,9 @@ export function ReservationPage({ categories, places, isEditing, photoCache, onL
           </Badge>
         </div>
 
-        {reservations.length ? (
+        {sortedReservations.length ? (
           <div className="grid gap-4 lg:grid-cols-2">
-            {reservations.map((reservation) => {
+            {sortedReservations.map((reservation) => {
               const place = reservation.placeId ? placesById.get(reservation.placeId) ?? null : null;
               const isEditingThis = editingReservationId === reservation.id;
 
@@ -231,6 +299,7 @@ export function ReservationPage({ categories, places, isEditing, photoCache, onL
                     updateReservation(reservation.id, draft);
                     setEditingReservationId(null);
                   }}
+                  onSetCompleted={(completed) => completeReservation(reservation, completed)}
                   onRemove={() => removeReservation(reservation.id)}
                 />
               );
@@ -276,6 +345,9 @@ export function ReservationPage({ categories, places, isEditing, photoCache, onL
           onRetry={() => void onLoadPhotos(currentPhotoTarget, true)}
         />
       ) : null}
+      {celebrationTitle ? (
+        <ReservationCelebration title={celebrationTitle} onDone={() => setCelebrationTitle('')} />
+      ) : null}
     </PageContainer>
   );
 }
@@ -293,6 +365,7 @@ function ReservationCard({
   onOpenPlaceDetails,
   onCancelEdit,
   onSave,
+  onSetCompleted,
   onRemove
 }: {
   reservation: Reservation;
@@ -307,6 +380,7 @@ function ReservationCard({
   onOpenPlaceDetails: (place: Place) => void;
   onCancelEdit: () => void;
   onSave: (draft: ReservationDraft) => void;
+  onSetCompleted: (completed: boolean) => void;
   onRemove: () => void;
 }) {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -339,18 +413,45 @@ function ReservationCard({
   const hasDetails = Boolean(reservation.notes || reservation.attachments.length);
 
   return (
-    <article className="soft-panel overflow-hidden rounded-xl">
+    <article
+      className={cn(
+        'soft-panel overflow-hidden rounded-xl transition',
+        reservation.completed && 'border-primary/20 bg-secondary/45 opacity-75'
+      )}
+    >
       <div className="border-b bg-secondary/80 px-4 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <Badge variant="outline" className={cn('rounded-full', meta.className)}>
-              <Icon className="mr-1 h-3.5 w-3.5" />
-              {meta.label}
-            </Badge>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Badge variant="outline" className={cn('rounded-full', meta.className)}>
+                <Icon className="mr-1 h-3.5 w-3.5" />
+                {meta.label}
+              </Badge>
+              {reservation.completed ? (
+                <Badge variant="outline" className="rounded-full border-primary/25 bg-primary/10 text-primary">
+                  <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                  사용 완료
+                </Badge>
+              ) : null}
+            </div>
             <h3 className="mt-2 line-clamp-2 text-lg font-bold leading-snug">{reservation.title}</h3>
           </div>
           {isEditing ? (
-            <div className="flex shrink-0 items-center gap-1">
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+              <Button
+                variant={reservation.completed ? 'outline' : 'default'}
+                size="sm"
+                className={cn(
+                  'h-8 rounded-full px-2 text-xs',
+                  reservation.completed && 'border-primary/25 bg-background text-primary hover:bg-primary/10'
+                )}
+                onClick={() => onSetCompleted(!reservation.completed)}
+                disabled={isSaving}
+                aria-label={`${reservation.title} ${reservation.completed ? '사용 완료 취소' : '사용 완료 처리'}`}
+              >
+                {reservation.completed ? <RotateCcw className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                {reservation.completed ? '완료 취소' : '사용 완료'}
+              </Button>
               <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={onEdit} disabled={isSaving} aria-label={`${reservation.title} 수정`}>
                 <Pencil className="h-4 w-4" />
               </Button>
@@ -450,6 +551,38 @@ function ReservationCard({
         ) : null}
       </div>
     </article>
+  );
+}
+
+function ReservationCelebration({ title, onDone }: { title: string; onDone: () => void }) {
+  useEffect(() => {
+    const timer = window.setTimeout(onDone, 1800);
+    return () => window.clearTimeout(timer);
+  }, [onDone]);
+
+  return (
+    <div className="pointer-events-none fixed inset-0 z-[70] grid place-items-center overflow-hidden bg-foreground/10">
+      <div className="reservation-celebration-burst absolute h-52 w-52 rounded-full bg-primary/20 blur-2xl" />
+      {Array.from({ length: 28 }, (_, index) => (
+        <span
+          key={index}
+          className="reservation-confetti absolute left-1/2 top-1/2 h-2.5 w-1.5 rounded-full bg-primary"
+          style={{
+            '--confetti-rotate': `${index * 13}deg`,
+            '--confetti-distance': `${110 + (index % 7) * 18}px`,
+            '--confetti-delay': `${(index % 6) * 28}ms`,
+            backgroundColor: ['#ff385c', '#ffb703', '#14b8a6', '#60a5fa', '#a78bfa'][index % 5]
+          } as CSSProperties}
+        />
+      ))}
+      <div className="reservation-celebration-card relative mx-4 grid max-w-sm justify-items-center rounded-2xl border bg-background/95 px-7 py-6 text-center shadow-2xl">
+        <div className="grid h-16 w-16 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25">
+          <Sparkles className="h-8 w-8" />
+        </div>
+        <div className="mt-4 text-2xl font-black tracking-tight">계획 완료!</div>
+        <p className="mt-2 line-clamp-2 text-sm font-semibold text-muted-foreground">{title}</p>
+      </div>
+    </div>
   );
 }
 

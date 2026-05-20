@@ -100,6 +100,12 @@ export function useReservations(canPersist = false) {
     );
   }
 
+  function setReservationCompleted(id: string, completed: boolean) {
+    updateReservations((current) =>
+      current.map((reservation) => (reservation.id === id ? { ...reservation, completed } : reservation))
+    );
+  }
+
   function removeReservation(id: string) {
     updateReservations((current) => current.filter((reservation) => reservation.id !== id));
   }
@@ -112,6 +118,7 @@ export function useReservations(canPersist = false) {
     addReservation,
     addReservations,
     updateReservation,
+    setReservationCompleted,
     removeReservation
   };
 }
@@ -145,7 +152,8 @@ function normalizeDraft(draft: ReservationDraft): ReservationDraft {
     referenceNumber: draft.referenceNumber.trim(),
     linkUrl: draft.linkUrl.trim(),
     notes: draft.notes.trim(),
-    attachments: normalizeAttachments(draft.attachments ?? [])
+    attachments: normalizeAttachments(draft.attachments ?? []),
+    completed: draft.completed === true
   };
 }
 

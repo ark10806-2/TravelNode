@@ -24,9 +24,10 @@ class ReservationRepository(
         reference_number,
         link_url,
         notes,
-        attachments
+        attachments,
+        completed
       FROM reservations
-      ORDER BY COALESCE(day_index, 9999), sort_order
+      ORDER BY completed, COALESCE(day_index, 9999), sort_order
     """.trimIndent()
 
     dataSource.connection.use { connection ->
@@ -55,9 +56,10 @@ class ReservationRepository(
         link_url,
         notes,
         attachments,
+        completed,
         sort_order
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?)
       ON CONFLICT (id) DO UPDATE
       SET
         reservation_type = EXCLUDED.reservation_type,
@@ -69,6 +71,7 @@ class ReservationRepository(
         link_url = EXCLUDED.link_url,
         notes = EXCLUDED.notes,
         attachments = EXCLUDED.attachments,
+        completed = EXCLUDED.completed,
         sort_order = EXCLUDED.sort_order,
         updated_at = now()
     """.trimIndent()
@@ -108,7 +111,8 @@ class ReservationRepository(
             statement.setString(8, reservation.linkUrl.orEmpty().trim())
             statement.setString(9, reservation.notes.orEmpty().trim())
             statement.setString(10, mapper.writeValueAsString(reservation.attachments.orEmpty().map { it.toResponse() }))
-            statement.setInt(11, index)
+            statement.setBoolean(11, reservation.completed == true)
+            statement.setInt(12, index)
             statement.addBatch()
           }
           statement.executeBatch()
@@ -138,7 +142,8 @@ class ReservationRepository(
     referenceNumber = getString("reference_number"),
     linkUrl = getString("link_url"),
     notes = getString("notes"),
-    attachments = parseAttachments(getString("attachments"))
+    attachments = parseAttachments(getString("attachments")),
+    completed = getBoolean("completed")
   )
 
   private fun parseAttachments(value: String?): List<ReservationAttachmentResponse> {
