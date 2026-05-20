@@ -39,9 +39,11 @@ import type { CategoryOption, PhotoState, Place } from '@/types/travel';
 type ReservationPageProps = {
   categories: CategoryOption[];
   places: Place[];
+  canComplete: boolean;
   isEditing: boolean;
   photoCache: Record<string, PhotoState>;
   onLoadPhotos: (place: Place, force?: boolean) => Promise<void>;
+  onRequireAuth: () => void;
 };
 
 const reservationTypeMeta = {
@@ -148,7 +150,15 @@ function parseReservationTimeMinutes(value: string) {
   return Number.MAX_SAFE_INTEGER;
 }
 
-export function ReservationPage({ categories, places, isEditing, photoCache, onLoadPhotos }: ReservationPageProps) {
+export function ReservationPage({
+  categories,
+  places,
+  canComplete,
+  isEditing,
+  photoCache,
+  onLoadPhotos,
+  onRequireAuth
+}: ReservationPageProps) {
   const [scheduleDays, setScheduleDays] = useState<ScheduleDay[]>([]);
   const [editingReservationId, setEditingReservationId] = useState<string | null>(null);
   const [isGoogleImportOpen, setIsGoogleImportOpen] = useState(false);
@@ -156,7 +166,7 @@ export function ReservationPage({ categories, places, isEditing, photoCache, onL
   const [photoTarget, setPhotoTarget] = useState<Place | null>(null);
   const [celebrationTitle, setCelebrationTitle] = useState('');
   const { reservations, status, error, isSaving, addReservation, addReservations, updateReservation, setReservationCompleted, removeReservation } =
-    useReservations(isEditing);
+    useReservations(isEditing || canComplete);
   const placesById = useMemo(() => new Map(places.map((place) => [place.id, place])), [places]);
   const currentDetailTarget = detailTarget ? placesById.get(detailTarget.id) ?? detailTarget : null;
   const currentPhotoTarget = photoTarget ? placesById.get(photoTarget.id) ?? photoTarget : null;
@@ -194,6 +204,11 @@ export function ReservationPage({ categories, places, isEditing, photoCache, onL
   }
 
   function completeReservation(reservation: Reservation, completed: boolean) {
+    if (!canComplete) {
+      onRequireAuth();
+      return;
+    }
+
     setReservationCompleted(reservation.id, completed);
     if (completed) {
       setCelebrationTitle(reservation.title);
@@ -416,7 +431,7 @@ function ReservationCard({
     <article
       className={cn(
         'soft-panel overflow-hidden rounded-xl transition',
-        reservation.completed && 'border-primary/20 bg-secondary/45 opacity-75'
+        reservation.completed && 'border-border/80 bg-muted/25 opacity-80'
       )}
     >
       <div className="border-b bg-secondary/80 px-4 py-4">
@@ -428,30 +443,31 @@ function ReservationCard({
                 {meta.label}
               </Badge>
               {reservation.completed ? (
-                <Badge variant="outline" className="rounded-full border-primary/25 bg-primary/10 text-primary">
+                <Badge variant="outline" className="rounded-full border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
                   <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
-                  사용 완료
+                  완료
                 </Badge>
               ) : null}
             </div>
             <h3 className="mt-2 line-clamp-2 text-lg font-bold leading-snug">{reservation.title}</h3>
           </div>
-          {isEditing ? (
-            <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
-              <Button
-                variant={reservation.completed ? 'outline' : 'default'}
-                size="sm"
-                className={cn(
-                  'h-8 rounded-full px-2 text-xs',
-                  reservation.completed && 'border-primary/25 bg-background text-primary hover:bg-primary/10'
-                )}
-                onClick={() => onSetCompleted(!reservation.completed)}
-                disabled={isSaving}
-                aria-label={`${reservation.title} ${reservation.completed ? '사용 완료 취소' : '사용 완료 처리'}`}
-              >
-                {reservation.completed ? <RotateCcw className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                {reservation.completed ? '완료 취소' : '사용 완료'}
-              </Button>
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                'h-8 rounded-full border-border/80 bg-background/70 px-2 text-xs text-muted-foreground shadow-none hover:bg-muted hover:text-foreground',
+                reservation.completed && 'border-emerald-500/20 bg-emerald-500/5 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-300'
+              )}
+              onClick={() => onSetCompleted(!reservation.completed)}
+              disabled={isSaving}
+              aria-label={`${reservation.title} ${reservation.completed ? '계획 완료 취소' : '계획 완료 처리'}`}
+            >
+              {reservation.completed ? <RotateCcw className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+              {reservation.completed ? '취소' : '계획 완료'}
+            </Button>
+            {isEditing ? (
+              <>
               <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={onEdit} disabled={isSaving} aria-label={`${reservation.title} 수정`}>
                 <Pencil className="h-4 w-4" />
               </Button>
@@ -465,8 +481,9 @@ function ReservationCard({
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
-            </div>
-          ) : null}
+              </>
+            ) : null}
+          </div>
         </div>
       </div>
 
@@ -562,21 +579,21 @@ function ReservationCelebration({ title, onDone }: { title: string; onDone: () =
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[70] grid place-items-center overflow-hidden bg-foreground/10">
-      <div className="reservation-celebration-burst absolute h-52 w-52 rounded-full bg-primary/20 blur-2xl" />
+      <div className="reservation-celebration-burst absolute h-52 w-52 rounded-full bg-emerald-400/15 blur-2xl" />
       {Array.from({ length: 28 }, (_, index) => (
         <span
           key={index}
-          className="reservation-confetti absolute left-1/2 top-1/2 h-2.5 w-1.5 rounded-full bg-primary"
+          className="reservation-confetti absolute left-1/2 top-1/2 h-2.5 w-1.5 rounded-full bg-emerald-500"
           style={{
             '--confetti-rotate': `${index * 13}deg`,
             '--confetti-distance': `${110 + (index % 7) * 18}px`,
             '--confetti-delay': `${(index % 6) * 28}ms`,
-            backgroundColor: ['#ff385c', '#ffb703', '#14b8a6', '#60a5fa', '#a78bfa'][index % 5]
+            backgroundColor: ['#94a3b8', '#34d399', '#fbbf24', '#93c5fd', '#c4b5fd'][index % 5]
           } as CSSProperties}
         />
       ))}
       <div className="reservation-celebration-card relative mx-4 grid max-w-sm justify-items-center rounded-2xl border bg-background/95 px-7 py-6 text-center shadow-2xl">
-        <div className="grid h-16 w-16 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25">
+        <div className="grid h-16 w-16 place-items-center rounded-full bg-emerald-500/15 text-emerald-700 shadow-lg shadow-emerald-500/10 dark:text-emerald-300">
           <Sparkles className="h-8 w-8" />
         </div>
         <div className="mt-4 text-2xl font-black tracking-tight">계획 완료!</div>

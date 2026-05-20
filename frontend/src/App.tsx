@@ -140,9 +140,11 @@ function App() {
         <ReservationPage
           categories={travelPlaces.categories}
           places={travelPlaces.places}
+          canComplete={auth.isAuthenticated}
           isEditing={isEditing}
           photoCache={travelPlaces.photoCache}
           onLoadPhotos={travelPlaces.loadPhotos}
+          onRequireAuth={() => setAuthDialogMode('login')}
         />
       ) : null}
       {activeTab === 'todo' ? <TodoPage isEditing={isEditing} /> : null}
