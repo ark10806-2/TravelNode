@@ -514,6 +514,7 @@ function RouteLine({
           {departureTimeMinutes != null ? `출발 기준 ${formatDepartureTime(departureTimeMinutes)} · ` : ''}
           {place.address}
         </div>
+        {place.description ? <BookletMarkdownField label="설명" text={place.description} className="mt-1.5" /> : null}
       </div>
     </div>
   );
@@ -555,6 +556,7 @@ function ReservationBookletCard({
         ) : null}
       </div>
       {reservation.notes ? <MarkdownText className="booklet-muted-markdown mt-2 text-[11px] leading-4 text-neutral-500" text={reservation.notes} fallback="" /> : null}
+      {place?.description ? <BookletMarkdownField label="장소 설명" text={place.description} className="mt-2" /> : null}
       {imageAttachments.length ? (
         <div className="mt-2 grid grid-cols-3 gap-1.5">
           {imageAttachments.slice(0, 3).map((attachment) => (
@@ -655,7 +657,7 @@ function PlaceBookletCard({
         <div className="text-[10px] font-bold text-neutral-400">{category.emoji} {category.label}</div>
         <h4 className="mt-0.5 text-sm font-black leading-snug text-neutral-950">{place.name}</h4>
         <div className="mt-0.5 text-[11px] font-bold leading-4 text-neutral-700">{place.menu}</div>
-        {place.description ? <MarkdownText className="booklet-muted-markdown mt-1 text-[10px] leading-4 text-neutral-500" text={place.description} fallback="" /> : null}
+        {place.description ? <BookletMarkdownField label="설명" text={place.description} className="mt-1" /> : null}
         <div className="mt-1.5 text-[10px] leading-4 text-neutral-400">
           {place.distanceLabel} · {place.travelMode === 'walk' ? '도보' : '대중교통'} {place.travelMinutes}분
         </div>
@@ -667,6 +669,15 @@ function PlaceBookletCard({
         </a>
       </div>
     </article>
+  );
+}
+
+function BookletMarkdownField({ label, text, className }: { label: string; text: string; className?: string }) {
+  return (
+    <div className={cn('rounded-lg bg-neutral-50 px-2.5 py-2', className)}>
+      <div className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">{label}</div>
+      <MarkdownText className="booklet-muted-markdown mt-1 text-[10px] leading-4 text-neutral-500" text={text} fallback="" />
+    </div>
   );
 }
 
