@@ -31,20 +31,24 @@ export async function fetchRouteLeg(from: Place, to: Place, options: FetchRouteL
     const cachedLeg = await fetchCachedRouteLeg(fromCacheKey, to.id).catch(() => null);
     leg = pickModes(cachedLeg ?? {}, requestedModes);
     recordRouteCacheUsage(
-      requestedModes.filter((mode) => isReadyModeLeg(leg[mode])).length,
-      requestedModes.filter((mode) => !isReadyModeLeg(leg[mode])).length
+      requestedModes.filter((mode) => isResolvedModeLeg(leg[mode])).length,
+      requestedModes.filter((mode) => !isResolvedModeLeg(leg[mode])).length
     );
     if (hasAllModes(leg, requestedModes)) return leg;
   } else {
     recordRouteCacheUsage(0, requestedModes.length);
   }
 
-  const missingModes = requestedModes.filter((mode) => !isReadyModeLeg(leg[mode]));
+  const missingModes = requestedModes.filter((mode) => !isResolvedModeLeg(leg[mode]));
 
   if (!googleMapsApiKey) {
+    const estimatedLeg = withRouteTimestamps(estimateModes(from, to, missingModes), new Date().toISOString());
+    const savedLeg = await saveResolvedRouteLeg(fromCacheKey, to.id, estimatedLeg);
+
     return {
       ...leg,
-      ...estimateModes(from, to, missingModes)
+      ...estimatedLeg,
+      ...(savedLeg ?? {})
     };
   }
 
@@ -71,20 +75,22 @@ export async function fetchRouteLeg(from: Place, to: Place, options: FetchRouteL
       ] as const)
     );
     const fetchedLeg = Object.fromEntries(entries) as RouteLeg;
-    const cacheableLeg = cacheableModes(fetchedLeg);
-    if (Object.keys(cacheableLeg).length) {
-      void saveRouteLegCache(fromCacheKey, to.id, cacheableLeg).catch(() => undefined);
-    }
+    const savedLeg = await saveResolvedRouteLeg(fromCacheKey, to.id, fetchedLeg);
 
     return {
       ...leg,
-      ...fetchedLeg
+      ...fetchedLeg,
+      ...(savedLeg ?? {})
     };
   } catch (error) {
     console.warn(`[Google Maps] 경로 계산 준비 실패: ${describeRouteError(error)}`);
+    const estimatedLeg = withRouteTimestamps(estimateModes(from, to, missingModes), new Date().toISOString());
+    const savedLeg = await saveResolvedRouteLeg(fromCacheKey, to.id, estimatedLeg);
+
     return {
       ...leg,
-      ...estimateModes(from, to, missingModes)
+      ...estimatedLeg,
+      ...(savedLeg ?? {})
     };
   }
 }
@@ -99,19 +105,31 @@ function pickModes(leg: RouteLeg, modes: RouteMode[]) {
 }
 
 function hasAllModes(leg: RouteLeg, modes: RouteMode[]) {
-  return modes.every((mode) => isReadyModeLeg(leg[mode]));
+  return modes.every((mode) => isResolvedModeLeg(leg[mode]));
 }
 
-function isReadyModeLeg(leg: RouteModeLeg | undefined) {
-  return leg?.status === 'ready';
+function isResolvedModeLeg(leg: RouteModeLeg | undefined): leg is RouteModeLeg {
+  return Boolean(leg) && leg?.status !== 'loading';
 }
 
 function withRouteTimestamp(leg: RouteModeLeg, updatedAt: string): RouteModeLeg {
-  return isReadyModeLeg(leg) ? { ...leg, updatedAt } : leg;
+  return isResolvedModeLeg(leg) ? { ...leg, updatedAt } : leg;
+}
+
+function withRouteTimestamps(leg: RouteLeg, updatedAt: string): RouteLeg {
+  return Object.fromEntries(
+    Object.entries(leg).map(([mode, modeLeg]) => [mode, withRouteTimestamp(modeLeg, updatedAt)])
+  ) as RouteLeg;
+}
+
+async function saveResolvedRouteLeg(fromCacheKey: string, toPlaceId: string, leg: RouteLeg) {
+  const cacheableLeg = cacheableModes(leg);
+  if (!Object.keys(cacheableLeg).length) return null;
+  return saveRouteLegCache(fromCacheKey, toPlaceId, cacheableLeg).catch(() => null);
 }
 
 function cacheableModes(leg: RouteLeg) {
-  return Object.fromEntries(routeModes.flatMap((mode) => (isReadyModeLeg(leg[mode]) ? [[mode, leg[mode]]] : []))) as RouteLeg;
+  return Object.fromEntries(routeModes.flatMap((mode) => (isResolvedModeLeg(leg[mode]) ? [[mode, leg[mode]]] : []))) as RouteLeg;
 }
 
 function recordRouteCacheUsage(cacheHitCount: number, cacheMissCount: number) {

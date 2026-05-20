@@ -666,7 +666,7 @@ function pickNewestRouteLeg(
 
 function pickNewestModeLeg(...legs: Array<RouteLeg[RouteMode] | undefined>) {
   return legs
-    .filter((leg): leg is NonNullable<RouteLeg[RouteMode]> => leg?.status === 'ready')
+    .filter((leg): leg is NonNullable<RouteLeg[RouteMode]> => leg != null && leg.status !== 'loading')
     .sort((a, b) => routeModeUpdatedAtMillis(b) - routeModeUpdatedAtMillis(a))[0] ?? null;
 }
 

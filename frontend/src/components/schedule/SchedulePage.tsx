@@ -270,7 +270,7 @@ function getLatestRouteCalculatedAt(
     .flatMap(({ key }) =>
       visibleRouteModes.flatMap((mode) => {
         const modeLeg = routeLegs[key]?.[mode];
-        return modeLeg?.status === 'ready' && modeLeg.updatedAt ? [Date.parse(modeLeg.updatedAt)] : [];
+        return modeLeg && modeLeg.status !== 'loading' && modeLeg.updatedAt ? [Date.parse(modeLeg.updatedAt)] : [];
       })
     )
     .filter((timestamp) => Number.isFinite(timestamp));

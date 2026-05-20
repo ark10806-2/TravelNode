@@ -120,7 +120,7 @@ class RouteCacheRepository(
 
   private fun ResultSet.toModeLeg(mode: String): RouteModeLegResponse? {
     val status = getString("${mode}_status") ?: return null
-    if (status != "ready") return null
+    if (status !in allowedRouteLegStatuses) return null
 
     val updatedAt = getTimestamp("${mode}_updated_at") ?: getTimestamp("updated_at") ?: return null
 
