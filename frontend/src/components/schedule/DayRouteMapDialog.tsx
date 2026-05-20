@@ -211,18 +211,14 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
     const listScrollElement = listScrollRef.current;
     if (!listScrollElement || selectedIndex < 0) return;
 
-    if (selectedIndex <= 1) {
-      listScrollElement.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
-    const previousPlace = orderedPlaces[selectedIndex - 1];
-    const previousItemElement = listItemRefs.current[previousPlace.id];
-    if (!previousItemElement) return;
+    const scrollAnchorIndex = Math.max(0, selectedIndex - 1);
+    const scrollAnchorPlace = orderedPlaces[scrollAnchorIndex];
+    const scrollAnchorElement = listItemRefs.current[scrollAnchorPlace.id];
+    if (!scrollAnchorElement) return;
 
     const scrollRect = listScrollElement.getBoundingClientRect();
-    const itemRect = previousItemElement.getBoundingClientRect();
-    const nextScrollTop = listScrollElement.scrollTop + itemRect.top - scrollRect.top;
+    const anchorRect = scrollAnchorElement.getBoundingClientRect();
+    const nextScrollTop = listScrollElement.scrollTop + anchorRect.top - scrollRect.top;
     listScrollElement.scrollTo({ top: Math.max(0, nextScrollTop), behavior: 'smooth' });
   }, [markerPlaces, orderedPlaces, selectedPlaceId, selectionFocusVersion, status]);
 
