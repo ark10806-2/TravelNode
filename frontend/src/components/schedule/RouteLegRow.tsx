@@ -35,6 +35,7 @@ export function RouteLegRow({
 }: RouteLegRowProps) {
   const LockIcon = isLocked ? Lock : LockOpen;
   const modes = visibleModes.length ? visibleModes : routeModes;
+  const keepModeLine = modes.length <= 2;
 
   return (
     <div className="grid grid-cols-[2rem_minmax(0,1fr)] px-2 sm:grid-cols-[2.25rem_minmax(0,1fr)] sm:px-3">
@@ -89,7 +90,10 @@ export function RouteLegRow({
                 <a
                   key={mode}
                   className={cn(
-                    'grid min-w-0 grid-cols-[auto_minmax(0,1fr)] content-center items-center gap-x-1 gap-y-0.5 justify-self-stretch rounded px-1 py-1.5 text-left underline-offset-4 transition hover:bg-muted/50 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex sm:gap-1 sm:py-1',
+                    'min-w-0 content-center items-center justify-self-stretch rounded px-1 py-1.5 text-left underline-offset-4 transition hover:bg-muted/50 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex sm:gap-1 sm:py-1',
+                    keepModeLine
+                      ? 'flex gap-1 overflow-hidden'
+                      : 'grid grid-cols-[auto_minmax(0,1fr)] gap-x-1 gap-y-0.5',
                     isSelected && 'bg-primary/10 text-primary ring-1 ring-primary/20 hover:bg-primary/15 hover:text-primary'
                   )}
                   href={buildPlaceDirectionsUrl(from, to, mode)}
@@ -99,23 +103,37 @@ export function RouteLegRow({
                   aria-label={`${modeMeta[mode].label} 경로 열기`}
                 >
                   {isLoading ? (
-                    <Loader2 className="h-3 w-3 self-start animate-spin text-muted-foreground/50 sm:self-auto" />
+                    <Loader2
+                      className={cn(
+                        'h-3 w-3 animate-spin text-muted-foreground/50',
+                        keepModeLine ? 'shrink-0 self-auto' : 'self-start sm:self-auto'
+                      )}
+                    />
                   ) : (
                     <Icon
                       className={cn(
-                        'h-3 w-3 self-start text-muted-foreground/55 sm:self-auto',
+                        'h-3 w-3 text-muted-foreground/55',
+                        keepModeLine ? 'shrink-0 self-auto' : 'self-start sm:self-auto',
                         isPending && 'text-muted-foreground/35',
                         isSelected && 'text-primary'
                       )}
                     />
                   )}
-                  <span className="min-w-0 whitespace-normal break-keep font-medium leading-tight sm:truncate sm:whitespace-nowrap">
+                  <span
+                    className={cn(
+                      'min-w-0 break-keep font-medium leading-tight',
+                      keepModeLine ? 'truncate whitespace-nowrap' : 'whitespace-normal sm:truncate sm:whitespace-nowrap'
+                    )}
+                  >
                     {isLoading ? '...' : isPending ? '계산 전' : modeLeg.durationLabel}
                   </span>
                   {!isLoading && !isPending ? (
                     <span
                       className={cn(
-                        'col-start-2 w-fit max-w-full whitespace-normal break-keep rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none sm:col-auto sm:shrink-0 sm:whitespace-nowrap',
+                        'w-fit max-w-full break-keep rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none',
+                        keepModeLine
+                          ? 'shrink-0 whitespace-nowrap'
+                          : 'col-start-2 whitespace-normal sm:col-auto sm:shrink-0 sm:whitespace-nowrap',
                         isEstimated ? 'bg-muted/20 text-muted-foreground/45' : 'bg-muted/35 text-muted-foreground/65',
                         isSelected && 'bg-primary/15 text-primary'
                       )}
