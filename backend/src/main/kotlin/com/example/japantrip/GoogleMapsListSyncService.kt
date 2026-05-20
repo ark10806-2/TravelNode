@@ -10,6 +10,8 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.nio.charset.StandardCharsets
 import java.time.Duration
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -26,11 +28,12 @@ class GoogleMapsListSyncService(
     .followRedirects(HttpClient.Redirect.ALWAYS)
     .build()
   private val mapper = jacksonObjectMapper()
+  private val placeMetadataCache = ConcurrentHashMap<String, CachedGoogleMapsPlaceMetadata>()
 
   fun preview(request: GoogleMapsListPreviewRequest): GoogleMapsListPreviewResponse {
     val warnings = mutableListOf<String>()
     val parsed = readList(request.googleMapsUrl, warnings)
-    val places = parsed.restaurants.map {
+    val places = parsed.restaurants.mapWithLimitedParallelism(ListPreviewMetadataParallelism) {
       val metadata = loadPlaceMetadata(it, includeThumbnail = true)
       it.withPlacesMetadata(metadata).toPreviewPlace(metadata?.thumbnailUrl)
     }
@@ -63,7 +66,7 @@ class GoogleMapsListSyncService(
     val importTargets = selectedSyncKeys?.let { keys ->
       parsed.restaurants.filter { it.syncKey in keys }
     } ?: parsed.restaurants
-    val enrichedImportTargets = importTargets.map { synced ->
+    val enrichedImportTargets = importTargets.mapWithLimitedParallelism(ListSyncMetadataParallelism) { synced ->
       if (isPlaceTypeCandidate(synced.restaurant.description, emptySet())) {
         synced
       } else {
@@ -401,6 +404,29 @@ class GoogleMapsListSyncService(
   }
 
   private fun loadPlaceMetadata(values: GoogleMapsSyncedRestaurantValues, includeThumbnail: Boolean): GoogleMapsPlaceMetadata? {
+    val cacheKey = values.placeMetadataCacheKey()
+    val now = System.currentTimeMillis()
+    pruneExpiredPlaceMetadataCache(now)
+    val cached = placeMetadataCache[cacheKey]?.takeIf { it.isFresh(now) }
+    if (cached != null && (!includeThumbnail || cached.includesThumbnailLookup)) {
+      return cached.metadata
+    }
+
+    val loaded = fetchPlaceMetadata(values, includeThumbnail)
+    val merged = loaded?.mergeWith(cached?.metadata) ?: cached?.metadata
+    val metadataToCache = merged ?: loaded
+    if (metadataToCache != null) {
+      placeMetadataCache[cacheKey] = CachedGoogleMapsPlaceMetadata(
+        metadata = metadataToCache,
+        cachedAtMillis = now,
+        includesThumbnailLookup = includeThumbnail || cached?.includesThumbnailLookup == true
+      )
+    }
+
+    return metadataToCache
+  }
+
+  private fun fetchPlaceMetadata(values: GoogleMapsSyncedRestaurantValues, includeThumbnail: Boolean): GoogleMapsPlaceMetadata? {
     val key = apiKey?.takeIf { it.isNotBlank() } ?: return null
     val restaurant = values.restaurant
     val body = mapper.writeValueAsString(
@@ -482,6 +508,29 @@ class GoogleMapsListSyncService(
     return GoogleMapsPlaceMetadata(primaryType = primaryType, thumbnailUrl = thumbnailUrl)
   }
 
+  private fun GoogleMapsPlaceMetadata.mergeWith(fallback: GoogleMapsPlaceMetadata?) = GoogleMapsPlaceMetadata(
+    primaryType = primaryType ?: fallback?.primaryType,
+    thumbnailUrl = thumbnailUrl ?: fallback?.thumbnailUrl
+  )
+
+  private fun GoogleMapsSyncedRestaurantValues.placeMetadataCacheKey(): String {
+    val restaurant = this.restaurant
+    return listOf(
+      restaurant.name.normalizedComparisonValue()?.lowercase().orEmpty(),
+      restaurant.address.normalizedComparisonValue()?.lowercase().orEmpty(),
+      "%.6f".format(restaurant.latitude),
+      "%.6f".format(restaurant.longitude)
+    ).joinToString("|")
+  }
+
+  private fun CachedGoogleMapsPlaceMetadata.isFresh(now: Long) =
+    now - cachedAtMillis <= PlaceMetadataCacheTtl.toMillis()
+
+  private fun pruneExpiredPlaceMetadataCache(now: Long) {
+    if (placeMetadataCache.size < PlaceMetadataCachePruneThreshold) return
+    placeMetadataCache.entries.removeIf { (_, cached) -> !cached.isFresh(now) }
+  }
+
   private fun GoogleMapsSyncedRestaurantValues.withPlacesMetadata(metadata: GoogleMapsPlaceMetadata?): GoogleMapsSyncedRestaurantValues {
     val primaryType = metadata?.primaryType?.trim()?.takeIf { it.isNotBlank() } ?: return this
     return copy(
@@ -521,11 +570,29 @@ class GoogleMapsListSyncService(
     .replace(Regex("""\s+"""), " ")
     .takeIf { it.isNotBlank() }
 
+  private fun <T, R> List<T>.mapWithLimitedParallelism(parallelism: Int, transform: (T) -> R): List<R> {
+    if (size <= 1 || parallelism <= 1) return map(transform)
+
+    val executor = Executors.newFixedThreadPool(minOf(size, parallelism))
+    return try {
+      map { item -> executor.submit<R> { transform(item) } }
+        .map { future -> future.get() }
+    } finally {
+      executor.shutdown()
+    }
+  }
+
   private data class Coordinate(val latitude: Double, val longitude: Double)
 
   private data class GoogleMapsPlaceMetadata(
     val primaryType: String?,
     val thumbnailUrl: String?
+  )
+
+  private data class CachedGoogleMapsPlaceMetadata(
+    val metadata: GoogleMapsPlaceMetadata,
+    val cachedAtMillis: Long,
+    val includesThumbnailLookup: Boolean
   )
 
   private data class FetchedPage(val resolvedUrl: String, val body: String)
@@ -540,6 +607,10 @@ class GoogleMapsListSyncService(
 
   private companion object {
     val HotelLocation = Coordinate(35.668862, 139.773098)
+    val PlaceMetadataCacheTtl: Duration = Duration.ofHours(6)
+    const val PlaceMetadataCachePruneThreshold = 1_000
+    const val ListPreviewMetadataParallelism = 4
+    const val ListSyncMetadataParallelism = 4
     val PlaceTypeKeywords = listOf(
       "전문식당",
       "전문점",
