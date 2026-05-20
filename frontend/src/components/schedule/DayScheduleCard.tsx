@@ -412,9 +412,12 @@ export function DayScheduleCard({
           dayLabel={dayLabel}
           categories={categories}
           places={places}
+          scheduledPlaces={scheduledPlaces}
+          anchorPlace={hotelPlace}
           excludedPlaceIds={scheduledPlaceIds}
           maxSelectable={maxStopsPerDay - day.stops.length}
           photoCache={photoCache}
+          isDarkMode={isDarkMode}
           onLoadPhotos={onLoadPhotos}
           onClose={() => setIsPickerOpen(false)}
           onSelect={addPlaces}

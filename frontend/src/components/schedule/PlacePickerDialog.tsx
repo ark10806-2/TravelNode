@@ -1,17 +1,24 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Check, ExternalLink, Images, Plus, Search, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Check, ExternalLink, Images, Loader2, MapPin, MapPinned, Plus, Route, Search, X } from 'lucide-react';
+import { recordApiUsage } from '@/api/usage';
 import { MarkdownInline } from '@/components/common/MarkdownText';
 import { Button } from '@/components/ui/button';
-import { getCategoryBadgeClass, getCategoryOption, getEmbedMapUrl, getPlaceInfoUrl } from '@/lib/place-utils';
+import { googleMapsApiKey } from '@/config/env';
+import { createPlaceMarkerIcon, describeError, getPlaceMapStyles, loadGoogleMaps } from '@/lib/google-maps';
+import { getCategoryBadgeClass, getCategoryOption, getPlaceInfoUrl } from '@/lib/place-utils';
+import { cn } from '@/lib/utils';
 import type { CategoryId, CategoryOption, PhotoState, Place } from '@/types/travel';
 
 type PlacePickerDialogProps = {
   dayLabel: string;
   categories: CategoryOption[];
   places: Place[];
+  scheduledPlaces: Place[];
+  anchorPlace: Place;
   excludedPlaceIds: Set<string>;
   maxSelectable: number;
   photoCache: Record<string, PhotoState>;
+  isDarkMode: boolean;
   onLoadPhotos: (place: Place, force?: boolean) => Promise<void>;
   onClose: () => void;
   onSelect: (places: Place[]) => void;
@@ -26,9 +33,12 @@ export function PlacePickerDialog({
   dayLabel,
   categories,
   places,
+  scheduledPlaces,
+  anchorPlace,
   excludedPlaceIds,
   maxSelectable,
   photoCache,
+  isDarkMode,
   onLoadPhotos,
   onClose,
   onSelect
@@ -36,7 +46,7 @@ export function PlacePickerDialog({
   const [query, setQuery] = useState('');
   const [categoryId, setCategoryId] = useState<CategoryId>('all');
   const [focusedPlaceId, setFocusedPlaceId] = useState<string | null>(null);
-  const [sideView, setSideView] = useState<'details' | 'map'>('details');
+  const [sideView, setSideView] = useState<'route' | 'details'>('route');
   const [selectedPlaceIds, setSelectedPlaceIds] = useState<string[]>([]);
   const availablePlaces = useMemo(() => places.filter((place) => !excludedPlaceIds.has(place.id)), [excludedPlaceIds, places]);
   const filteredPlaces = useMemo(() => {
@@ -220,24 +230,34 @@ export function PlacePickerDialog({
                 <Button
                   type="button"
                   className="rounded-full"
+                  variant={sideView === 'route' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setSideView('route')}
+                >
+                  동선
+                </Button>
+                <Button
+                  type="button"
+                  className="rounded-full"
                   variant={sideView === 'details' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setSideView('details')}
                 >
                   세부사항
                 </Button>
-                <Button
-                  type="button"
-                  className="rounded-full"
-                  variant={sideView === 'map' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setSideView('map')}
-                >
-                  지도
-                </Button>
               </div>
 
-              {sideView === 'details' ? (
+              {sideView === 'route' ? (
+                <PlacePickerRoutePreview
+                  dayLabel={dayLabel}
+                  anchorPlace={anchorPlace}
+                  scheduledPlaces={scheduledPlaces}
+                  selectedPlaces={selectedPlaces}
+                  focusedPlaceId={focusedPlaceId}
+                  isDarkMode={isDarkMode}
+                  onFocusPlace={setFocusedPlaceId}
+                />
+              ) : (
                 focusedPlace ? (
                   <PlacePickerDetails
                     place={focusedPlace}
@@ -249,22 +269,6 @@ export function PlacePickerDialog({
                     세부사항을 볼 장소가 없습니다.
                   </div>
                 )
-              ) : (
-                <div className="overflow-hidden rounded-md border bg-background">
-                  {focusedPlace ? (
-                    <iframe
-                      className="pointer-events-none h-56 w-full border-0 sm:h-72 lg:pointer-events-auto lg:h-[520px]"
-                      src={getEmbedMapUrl(focusedPlace)}
-                      title={`${focusedPlace.name} 지도`}
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                    />
-                  ) : (
-                    <div className="grid h-56 place-items-center text-sm text-muted-foreground sm:h-72 lg:h-[520px]">
-                      지도에 표시할 장소가 없습니다.
-                    </div>
-                  )}
-                </div>
               )}
             </div>
           </aside>
@@ -286,6 +290,272 @@ export function PlacePickerDialog({
         </div>
       </div>
     </div>
+  );
+}
+
+function PlacePickerRoutePreview({
+  dayLabel,
+  anchorPlace,
+  scheduledPlaces,
+  selectedPlaces,
+  focusedPlaceId,
+  isDarkMode,
+  onFocusPlace
+}: {
+  dayLabel: string;
+  anchorPlace: Place;
+  scheduledPlaces: Place[];
+  selectedPlaces: Place[];
+  focusedPlaceId: string | null;
+  isDarkMode: boolean;
+  onFocusPlace: (placeId: string) => void;
+}) {
+  const mapRef = useRef<HTMLDivElement | null>(null);
+  const mapInstanceRef = useRef<google.maps.Map | null>(null);
+  const markersRef = useRef<google.maps.Marker[]>([]);
+  const pathRef = useRef<google.maps.Polyline | null>(null);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(googleMapsApiKey ? 'loading' : 'error');
+  const [error, setError] = useState(googleMapsApiKey ? '' : 'Google Maps API 키가 필요합니다.');
+  const routePlaces = useMemo(() => [...scheduledPlaces, ...selectedPlaces], [scheduledPlaces, selectedPlaces]);
+  const markerPlaces = useMemo(() => uniquePlaces([anchorPlace, ...routePlaces]), [anchorPlace, routePlaces]);
+  const pathPlaces = useMemo(() => {
+    const places = routePlaces.length ? [anchorPlace, ...routePlaces, anchorPlace] : [anchorPlace];
+    return places.filter((place, index) => index === 0 || place.id !== places[index - 1].id);
+  }, [anchorPlace, routePlaces]);
+  const focusedPlace = markerPlaces.find((place) => place.id === focusedPlaceId) ?? routePlaces[0] ?? anchorPlace;
+
+  useEffect(() => {
+    if (!mapRef.current || !googleMapsApiKey) return;
+
+    let cancelled = false;
+    setStatus('loading');
+    setError('');
+
+    loadGoogleMaps(googleMapsApiKey)
+      .then((maps) => {
+        if (cancelled || !mapRef.current) return;
+
+        mapInstanceRef.current = new maps.Map(mapRef.current, {
+          center: { lat: anchorPlace.latitude, lng: anchorPlace.longitude },
+          zoom: 14,
+          gestureHandling: 'greedy',
+          scrollwheel: true,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+          styles: getPlaceMapStyles(isDarkMode)
+        });
+        void recordApiUsage('maps-js').catch(() => undefined);
+        setStatus('ready');
+      })
+      .catch((loadError) => {
+        if (cancelled) return;
+        setStatus('error');
+        setError(`지도를 불러오지 못했습니다. 원인: ${describeError(loadError)}.`);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [anchorPlace.latitude, anchorPlace.longitude, isDarkMode]);
+
+  useEffect(() => {
+    if (status !== 'ready' || !mapInstanceRef.current) return;
+    mapInstanceRef.current.setOptions({ styles: getPlaceMapStyles(isDarkMode) });
+  }, [isDarkMode, status]);
+
+  useEffect(() => {
+    if (status !== 'ready' || !window.google?.maps || !mapInstanceRef.current) return;
+
+    const maps = window.google.maps;
+    markersRef.current.forEach((marker) => marker.setMap(null));
+    markersRef.current = [];
+    pathRef.current?.setMap(null);
+    pathRef.current = null;
+
+    markerPlaces.forEach((place, index) => {
+      const isAnchor = place.id === anchorPlace.id;
+      const routeIndex = routePlaces.findIndex((routePlace) => routePlace.id === place.id);
+      const isSelected = place.id === focusedPlace.id;
+      const marker = new maps.Marker({
+        position: { lat: place.latitude, lng: place.longitude },
+        map: mapInstanceRef.current,
+        title: isAnchor ? `숙소. ${place.name}` : `${routeIndex + 1}. ${place.name}`,
+        label: {
+          text: isAnchor ? 'H' : String(routeIndex + 1),
+          color: '#ffffff',
+          fontSize: '12px',
+          fontWeight: '700'
+        },
+        icon: createPlaceMarkerIcon(maps, place.category, isSelected),
+        zIndex: isSelected ? 2000 : 1000 + index
+      });
+      marker.addListener('click', () => onFocusPlace(place.id));
+      markersRef.current.push(marker);
+    });
+
+    if (pathPlaces.length > 1) {
+      pathRef.current = new maps.Polyline({
+        path: pathPlaces.map((place) => ({ lat: place.latitude, lng: place.longitude })),
+        map: mapInstanceRef.current,
+        geodesic: true,
+        strokeColor: isDarkMode ? '#ff7a92' : '#ff385c',
+        strokeOpacity: 0.86,
+        strokeWeight: 4,
+        icons: [
+          {
+            icon: {
+              path: maps.SymbolPath.FORWARD_CLOSED_ARROW,
+              scale: 2.6,
+              strokeColor: isDarkMode ? '#ff7a92' : '#ff385c',
+              strokeOpacity: 0.86
+            },
+            offset: '50%',
+            repeat: '110px'
+          }
+        ]
+      });
+    }
+  }, [anchorPlace, focusedPlace.id, isDarkMode, markerPlaces, onFocusPlace, pathPlaces, routePlaces, status]);
+
+  useEffect(() => {
+    if (status !== 'ready' || !window.google?.maps || !mapInstanceRef.current) return;
+
+    const maps = window.google.maps;
+    const bounds = new maps.LatLngBounds();
+    pathPlaces.forEach((place) => bounds.extend({ lat: place.latitude, lng: place.longitude }));
+
+    if (pathPlaces.length > 1) {
+      mapInstanceRef.current.fitBounds(bounds, routePreviewBoundsPadding());
+    } else {
+      mapInstanceRef.current.setCenter({ lat: anchorPlace.latitude, lng: anchorPlace.longitude });
+      mapInstanceRef.current.setZoom(15);
+    }
+  }, [anchorPlace.latitude, anchorPlace.longitude, pathPlaces, status]);
+
+  return (
+    <div className="grid gap-3">
+      <section className="overflow-hidden rounded-md border bg-background">
+        <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 text-sm font-bold">
+              <Route className="h-4 w-4 text-primary" />
+              동선 미리보기
+            </div>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">{dayLabel} 기존 동선 + 추가 예정 장소</p>
+          </div>
+          <span className="shrink-0 rounded-full bg-secondary px-2 py-1 text-xs font-semibold text-muted-foreground">
+            {routePlaces.length}곳
+          </span>
+        </div>
+        <div className="relative h-60 bg-muted sm:h-72 lg:h-72">
+          {status !== 'error' ? <div ref={mapRef} className="h-full w-full" /> : null}
+          {status === 'ready' ? (
+            <div className="pointer-events-none absolute left-3 top-3 max-w-[calc(100%-1.5rem)] rounded-full border bg-background/90 px-3 py-2 shadow-sm backdrop-blur">
+              <div className="flex min-w-0 items-center gap-2 text-sm">
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-foreground text-xs font-bold text-background">
+                  {focusedPlace.id === anchorPlace.id ? 'H' : routePlaces.findIndex((place) => place.id === focusedPlace.id) + 1}
+                </span>
+                <span className="truncate font-semibold">{focusedPlace.name}</span>
+              </div>
+            </div>
+          ) : null}
+          {status === 'loading' ? (
+            <div className="absolute inset-0 grid place-items-center bg-background/80 backdrop-blur-sm">
+              <Loader2 className="h-7 w-7 animate-spin text-primary" />
+            </div>
+          ) : null}
+          {status === 'error' ? (
+            <div className="grid h-full place-items-center p-5 text-center text-sm text-muted-foreground">
+              <div>
+                <MapPinned className="mx-auto h-8 w-8 text-primary" />
+                <p className="mt-2 font-semibold text-foreground">동선 지도를 표시할 수 없습니다.</p>
+                <p className="mt-1">{error}</p>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </section>
+
+      <RoutePreviewList
+        title="기존 동선"
+        emptyText="아직 DAY에 담긴 장소가 없습니다."
+        places={scheduledPlaces}
+        offset={0}
+        focusedPlaceId={focusedPlace.id}
+        tone="existing"
+        onFocusPlace={onFocusPlace}
+      />
+      <RoutePreviewList
+        title="추가 예정"
+        emptyText="왼쪽 목록에서 장소를 클릭하면 여기에 추가됩니다."
+        places={selectedPlaces}
+        offset={scheduledPlaces.length}
+        focusedPlaceId={focusedPlace.id}
+        tone="added"
+        onFocusPlace={onFocusPlace}
+      />
+    </div>
+  );
+}
+
+function RoutePreviewList({
+  title,
+  emptyText,
+  places,
+  offset,
+  focusedPlaceId,
+  tone,
+  onFocusPlace
+}: {
+  title: string;
+  emptyText: string;
+  places: Place[];
+  offset: number;
+  focusedPlaceId: string;
+  tone: 'existing' | 'added';
+  onFocusPlace: (placeId: string) => void;
+}) {
+  return (
+    <section className="rounded-md border bg-background p-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-sm font-bold">{title}</div>
+        <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-semibold text-muted-foreground">{places.length}</span>
+      </div>
+      {places.length ? (
+        <ol className="mt-2 grid max-h-40 gap-1.5 overflow-y-auto pr-1">
+          {places.map((place, index) => {
+            const isFocused = place.id === focusedPlaceId;
+            return (
+              <li key={place.id}>
+                <button
+                  type="button"
+                  className={cn(
+                    'grid w-full grid-cols-[1.75rem_minmax(0,1fr)] items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    isFocused ? 'border-primary/50 bg-primary/10' : 'border-transparent bg-secondary/40 hover:bg-secondary',
+                    tone === 'added' && !isFocused && 'bg-primary/5 hover:bg-primary/10'
+                  )}
+                  onClick={() => onFocusPlace(place.id)}
+                >
+                  <span className={cn(
+                    'grid h-6 w-6 place-items-center rounded-full text-xs font-bold',
+                    tone === 'added' ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground ring-1 ring-border'
+                  )}>
+                    {offset + index + 1}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold">{place.name}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{place.menu}</span>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      ) : (
+        <div className="mt-2 rounded-lg bg-secondary/50 px-3 py-2 text-xs leading-5 text-muted-foreground">{emptyText}</div>
+      )}
+    </section>
   );
 }
 
@@ -387,4 +657,18 @@ function PlacePickerDetails({
       </div>
     </div>
   );
+}
+
+function uniquePlaces(places: Place[]) {
+  const seen = new Set<string>();
+  return places.filter((place) => {
+    if (seen.has(place.id)) return false;
+    seen.add(place.id);
+    return true;
+  });
+}
+
+function routePreviewBoundsPadding() {
+  const isMobile = window.matchMedia('(max-width: 767px)').matches;
+  return isMobile ? 24 : 36;
 }
