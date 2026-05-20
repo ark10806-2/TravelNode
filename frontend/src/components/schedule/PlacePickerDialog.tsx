@@ -4,7 +4,7 @@ import { recordApiUsage } from '@/api/usage';
 import { MarkdownInline } from '@/components/common/MarkdownText';
 import { Button } from '@/components/ui/button';
 import { googleMapsApiKey } from '@/config/env';
-import { createPlaceMarkerIcon, describeError, getPlaceMapStyles, loadGoogleMaps } from '@/lib/google-maps';
+import { createHotelMarkerIcon, createPlaceMarkerIcon, describeError, getPlaceMapStyles, loadGoogleMaps } from '@/lib/google-maps';
 import { getCategoryBadgeClass, getCategoryOption, getPlaceInfoUrl } from '@/lib/place-utils';
 import { cn } from '@/lib/utils';
 import type { CategoryId, CategoryOption, PhotoState, Place } from '@/types/travel';
@@ -381,14 +381,16 @@ function PlacePickerRoutePreview({
         position: { lat: place.latitude, lng: place.longitude },
         map: mapInstanceRef.current,
         title: isAnchor ? `숙소. ${place.name}` : `${routeIndex + 1}. ${place.name}`,
-        label: {
-          text: isAnchor ? 'H' : String(routeIndex + 1),
-          color: '#ffffff',
-          fontSize: '12px',
-          fontWeight: '700'
-        },
-        icon: createPlaceMarkerIcon(maps, place.category, isSelected),
-        zIndex: isSelected ? 2000 : 1000 + index
+        label: isAnchor
+          ? undefined
+          : {
+              text: String(routeIndex + 1),
+              color: '#ffffff',
+              fontSize: '12px',
+              fontWeight: '700'
+            },
+        icon: isAnchor ? createHotelMarkerIcon(maps, isSelected) : createPlaceMarkerIcon(maps, place.category, isSelected),
+        zIndex: isAnchor ? 3000 : isSelected ? 2000 : 1000 + index
       });
       marker.addListener('click', () => onFocusPlace(place.id));
       markersRef.current.push(marker);

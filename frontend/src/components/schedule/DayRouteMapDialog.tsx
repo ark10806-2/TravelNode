@@ -5,7 +5,7 @@ import { MarkdownInline } from '@/components/common/MarkdownText';
 import { ModalFrame } from '@/components/dialogs/ModalFrame';
 import { Badge } from '@/components/ui/badge';
 import { googleMapsApiKey } from '@/config/env';
-import { createPlaceMarkerIcon, describeError, getPlaceMapStyles, loadGoogleMaps } from '@/lib/google-maps';
+import { createHotelMarkerIcon, createPlaceMarkerIcon, describeError, getPlaceMapStyles, loadGoogleMaps } from '@/lib/google-maps';
 import { cn } from '@/lib/utils';
 import type { Place } from '@/types/travel';
 
@@ -127,20 +127,22 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
 
     markerPlaces.forEach((place, index) => {
       const isSelected = place.id === selectedPlaceId;
-      const isAnchor = Boolean(anchorPlace && !anchorIsScheduled && anchorPlace.id === place.id);
+      const isAnchor = Boolean(anchorPlace && anchorPlace.id === place.id);
       const orderLabel = orderedPlaces.findIndex((orderedPlace) => orderedPlace.id === place.id) + 1;
       const marker = new maps.Marker({
         position: { lat: place.latitude, lng: place.longitude },
         map: mapInstanceRef.current,
         title: isAnchor ? `숙소. ${place.name}` : `${orderLabel}. ${place.name}`,
-        label: {
-          text: isAnchor ? 'H' : String(orderLabel),
-          color: '#ffffff',
-          fontSize: '12px',
-          fontWeight: '700'
-        },
-        icon: createPlaceMarkerIcon(maps, place.category, isSelected),
-        zIndex: isSelected ? 2000 : 1000 + index
+        label: isAnchor
+          ? undefined
+          : {
+              text: String(orderLabel),
+              color: '#ffffff',
+              fontSize: '12px',
+              fontWeight: '700'
+            },
+        icon: isAnchor ? createHotelMarkerIcon(maps, isSelected) : createPlaceMarkerIcon(maps, place.category, isSelected),
+        zIndex: isAnchor ? 3000 : isSelected ? 2000 : 1000 + index
       });
       marker.addListener('click', () => selectRoutePlace(place.id));
       markersRef.current.push(marker);

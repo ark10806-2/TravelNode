@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Loader2, MapPin } from 'lucide-react';
 import { recordApiUsage } from '@/api/usage';
 import { googleMapsApiKey, mapsKeyLabel } from '@/config/env';
-import { createPlaceMarkerIcon, describeError, getPlaceMapStyles, loadGoogleMaps } from '@/lib/google-maps';
+import { createHotelMarkerIcon, createPlaceMarkerIcon, describeError, getPlaceMapStyles, loadGoogleMaps } from '@/lib/google-maps';
 import { getEmbedMapUrl } from '@/lib/place-utils';
 import type { LoadStatus, Place } from '@/types/travel';
 
@@ -87,7 +87,8 @@ export function TravelMap({ places, selectedPlace, referencePlace, status, isDar
       position: { lat: referencePlace.latitude, lng: referencePlace.longitude },
       map: mapInstanceRef.current,
       title: `기준점: ${referencePlace.name}`,
-      icon: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+      icon: createHotelMarkerIcon(maps),
+      zIndex: 3000
     });
     markersRef.current.push(referenceMarker);
 

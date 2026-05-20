@@ -271,6 +271,34 @@ export function createPlaceMarkerIcon(maps: typeof google.maps, category: Catego
   };
 }
 
+export function createHotelMarkerIcon(maps: typeof google.maps, isSelected = false) {
+  const fill = isSelected ? '#222222' : '#0f766e';
+  const accent = isSelected ? '#222222' : '#0f766e';
+  const stroke = '#ffffff';
+  const size = isSelected ? 46 : 38;
+  const height = Math.round(size * 1.3);
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 52">
+      <path d="M20 50C17.9 46.2 6 34.6 6 21C6 12.3 12.2 6 20 6C27.8 6 34 12.3 34 21C34 34.6 22.1 46.2 20 50Z" fill="#0f172a" opacity="0.18" transform="translate(0 1)"/>
+      <path d="M20 48C17.8 44 7 33.4 7 21C7 13.2 12.8 7 20 7C27.2 7 33 13.2 33 21C33 33.4 22.2 44 20 48Z" fill="${fill}" stroke="${stroke}" stroke-width="${isSelected ? 2.8 : 2.2}" stroke-linejoin="round"/>
+      <path d="M13.5 29.5V18.3C13.5 16.7 14.7 15.5 16.3 15.5H23.7C25.3 15.5 26.5 16.7 26.5 18.3V29.5" fill="#ffffff" opacity="0.96"/>
+      <path d="M13.5 21.5H26.5" stroke="${accent}" stroke-width="1.8" stroke-linecap="round" opacity="0.8"/>
+      <path d="M17 29.5V25.9C17 25.2 17.5 24.7 18.2 24.7H21.8C22.5 24.7 23 25.2 23 25.9V29.5" fill="${accent}" opacity="0.88"/>
+      <circle cx="17.4" cy="18.8" r="1.1" fill="${accent}" opacity="0.9"/>
+      <circle cx="22.6" cy="18.8" r="1.1" fill="${accent}" opacity="0.9"/>
+      <path d="M12 30H28" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round"/>
+      <text x="20" y="25" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="8.5" font-weight="800" fill="${accent}">H</text>
+    </svg>
+  `;
+
+  return {
+    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+    scaledSize: new maps.Size(size, height),
+    anchor: new maps.Point(size / 2, height),
+    labelOrigin: new maps.Point(size / 2, Math.round(size * 0.58))
+  };
+}
+
 export function describeError(error: unknown) {
   if (error instanceof Error) return `${error.name}: ${error.message}`;
   if (error instanceof Event) return `${error.type} event`;
