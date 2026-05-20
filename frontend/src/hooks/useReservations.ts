@@ -149,6 +149,7 @@ function normalizeDraft(draft: ReservationDraft): ReservationDraft {
     dayIndex: typeof draft.dayIndex === 'number' ? draft.dayIndex : null,
     placeId: draft.placeId?.trim() || null,
     timeLabel: draft.timeLabel.trim(),
+    bookingPlatform: (draft.bookingPlatform ?? '').trim(),
     referenceNumber: draft.referenceNumber.trim(),
     linkUrl: draft.linkUrl.trim(),
     notes: draft.notes.trim(),

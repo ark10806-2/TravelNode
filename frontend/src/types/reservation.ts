@@ -7,6 +7,7 @@ export type Reservation = {
   dayIndex: number | null;
   placeId: string | null;
   timeLabel: string;
+  bookingPlatform: string;
   referenceNumber: string;
   linkUrl: string;
   notes: string;

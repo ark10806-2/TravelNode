@@ -7,6 +7,7 @@ data class ReservationResponse(
   val dayIndex: Int? = null,
   val placeId: String? = null,
   val timeLabel: String = "",
+  val bookingPlatform: String = "",
   val referenceNumber: String = "",
   val linkUrl: String = "",
   val notes: String = "",
@@ -26,6 +27,7 @@ data class ReservationRequest(
   val dayIndex: Int? = null,
   val placeId: String? = null,
   val timeLabel: String? = "",
+  val bookingPlatform: String? = "",
   val referenceNumber: String? = "",
   val linkUrl: String? = "",
   val notes: String? = "",
@@ -89,6 +91,7 @@ fun ReservationSaveRequest.validate(): List<String> {
     }
 
     validateLength(errors, "reservations[$index].timeLabel", reservation.timeLabel, MaxReservationTimeLength)
+    validateLength(errors, "reservations[$index].bookingPlatform", reservation.bookingPlatform, MaxReservationPlatformLength)
     validateLength(errors, "reservations[$index].referenceNumber", reservation.referenceNumber, MaxReservationReferenceLength)
     validateLength(errors, "reservations[$index].linkUrl", reservation.linkUrl, MaxReservationUrlLength)
     validateLength(errors, "reservations[$index].notes", reservation.notes, MaxReservationNotesLength)
@@ -186,6 +189,7 @@ const val MaxReservations = 200
 const val MaxReservationDayIndex = 60
 const val MaxReservationTitleLength = 120
 const val MaxReservationTimeLength = 80
+const val MaxReservationPlatformLength = 120
 const val MaxReservationReferenceLength = 120
 const val MaxReservationUrlLength = 500
 const val MaxReservationNotesLength = 1000

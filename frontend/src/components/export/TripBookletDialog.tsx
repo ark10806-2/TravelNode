@@ -472,7 +472,7 @@ function DayBookletCard({
             items={dayReservations.map((reservation) => ({
               id: reservation.id,
               primary: reservation.title,
-              secondary: [reservation.timeLabel, reservation.referenceNumber].filter(Boolean).join(' · ')
+              secondary: [reservation.timeLabel, reservation.bookingPlatform, reservation.referenceNumber].filter(Boolean).join(' · ')
             }))}
           />
           <TodoMiniList title="이 DAY 할 일" items={dayTodos} />
@@ -545,6 +545,7 @@ function ReservationBookletCard({
       </div>
       <div className="mt-2 grid gap-1 text-xs leading-5 text-neutral-500">
         {reservation.timeLabel ? <div><span className="font-bold text-neutral-600">시간</span> {reservation.timeLabel}</div> : null}
+        {reservation.bookingPlatform ? <div><span className="font-bold text-neutral-600">플랫폼</span> {reservation.bookingPlatform}</div> : null}
         {place ? <div><span className="font-bold text-neutral-600">장소</span> {place.name}</div> : null}
         {reservation.referenceNumber ? <div><span className="font-bold text-neutral-600">예약번호</span> {reservation.referenceNumber}</div> : null}
         {link ? (

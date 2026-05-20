@@ -102,6 +102,13 @@ function ReservationDetailCard({
           </section>
         ) : null}
 
+        {reservation.bookingPlatform ? (
+          <section className="rounded-lg bg-muted/25 p-3">
+            <div className="text-xs font-semibold text-muted-foreground">예약 플랫폼</div>
+            <div className="mt-1 font-semibold">{reservation.bookingPlatform}</div>
+          </section>
+        ) : null}
+
         {reservation.notes ? (
           <section className="rounded-lg bg-muted/25 p-3">
             <div className="text-xs font-semibold text-muted-foreground">메모</div>

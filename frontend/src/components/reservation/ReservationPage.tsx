@@ -60,6 +60,7 @@ const emptyDraft: ReservationDraft = {
   dayIndex: null,
   placeId: null,
   timeLabel: '',
+  bookingPlatform: '',
   referenceNumber: '',
   linkUrl: '',
   notes: '',
@@ -67,6 +68,8 @@ const emptyDraft: ReservationDraft = {
   completed: false
 };
 
+const defaultReservationPlatforms = ['구글예약', '트립닷컴', '마이리얼트립'];
+const reservationPlatformDatalistId = 'reservation-platform-options';
 const maxReservationAttachmentBytes = 5 * 1024 * 1024;
 const maxReservationAttachmentTotalBytes = 20 * 1024 * 1024;
 const maxReservationAttachments = 8;
@@ -222,6 +225,11 @@ export function ReservationPage({
 
   return (
     <PageContainer className="grid gap-5 px-3 py-4 sm:gap-6 sm:px-4 sm:py-5">
+      <datalist id={reservationPlatformDatalistId}>
+        {defaultReservationPlatforms.map((platform) => (
+          <option key={platform} value={platform} />
+        ))}
+      </datalist>
       <header className="flex flex-col gap-3 border-b border-border/70 pb-4 sm:gap-4 sm:pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <Badge variant="outline">Reservations</Badge>
@@ -518,6 +526,12 @@ function ReservationCard({
             <div className="mt-1 break-all font-semibold">{reservation.referenceNumber}</div>
           </div>
         ) : null}
+        {reservation.bookingPlatform ? (
+          <div>
+            <div className="text-xs font-semibold text-muted-foreground">예약 플랫폼</div>
+            <div className="mt-1 font-semibold">{reservation.bookingPlatform}</div>
+          </div>
+        ) : null}
         {normalizedLink ? (
           <Button asChild variant="outline" className="rounded-full">
             <a href={normalizedLink} target="_blank" rel="noreferrer">
@@ -765,6 +779,7 @@ function GoogleReservationImportDialog({
                   <div className="mt-2 grid gap-1 text-muted-foreground">
                     <div>{formatReservationDayLabel(draft.dayIndex, scheduleDays)}</div>
                     {draft.timeLabel ? <div>{draft.timeLabel}</div> : null}
+                    {draft.bookingPlatform ? <div>플랫폼: {draft.bookingPlatform}</div> : null}
                     {draft.referenceNumber ? <div>예약번호: {draft.referenceNumber}</div> : null}
                     {draft.linkUrl ? <div className="truncate">{draft.linkUrl}</div> : null}
                   </div>
@@ -901,6 +916,17 @@ function ReservationForm({
             disabled={disabled}
             placeholder="예: 18:30 / 10:00 입장"
             onChange={(event) => updateDraft('timeLabel', event.target.value)}
+          />
+        </Field>
+        <Field label="예약 플랫폼">
+          <input
+            className="h-10 rounded-md border bg-background px-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
+            value={draft.bookingPlatform}
+            maxLength={120}
+            disabled={disabled}
+            list={reservationPlatformDatalistId}
+            placeholder="예: 구글예약, 트립닷컴"
+            onChange={(event) => updateDraft('bookingPlatform', event.target.value)}
           />
         </Field>
         <Field label="연결 장소">
@@ -1221,6 +1247,7 @@ function parseGoogleReservationBlock(block: string, places: Place[], dayCount: n
     dayIndex,
     placeId: matchedPlace?.id ?? null,
     timeLabel,
+    bookingPlatform: inferReservationPlatform(block),
     referenceNumber,
     linkUrl,
     notes,
@@ -1266,6 +1293,7 @@ function parseGoogleMapsReservationBlock(
     dayIndex: parseDayIndex(block, dayCount),
     placeId: matchedPlace?.id ?? null,
     timeLabel: formatGoogleReservationTimeLabel(dateLine, summaryLine),
+    bookingPlatform: '구글예약',
     referenceNumber: parseReferenceNumber(block),
     linkUrl: parseFirstUrl(block),
     notes,
@@ -1409,6 +1437,7 @@ function googleBookingRowToDraft(row: GoogleBookingCsvRow, places: Place[], dayC
     dayIndex: parseDayIndex(startTime, dayCount),
     placeId: matchedPlace?.id ?? null,
     timeLabel,
+    bookingPlatform: '구글예약',
     referenceNumber: '',
     linkUrl: '',
     notes,
@@ -1468,6 +1497,12 @@ function inferReservationType(text: string, place: Place | null): ReservationTyp
   if (normalizedText.includes('train') || normalizedText.includes('flight') || normalizedText.includes('교통') || normalizedText.includes('항공')) return 'transport';
   if (normalizedText.includes('ticket') || normalizedText.includes('티켓') || normalizedText.includes('입장권')) return 'ticket';
   return 'restaurant';
+}
+
+function inferReservationPlatform(text: string) {
+  const normalizedText = normalizeSearchText(text);
+  const matchedPlatform = defaultReservationPlatforms.find((platform) => normalizedText.includes(normalizeSearchText(platform)));
+  return matchedPlatform ?? '';
 }
 
 function normalizeSearchText(value: string) {

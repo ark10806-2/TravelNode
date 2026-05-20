@@ -284,6 +284,7 @@ CREATE TABLE IF NOT EXISTS reservations (
   day_index integer,
   place_id uuid REFERENCES restaurants(id) ON DELETE SET NULL,
   time_label text NOT NULL DEFAULT '',
+  booking_platform text NOT NULL DEFAULT '',
   reference_number text NOT NULL DEFAULT '',
   link_url text NOT NULL DEFAULT '',
   notes text NOT NULL DEFAULT '',
@@ -296,6 +297,7 @@ CREATE TABLE IF NOT EXISTS reservations (
 
 ALTER TABLE reservations ADD COLUMN IF NOT EXISTS attachments jsonb NOT NULL DEFAULT '[]'::jsonb;
 ALTER TABLE reservations ADD COLUMN IF NOT EXISTS completed boolean NOT NULL DEFAULT false;
+ALTER TABLE reservations ADD COLUMN IF NOT EXISTS booking_platform text NOT NULL DEFAULT '';
 
 CREATE TABLE IF NOT EXISTS api_usage_daily (
   usage_date date NOT NULL,

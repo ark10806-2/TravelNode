@@ -21,6 +21,7 @@ class ReservationRepository(
         day_index,
         place_id,
         time_label,
+        booking_platform,
         reference_number,
         link_url,
         notes,
@@ -52,6 +53,7 @@ class ReservationRepository(
         day_index,
         place_id,
         time_label,
+        booking_platform,
         reference_number,
         link_url,
         notes,
@@ -59,7 +61,7 @@ class ReservationRepository(
         completed,
         sort_order
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?)
       ON CONFLICT (id) DO UPDATE
       SET
         reservation_type = EXCLUDED.reservation_type,
@@ -67,6 +69,7 @@ class ReservationRepository(
         day_index = EXCLUDED.day_index,
         place_id = EXCLUDED.place_id,
         time_label = EXCLUDED.time_label,
+        booking_platform = EXCLUDED.booking_platform,
         reference_number = EXCLUDED.reference_number,
         link_url = EXCLUDED.link_url,
         notes = EXCLUDED.notes,
@@ -107,12 +110,13 @@ class ReservationRepository(
             }
 
             statement.setString(6, reservation.timeLabel.orEmpty().trim())
-            statement.setString(7, reservation.referenceNumber.orEmpty().trim())
-            statement.setString(8, reservation.linkUrl.orEmpty().trim())
-            statement.setString(9, reservation.notes.orEmpty().trim())
-            statement.setString(10, mapper.writeValueAsString(reservation.attachments.orEmpty().map { it.toResponse() }))
-            statement.setBoolean(11, reservation.completed == true)
-            statement.setInt(12, index)
+            statement.setString(7, reservation.bookingPlatform.orEmpty().trim())
+            statement.setString(8, reservation.referenceNumber.orEmpty().trim())
+            statement.setString(9, reservation.linkUrl.orEmpty().trim())
+            statement.setString(10, reservation.notes.orEmpty().trim())
+            statement.setString(11, mapper.writeValueAsString(reservation.attachments.orEmpty().map { it.toResponse() }))
+            statement.setBoolean(12, reservation.completed == true)
+            statement.setInt(13, index)
             statement.addBatch()
           }
           statement.executeBatch()
@@ -139,6 +143,7 @@ class ReservationRepository(
     dayIndex = getObject("day_index") as Int?,
     placeId = getObject("place_id", UUID::class.java)?.toString(),
     timeLabel = getString("time_label"),
+    bookingPlatform = getString("booking_platform"),
     referenceNumber = getString("reference_number"),
     linkUrl = getString("link_url"),
     notes = getString("notes"),
