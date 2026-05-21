@@ -113,7 +113,7 @@ export function PullToRefresh({ onRefresh = () => window.location.reload() }: Pu
     transform: `translateY(${lift}px) scale(${cardScale})`
   } as CSSProperties;
   const ringStyle = {
-    background: `conic-gradient(hsl(var(--primary)) ${Math.round(progress * 360)}deg, hsl(var(--muted)) 0deg)`
+    background: `conic-gradient(var(--toss-refresh-blue) ${Math.round(progress * 360)}deg, var(--toss-refresh-track) 0deg)`
   } satisfies CSSProperties;
 
   return (
@@ -126,19 +126,19 @@ export function PullToRefresh({ onRefresh = () => window.location.reload() }: Pu
     >
       <div
         className={cn(
-          'pull-refresh-card mt-3 flex h-12 items-center gap-2.5 rounded-full border px-3 pr-4 text-left backdrop-blur-md transition-colors duration-150',
+          'pull-refresh-card mt-3 flex h-11 items-center gap-2.5 rounded-full px-2.5 pr-4 text-left backdrop-blur-md transition-colors duration-150',
           status === 'ready' && 'pull-refresh-card-ready',
           status === 'refreshing' && 'pull-refresh-card-refreshing'
         )}
         style={cardStyle}
       >
         <div className="pull-refresh-orb" style={ringStyle}>
-          <div className="grid h-7 w-7 place-items-center rounded-full bg-background">
-            <Icon className={cn('h-4 w-4 text-primary', status === 'refreshing' && 'animate-spin')} />
+          <div className="grid h-7 w-7 place-items-center rounded-full bg-white dark:bg-secondary">
+            <Icon className={cn('h-3.5 w-3.5 text-[var(--toss-refresh-icon)]', status === 'refreshing' && 'animate-spin')} />
           </div>
         </div>
         <div className="min-w-0">
-          <div className="whitespace-nowrap text-sm font-semibold text-foreground">{statusText}</div>
+          <div className="whitespace-nowrap text-[13px] font-semibold text-[var(--toss-refresh-text)]">{statusText}</div>
         </div>
       </div>
     </div>
