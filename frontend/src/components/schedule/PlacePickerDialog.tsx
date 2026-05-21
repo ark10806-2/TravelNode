@@ -10,8 +10,7 @@ import {
   getCategoryOption,
   getPlaceInfoUrl,
   getVisibleGoogleMapsNote,
-  getVisiblePlaceDescription,
-  shouldShowPlaceInfoNeedsReview
+  getVisiblePlaceDescription
 } from '@/lib/place-utils';
 import { cn } from '@/lib/utils';
 import type { CategoryId, CategoryOption, PhotoState, Place } from '@/types/travel';
@@ -160,7 +159,6 @@ export function PlacePickerDialog({
                   const isDisabled = !isSelected && isSelectionFull;
                   const visibleDescription = getVisiblePlaceDescription(place);
                   const visibleNote = getVisibleGoogleMapsNote(place);
-                  const needsReview = shouldShowPlaceInfoNeedsReview(place);
 
                   return (
                     <button
@@ -208,11 +206,6 @@ export function PlacePickerDialog({
                             <div className="mt-2 line-clamp-3 text-sm leading-5 text-foreground/80">
                               설명: <MarkdownInline text={visibleDescription} />
                             </div>
-                          ) : null}
-                          {needsReview ? (
-                            <Badge variant="outline" className="mt-2 rounded-full bg-background text-[11px] text-muted-foreground">
-                              정보 보강 필요
-                            </Badge>
                           ) : null}
                           {visibleNote ? (
                             <div className="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">
@@ -643,7 +636,6 @@ function PlacePickerDetails({
   const extraPhotos = photoState.photos.slice(1, 4);
   const visibleDescription = getVisiblePlaceDescription(place);
   const visibleNote = getVisibleGoogleMapsNote(place);
-  const needsReview = shouldShowPlaceInfoNeedsReview(place);
 
   return (
     <div className="overflow-hidden rounded-md border bg-background">
@@ -696,19 +688,12 @@ function PlacePickerDetails({
               <div className="text-foreground">{place.menu}</div>
             </div>
           ) : null}
-          {visibleDescription || needsReview ? (
+          {visibleDescription ? (
             <div>
               <div className="text-xs font-bold text-muted-foreground">설명</div>
-              {visibleDescription ? (
-                <div className="text-foreground/85">
-                  <MarkdownInline text={visibleDescription} />
-                </div>
-              ) : null}
-              {needsReview ? (
-                <Badge variant="outline" className="mt-1 rounded-full bg-background text-[11px] text-muted-foreground">
-                  정보 보강 필요
-                </Badge>
-              ) : null}
+              <div className="text-foreground/85">
+                <MarkdownInline text={visibleDescription} />
+              </div>
             </div>
           ) : null}
           {visibleNote ? (

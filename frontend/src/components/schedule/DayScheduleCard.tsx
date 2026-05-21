@@ -9,8 +9,7 @@ import {
   getCategoryBadgeClass,
   getCategoryOption,
   getVisibleGoogleMapsNote,
-  getVisiblePlaceDescription,
-  shouldShowPlaceInfoNeedsReview
+  getVisiblePlaceDescription
 } from '@/lib/place-utils';
 import { formatDepartureTime, formatTravelDate, getScheduleHotelPlace, maxStopsPerDay, routeLegKey } from '@/lib/schedule-utils';
 import type { Reservation } from '@/types/reservation';
@@ -366,7 +365,6 @@ export function DayScheduleCard({
                           <div className="min-w-0">
                             <PlaceContextBadges
                               reservations={placeReservations}
-                              needsReview={shouldShowPlaceInfoNeedsReview(place)}
                               compact
                               leading={
                                 <Badge variant="outline" className={getCategoryBadgeClass(place.category)}>

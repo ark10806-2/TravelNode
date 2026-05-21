@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { LayoutGrid, Plus, Table2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -69,6 +69,8 @@ export function PlaceList({
   onSelectPlace
 }: PlaceListProps) {
   const [expandedPlaceId, setExpandedPlaceId] = useState<string | null>(null);
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const previousSelectedPlaceIdRef = useRef<string | null>(selectedPlaceId);
 
   useEffect(() => {
     places.forEach((place) => {
@@ -81,6 +83,17 @@ export function PlaceList({
     if (!places.some((place) => place.id === expandedPlaceId)) setExpandedPlaceId(null);
   }, [expandedPlaceId, places]);
 
+  useEffect(() => {
+    const previousSelectedPlaceId = previousSelectedPlaceIdRef.current;
+    previousSelectedPlaceIdRef.current = selectedPlaceId;
+    if (!enableExpandedDetails || !selectedPlaceId || previousSelectedPlaceId === selectedPlaceId) return;
+    if (typeof window === 'undefined' || window.matchMedia('(min-width: 768px)').matches) return;
+
+    window.setTimeout(() => {
+      sectionRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }, 0);
+  }, [enableExpandedDetails, selectedPlaceId]);
+
   function togglePlace(place: NearbyPlace) {
     onSelectPlace?.(place);
     if (!enableExpandedDetails) {
@@ -90,7 +103,7 @@ export function PlaceList({
   }
 
   return (
-    <section className="min-w-0 w-[calc(100vw-1.5rem)] max-w-full overflow-hidden sm:w-full">
+    <section ref={sectionRef} className="scroll-mt-28 min-w-0 w-[calc(100vw-1.5rem)] max-w-full overflow-hidden sm:w-full">
       <PlaceListHeader
         title={title}
         count={places.length}

@@ -3,7 +3,6 @@ import { ExternalLink, Images, Info, Loader2, Map, Navigation, Pencil, TicketChe
 import { recordApiUsage } from '@/api/usage';
 import { MarkdownText } from '@/components/common/MarkdownText';
 import { PlaceReservationBadge } from '@/components/reservation/PlaceReservationBadge';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { googleMapsApiKey } from '@/config/env';
 import {
@@ -11,8 +10,7 @@ import {
   getPlaceInfoUrl,
   getVisibleGoogleMapsNote,
   getVisiblePlaceDescription,
-  haversineKm,
-  shouldShowPlaceInfoNeedsReview
+  haversineKm
 } from '@/lib/place-utils';
 import type { Reservation } from '@/types/reservation';
 import type { CategoryId, CategoryOption, NearbyPlace, PhotoState, Place } from '@/types/travel';
@@ -54,7 +52,6 @@ export function PlaceExpandedDetails({
   const distanceKm = haversineKm(referencePlace, place);
   const visibleDescription = getVisiblePlaceDescription(place);
   const visibleNote = getVisibleGoogleMapsNote(place);
-  const needsReview = shouldShowPlaceInfoNeedsReview(place);
   const [activeSection, setActiveSection] = useState<'info' | 'photos' | 'map' | 'booking'>('info');
 
   return (
@@ -78,6 +75,32 @@ export function PlaceExpandedDetails({
         })}
       </div>
 
+      {isEditing ? (
+        <div className="mt-3 grid gap-2 rounded-xl border bg-secondary/50 p-2 sm:flex sm:items-center">
+          <Button variant="outline" className="rounded-full sm:w-auto" onClick={() => onEditPlace(place)} disabled={isBusy}>
+            <Pencil className="h-4 w-4" />
+            세부항목 수정
+          </Button>
+          <CategoryMoveSelect
+            place={place}
+            categories={categories}
+            disabled={isBusy}
+            className="min-w-0 rounded-full sm:min-w-44"
+            onMove={onMoveCategory}
+          />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="justify-self-end rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive sm:ml-auto"
+            onClick={() => onDelete(place)}
+            disabled={isBusy}
+          >
+            {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            삭제
+          </Button>
+        </div>
+      ) : null}
+
       <div className="mt-3">
         {activeSection === 'info' ? (
           <section className="grid gap-3 rounded-xl border bg-muted/20 p-3">
@@ -89,15 +112,10 @@ export function PlaceExpandedDetails({
               </div>
               <div className="text-xs leading-5 text-muted-foreground">{place.address}</div>
             </div>
-            {visibleDescription || needsReview ? (
+            {visibleDescription ? (
               <div className="border-t pt-3">
                 <div className="text-sm font-semibold">설명</div>
-                {visibleDescription ? <MarkdownText className="mt-2" text={visibleDescription} /> : null}
-                {needsReview ? (
-                  <Badge variant="outline" className="mt-2 rounded-full bg-background text-muted-foreground">
-                    정보 보강 필요
-                  </Badge>
-                ) : null}
+                <MarkdownText className="mt-2" text={visibleDescription} />
               </div>
             ) : null}
             {visibleNote ? (
@@ -146,33 +164,6 @@ export function PlaceExpandedDetails({
             </div>
             {!reservations.length ? (
               <div className="rounded-lg bg-background px-3 py-2 text-sm text-muted-foreground">연결된 예약/티켓이 없습니다.</div>
-            ) : null}
-            {isEditing ? (
-              <div className="grid gap-2 border-t pt-3">
-                <Button variant="outline" className="rounded-full" onClick={() => onEditPlace(place)} disabled={isBusy}>
-                  <Pencil className="h-4 w-4" />
-                  세부항목 수정
-                </Button>
-                <CategoryMoveSelect
-                  place={place}
-                  categories={categories}
-                  disabled={isBusy}
-                  className="min-w-0 rounded-full"
-                  onMove={onMoveCategory}
-                />
-                <div className="flex justify-end">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    onClick={() => onDelete(place)}
-                    disabled={isBusy}
-                  >
-                    {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                    삭제
-                  </Button>
-                </div>
-              </div>
             ) : null}
           </section>
         ) : null}

@@ -2,7 +2,7 @@ import { ChevronDown } from 'lucide-react';
 import { MarkdownInline } from '@/components/common/MarkdownText';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { getVisibleGoogleMapsNote, getVisiblePlaceDescription, shouldShowPlaceInfoNeedsReview } from '@/lib/place-utils';
+import { getVisibleGoogleMapsNote, getVisiblePlaceDescription } from '@/lib/place-utils';
 import { cn } from '@/lib/utils';
 import type { Reservation } from '@/types/reservation';
 import type { CategoryId, CategoryOption, NearbyPlace, PhotoState, Place } from '@/types/travel';
@@ -63,7 +63,6 @@ export function PlaceExpandableRow({
   const isHighlighted = isExpanded || (!enableExpandedDetails && isSelected);
   const visibleDescription = getVisiblePlaceDescription(place);
   const visibleNote = getVisibleGoogleMapsNote(place);
-  const needsReview = shouldShowPlaceInfoNeedsReview(place);
 
   return (
     <article className={cn(hasDivider && 'border-t')}>
@@ -87,14 +86,13 @@ export function PlaceExpandableRow({
 
         <div className="col-start-2 min-w-0 pr-7 sm:col-auto sm:pr-0">
           <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-            <span className="shrink-0 text-xs font-medium leading-6 text-muted-foreground">
+            <span className="inline-flex w-14 shrink-0 justify-start text-xs font-medium leading-6 text-muted-foreground tabular-nums">
               {place.distanceFromSelectedKm.toFixed(1)}km
             </span>
             <PlaceContextBadges
               reservations={reservations}
               scheduleLabels={scheduleLabels}
               isDuplicateCandidate={isDuplicateCandidate}
-              needsReview={needsReview}
               compact
               onOpenReservations={onOpenReservations ? () => onOpenReservations(place, reservations) : undefined}
             />

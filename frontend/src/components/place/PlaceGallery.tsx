@@ -4,7 +4,7 @@ import { MarkdownInline } from '@/components/common/MarkdownText';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { travelLabel } from '@/constants/travel';
-import { getVisibleGoogleMapsNote, getVisiblePlaceDescription, shouldShowPlaceInfoNeedsReview } from '@/lib/place-utils';
+import { getVisibleGoogleMapsNote, getVisiblePlaceDescription } from '@/lib/place-utils';
 import { cn } from '@/lib/utils';
 import type { Reservation } from '@/types/reservation';
 import type { CategoryId, CategoryOption, NearbyPlace, PhotoState, Place } from '@/types/travel';
@@ -59,7 +59,6 @@ export function PlaceGallery({
   const isActivePhotoVisible = Boolean(activePhoto && !failedPhotoUrls.has(activePhoto.url));
   const visibleDescription = activePlace ? getVisiblePlaceDescription(activePlace) : '';
   const visibleNote = activePlace ? getVisibleGoogleMapsNote(activePlace) : '';
-  const needsReview = activePlace ? shouldShowPlaceInfoNeedsReview(activePlace) : false;
 
   useEffect(() => {
     setActiveIndex((current) => Math.min(current, Math.max(places.length - 1, 0)));
@@ -228,14 +227,13 @@ export function PlaceGallery({
           <div className="flex min-w-0 flex-col gap-2 border-t p-2.5 sm:gap-3 sm:p-4 lg:border-l lg:border-t-0">
             <div className="flex min-w-0 items-center justify-between gap-2">
               <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                <span className="shrink-0 text-xs font-medium leading-6 text-muted-foreground">
+                <span className="inline-flex w-14 shrink-0 justify-start text-xs font-medium leading-6 text-muted-foreground tabular-nums">
                   {activePlace.distanceFromSelectedKm.toFixed(1)}km
                 </span>
                 <PlaceContextBadges
                   reservations={activeReservations}
                   scheduleLabels={activeScheduleLabels}
                   isDuplicateCandidate={isDuplicateCandidate}
-                  needsReview={needsReview}
                   compact
                   leading={
                     <Badge variant="outline" className="bg-background/80">

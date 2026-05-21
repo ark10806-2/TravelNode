@@ -63,10 +63,6 @@ export function getVisiblePlaceDescription(place: Pick<Place, 'description'>) {
   return isGeneratedPlaceDescription(description) ? '' : description;
 }
 
-export function shouldShowPlaceInfoNeedsReview(place: Pick<Place, 'description'>) {
-  return isGeneratedPlaceDescription(place.description.trim());
-}
-
 export function getVisibleGoogleMapsNote(place: Pick<Place, 'googleMapsNote'>) {
   return place.googleMapsNote?.trim() ?? '';
 }

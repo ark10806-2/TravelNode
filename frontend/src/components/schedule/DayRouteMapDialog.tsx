@@ -5,7 +5,7 @@ import { ModalFrame } from '@/components/dialogs/ModalFrame';
 import { Badge } from '@/components/ui/badge';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import { createHotelMarkerIcon, createPlaceMarkerIcon, getPlaceMapStyles } from '@/lib/google-maps';
-import { getVisibleGoogleMapsNote, getVisiblePlaceDescription, shouldShowPlaceInfoNeedsReview } from '@/lib/place-utils';
+import { getVisibleGoogleMapsNote, getVisiblePlaceDescription } from '@/lib/place-utils';
 import { cn } from '@/lib/utils';
 import type { Place } from '@/types/travel';
 
@@ -303,7 +303,6 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
                 const isSelected = place.id === selectedPlaceId;
                 const visibleDescription = getVisiblePlaceDescription(place);
                 const visibleNote = getVisibleGoogleMapsNote(place);
-                const needsReview = shouldShowPlaceInfoNeedsReview(place);
 
                 return (
                   <li
@@ -344,11 +343,6 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
                         {visibleDescription ? (
                           <span className="mt-2 inline-flex max-w-full rounded-full bg-background/75 px-2 py-1 text-[11px] leading-none text-foreground/70 ring-1 ring-border/70">
                             <span className="truncate">설명: <MarkdownInline text={visibleDescription} /></span>
-                          </span>
-                        ) : null}
-                        {needsReview ? (
-                          <span className="mt-2 inline-flex max-w-full rounded-full bg-background/75 px-2 py-1 text-[11px] leading-none text-muted-foreground ring-1 ring-border/70">
-                            정보 보강 필요
                           </span>
                         ) : null}
                         {visibleNote ? (

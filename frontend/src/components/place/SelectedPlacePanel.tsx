@@ -8,8 +8,7 @@ import {
   getPlaceInfoUrl,
   getVisibleGoogleMapsNote,
   getVisiblePlaceDescription,
-  haversineKm,
-  shouldShowPlaceInfoNeedsReview
+  haversineKm
 } from '@/lib/place-utils';
 import type { Reservation } from '@/types/reservation';
 import type { CategoryId, CategoryOption, PhotoState, Place } from '@/types/travel';
@@ -59,7 +58,6 @@ export function SelectedPlacePanel({
   const distanceKm = haversineKm(referencePlace, place);
   const visibleDescription = getVisiblePlaceDescription(place);
   const visibleNote = getVisibleGoogleMapsNote(place);
-  const needsReview = shouldShowPlaceInfoNeedsReview(place);
 
   return (
     <aside className="soft-panel rounded-xl p-3.5 sm:rounded-lg sm:p-5">
@@ -69,7 +67,6 @@ export function SelectedPlacePanel({
             <PlaceContextBadges
               reservations={reservations}
               scheduleLabels={scheduleLabels}
-              needsReview={needsReview}
               compact
               leading={
                 <Badge variant="outline" className={getCategoryBadgeClass(place.category)}>
@@ -121,10 +118,10 @@ export function SelectedPlacePanel({
               직선거리 {distanceKm.toFixed(1)}km
             </div>
           </div>
-          {visibleDescription || needsReview ? (
+          {visibleDescription ? (
             <div className="rounded-lg bg-secondary p-3">
               <div className="text-xs font-semibold text-muted-foreground">설명</div>
-              {visibleDescription ? <MarkdownText className="mt-1 text-sm" text={visibleDescription} /> : null}
+              <MarkdownText className="mt-1 text-sm" text={visibleDescription} />
             </div>
           ) : null}
           {visibleNote ? (

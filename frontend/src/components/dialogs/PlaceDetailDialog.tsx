@@ -9,8 +9,7 @@ import {
   getCategoryOption,
   getPlaceInfoUrl,
   getVisibleGoogleMapsNote,
-  getVisiblePlaceDescription,
-  shouldShowPlaceInfoNeedsReview
+  getVisiblePlaceDescription
 } from '@/lib/place-utils';
 import type { Reservation } from '@/types/reservation';
 import type { CategoryOption, PhotoState, Place } from '@/types/travel';
@@ -39,7 +38,6 @@ export function PlaceDetailDialog({
   const category = getCategoryOption(categories, place.category);
   const visibleDescription = getVisiblePlaceDescription(place);
   const visibleNote = getVisibleGoogleMapsNote(place);
-  const needsReview = shouldShowPlaceInfoNeedsReview(place);
 
   return (
     <ModalFrame
@@ -89,15 +87,10 @@ export function PlaceDetailDialog({
             </div>
           </section>
 
-          {visibleDescription || needsReview ? (
+          {visibleDescription ? (
             <section className="rounded-md border bg-muted/20 p-3 sm:col-span-2">
               <div className="font-semibold">설명</div>
-              {visibleDescription ? <MarkdownText className="mt-1" text={visibleDescription} /> : null}
-              {needsReview ? (
-                <Badge variant="outline" className="mt-2 rounded-full bg-background text-muted-foreground">
-                  정보 보강 필요
-                </Badge>
-              ) : null}
+              <MarkdownText className="mt-1" text={visibleDescription} />
             </section>
           ) : null}
 

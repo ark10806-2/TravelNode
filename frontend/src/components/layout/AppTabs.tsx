@@ -164,7 +164,7 @@ export function AppTabs({
                         />
                         <MenuActionButton
                           icon={LogOut}
-                          label="잠금"
+                          label="로그아웃"
                           onClick={() => {
                             closeMenu();
                             onLogout();
