@@ -3,6 +3,8 @@ import { haversineKm } from '@/lib/place-utils';
 import type { RouteLeg, RouteMode, RouteModeLeg, ScheduleDay } from '@/types/schedule';
 import type { Place } from '@/types/travel';
 
+export { createId } from '@/lib/id';
+
 export const scheduleStorageKey = 'japan-trip-schedule-v1';
 export const maxStopsPerDay = 20;
 export const routeModes: RouteMode[] = ['driving', 'transit', 'walking'];
@@ -24,11 +26,6 @@ export const hotelSchedulePlace: Place = {
   travelMinutes: 0,
   distanceLabel: '0m'
 };
-
-export function createId(prefix: string) {
-  if (window.crypto?.randomUUID) return `${prefix}-${window.crypto.randomUUID()}`;
-  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
 
 export function buildPlaceDirectionsUrl(from: Place, to: Place, mode: RouteMode = 'transit') {
   const origin = encodeURIComponent(buildDirectionsQuery(from));

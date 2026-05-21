@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader2, MapPin } from 'lucide-react';
 import { recordApiUsage } from '@/api/usage';
-import { googleMapsApiKey, mapsKeyLabel } from '@/config/env';
-import { createHotelMarkerIcon, createPlaceMarkerIcon, describeError, getPlaceMapStyles, loadGoogleMaps } from '@/lib/google-maps';
+import { googleMapsApiKey } from '@/config/env';
+import { createHotelMarkerIcon, createPlaceMarkerIcon, getPlaceMapStyles, loadGoogleMaps } from '@/lib/google-maps';
 import { getEmbedMapUrl } from '@/lib/place-utils';
 import type { LoadStatus, Place } from '@/types/travel';
 
@@ -26,7 +26,7 @@ export function TravelMap({ places, selectedPlace, referencePlace, status, isDar
   useEffect(() => {
     window.gm_authFailure = () => {
       setMapLoadFailed(true);
-      setMapError('Maps JavaScript API 인증이 실패해 기본 지도 보기로 표시 중입니다.');
+      setMapError('지도 인증을 확인하지 못해 기본 보기로 전환했습니다.');
     };
 
     return () => {
@@ -61,9 +61,7 @@ export function TravelMap({ places, selectedPlace, referencePlace, status, isDar
       .catch((loadError) => {
         console.error('[Google Maps] 지도 초기화 실패', loadError);
         setMapLoadFailed(true);
-        setMapError(
-          `Maps JavaScript API를 불러오지 못해 기본 지도 보기로 표시 중입니다. 원인: ${describeError(loadError)}.`
-        );
+        setMapError('지도를 불러오지 못해 기본 보기로 전환했습니다.');
       });
 
     return () => {
@@ -139,10 +137,7 @@ export function TravelMap({ places, selectedPlace, referencePlace, status, isDar
           />
           <div className="absolute left-3 right-3 top-3 rounded-md border bg-background/95 px-3 py-2 text-sm shadow-sm sm:left-4 sm:right-4 sm:top-4 sm:px-4 sm:py-3">
             <p className="font-semibold">기본 지도 보기로 표시 중입니다.</p>
-            <p className="mt-1 text-muted-foreground">
-              {mapError || 'Google Maps JavaScript 지도 대신 iframe 지도를 사용하고 있습니다.'} 현재 로컬 키는{' '}
-              {mapsKeyLabel}로 로드 중입니다.
-            </p>
+            <p className="mt-1 text-muted-foreground">{mapError || '일부 지도 기능이 제한될 수 있습니다.'}</p>
           </div>
         </div>
       ) : null}
@@ -150,10 +145,8 @@ export function TravelMap({ places, selectedPlace, referencePlace, status, isDar
         <div className="map-shell flex h-full min-h-[272px] flex-col items-center justify-center gap-3 rounded-lg p-4 text-center sm:min-h-[412px] sm:p-6 lg:min-h-[552px]">
           <MapPin className="h-10 w-10 text-primary" />
           <div>
-            <p className="font-semibold">Google Maps API 키가 필요합니다.</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              `frontend/.env`의 `VITE_GOOGLE_MAPS_API_KEY`를 설정하면 지도가 표시됩니다.
-            </p>
+            <p className="font-semibold">지도 설정이 필요합니다.</p>
+            <p className="mt-1 text-sm text-muted-foreground">관리자에게 지도 설정을 확인해 주세요.</p>
           </div>
         </div>
       ) : null}

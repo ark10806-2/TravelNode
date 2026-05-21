@@ -1,5 +1,4 @@
-import { Building2, DownloadCloud, ExternalLink } from 'lucide-react';
-import { apiBaseUrl } from '@/config/env';
+import { Building2, DownloadCloud } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Place, TravelModeFilter } from '@/types/travel';
@@ -60,12 +59,6 @@ export function AppHeader({
             즐겨찾기 가져오기
           </Button>
         ) : null}
-        <Button asChild className="col-span-2 sm:col-span-1" variant="outline">
-          <a href={`${apiBaseUrl}/api/restaurants`} target="_blank" rel="noreferrer">
-            API 열기
-            <ExternalLink className="h-4 w-4" />
-          </a>
-        </Button>
       </div>
     </header>
   );

@@ -212,7 +212,7 @@ export function DayScheduleCard({
                 disabled={!canCalculatePreciseRoutes || isOptimizingRoutes || isRefreshingRoutes || isCalculatingPreciseRoutes}
                 title={
                   canCalculatePreciseRoutes
-                    ? '정밀계산은 이 DAY의 현재 이동 경로를 Google Routes API로 강제 새로고침합니다. 자동차는 실시간 교통(TRAFFIC_AWARE_OPTIMAL)을 반영해 더 정확하지만 API 사용량이 늘어납니다. 출발 시간이나 교통 상황이 중요한 날에만 사용하세요.'
+                    ? '현재 경로를 최신 교통 정보로 다시 계산합니다. API 사용량이 늘 수 있어 필요한 날에만 사용하세요.'
                     : '자동차 이동수단이 표시 중일 때만 정밀계산을 사용할 수 있습니다.'
                 }
               >

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getAuthToken } from '@/api/auth';
 import { fetchTodos, saveTodos, type TodoSaveScope } from '@/api/todos';
+import { createId } from '@/lib/id';
 import type { TodoCustomChecklist, TodoItem, TodoList, TodoSectionId } from '@/types/todo';
 
 type TodoStatus = 'loading' | 'ready' | 'error';
@@ -423,9 +424,4 @@ function createTodoItem(text: string): TodoItem {
     text,
     done: false
   };
-}
-
-function createId(prefix: string) {
-  if (window.crypto?.randomUUID) return `${prefix}-${window.crypto.randomUUID()}`;
-  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }

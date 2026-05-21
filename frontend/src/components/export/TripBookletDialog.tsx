@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { defaultCategoryOptions } from '@/constants/travel';
 import { getPlaceInfoUrl } from '@/lib/place-utils';
+import { normalizeLink } from '@/lib/reservation-utils';
 import { formatDepartureTime, formatTravelDate, getScheduleHotelPlace } from '@/lib/schedule-utils';
 import { cn } from '@/lib/utils';
 import type { Reservation } from '@/types/reservation';
@@ -71,13 +72,10 @@ export function TripBookletDialog({ snapshot, photoCache, onClose }: TripBooklet
         scroll
         headerClassName="trip-booklet-controls"
         onClose={onClose}
-        eyebrow={<Badge variant="outline">Server PDF</Badge>}
+        eyebrow={<Badge variant="outline">PDF</Badge>}
       >
         <div className="trip-booklet-controls flex flex-col gap-3 border-b bg-secondary/60 px-4 py-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-5">
-          <div className="leading-6">
-            아래 미리보기는 화면 확인용입니다. 실제 파일은 서버에서 <strong className="text-foreground">A4 고정 레이아웃 PDF</strong>로
-            생성되어 모바일에서도 같은 배치로 다운로드됩니다.
-          </div>
+          <div className="leading-6">완성 파일은 A4 고정 레이아웃으로 다운로드됩니다.</div>
           <Button className="rounded-full" onClick={downloadBooklet} disabled={isDownloading}>
             {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             완성 PDF 다운로드
@@ -801,11 +799,4 @@ function countDoneTodos(todos: TodoList) {
 function mergeKnownCategories(categories: CategoryOption[]) {
   const byId = new Map([...defaultCategoryOptions, ...categories].map((category) => [category.id, category]));
   return Array.from(byId.values()).sort((a, b) => a.sortOrder - b.sortOrder);
-}
-
-function normalizeLink(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  return `https://${trimmed}`;
 }

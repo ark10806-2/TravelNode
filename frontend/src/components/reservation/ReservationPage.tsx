@@ -30,7 +30,8 @@ import { PageContainer } from '@/components/layout/PageContainer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useReservations } from '@/hooks/useReservations';
-import { formatTravelDate } from '@/lib/schedule-utils';
+import { createId } from '@/lib/id';
+import { downloadReservationAttachment, formatBytes, formatReservationDayLabel, normalizeLink } from '@/lib/reservation-utils';
 import { cn } from '@/lib/utils';
 import type { Reservation, ReservationAttachment, ReservationDraft, ReservationType } from '@/types/reservation';
 import type { ScheduleDay } from '@/types/schedule';
@@ -92,14 +93,6 @@ https://example.com/booking
 4.8 (3,112)
 몬자야키 전문점
 3-chōme-16-9 Tsukishima, Chuo City, Tokyo 104-0052 일본`;
-
-function formatReservationDayLabel(dayIndex: number | null, scheduleDays: ScheduleDay[]) {
-  if (dayIndex == null) return 'DAY 미지정';
-
-  const dayLabel = `DAY ${dayIndex + 1}`;
-  const travelDate = scheduleDays[dayIndex]?.travelDate;
-  return travelDate ? `${dayLabel} · ${formatTravelDate(travelDate)}` : dayLabel;
-}
 
 function sortReservationsBySchedule(reservations: Reservation[], scheduleDays: ScheduleDay[]) {
   return [...reservations].sort((left, right) => {
@@ -237,13 +230,11 @@ export function ReservationPage({
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
             식당 예약, 입장권, 교통권, 숙소 바우처를 DAY와 장소에 연결해 보관합니다.
           </p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {status === 'loading'
-              ? '예약/티켓을 불러오는 중입니다.'
-              : isSaving
-                ? '예약/티켓을 저장하는 중입니다.'
-                : '예약/티켓은 서버 DB에 저장됩니다.'}
-          </p>
+          {status === 'loading' || isSaving ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              {status === 'loading' ? '예약/티켓을 불러오는 중입니다.' : '예약/티켓을 저장하는 중입니다.'}
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
           {isEditing ? (
@@ -1088,40 +1079,6 @@ function ReservationAttachmentGrid({
   );
 }
 
-function downloadReservationAttachment(attachment: ReservationAttachment) {
-  try {
-    const blob = dataUrlToBlob(attachment.dataUrl, attachment.contentType);
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = objectUrl;
-    link.download = attachment.fileName || 'reservation-file';
-    link.rel = 'noreferrer';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-  } catch (_error) {
-    window.open(attachment.dataUrl, '_blank', 'noopener,noreferrer');
-  }
-}
-
-function dataUrlToBlob(dataUrl: string, fallbackContentType: string) {
-  const separatorIndex = dataUrl.indexOf(',');
-  if (separatorIndex < 0) throw new Error('Invalid data URL');
-
-  const metadata = dataUrl.slice(0, separatorIndex);
-  const payload = dataUrl.slice(separatorIndex + 1);
-  const contentType = metadata.match(/^data:([^;,]+)/)?.[1] ?? fallbackContentType;
-  const raw = metadata.includes(';base64') ? window.atob(payload) : decodeURIComponent(payload);
-  const bytes = new Uint8Array(raw.length);
-
-  for (let index = 0; index < raw.length; index += 1) {
-    bytes[index] = raw.charCodeAt(index);
-  }
-
-  return new Blob([bytes], { type: contentType || 'application/octet-stream' });
-}
-
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="grid min-w-0 gap-1">
@@ -1129,13 +1086,6 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
       {children}
     </label>
   );
-}
-
-function normalizeLink(linkUrl: string) {
-  const trimmedUrl = linkUrl.trim();
-  if (!trimmedUrl) return '';
-  if (/^https?:\/\//i.test(trimmedUrl)) return trimmedUrl;
-  return `https://${trimmedUrl}`;
 }
 
 function readReservationAttachment(file: File): Promise<ReservationAttachment> {
@@ -1209,12 +1159,6 @@ function mergeReservationAttachments(
 
 function attachmentIdentityKey(attachment: Pick<ReservationAttachment, 'fileName' | 'sizeBytes' | 'contentType'>) {
   return `${attachment.fileName.trim().toLowerCase()}|${attachment.sizeBytes}|${attachment.contentType.trim().toLowerCase()}`;
-}
-
-function formatBytes(sizeBytes: number) {
-  if (sizeBytes < 1024) return `${sizeBytes}B`;
-  if (sizeBytes < 1024 * 1024) return `${(sizeBytes / 1024).toFixed(1)}KB`;
-  return `${(sizeBytes / 1024 / 1024).toFixed(1)}MB`;
 }
 
 function parseGoogleReservationText(rawText: string, places: Place[], dayCount: number): ReservationDraft[] {
@@ -1518,9 +1462,4 @@ function inferReservationPlatform(text: string) {
 
 function normalizeSearchText(value: string) {
   return value.toLowerCase().replace(/\s+/g, ' ').trim();
-}
-
-function createId(prefix: string) {
-  if (window.crypto?.randomUUID) return `${prefix}-${window.crypto.randomUUID()}`;
-  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }

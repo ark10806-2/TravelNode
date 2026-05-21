@@ -113,9 +113,7 @@ export function UsagePage({ isEditing }: UsagePageProps) {
         <div>
           <Badge variant="outline">Google API</Badge>
           <h1 className="mt-2 text-3xl font-bold tracking-normal">API 사용량</h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            이번 달 이 앱에서 발생한 Google API 호출을 Google Maps Platform 월간 무료 사용량 기준과 비교합니다.
-          </p>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">이번 달 Google API 사용량과 월간 한도를 확인합니다.</p>
           {isEditing ? (
             <p className="mt-2 text-xs text-muted-foreground">
               이번 달 사용량과 월간 한도를 직접 보정할 수 있습니다. 실패한 Google 요청은 자동 집계에 포함하지 않습니다.
@@ -205,7 +203,7 @@ export function UsagePage({ isEditing }: UsagePageProps) {
           <div>
             <h2 className="text-lg font-bold">일별 요청 / 캐시 적중률</h2>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
-              각 API별 실제 Google 요청 수와 캐시 hit-rate를 한 차트에 겹쳐 봅니다. 캐시가 없는 API는 요청 추이만 표시합니다.
+              요청 수와 캐시 적중률을 함께 확인합니다.
             </p>
           </div>
           <Badge variant="outline">월간 일별 지표</Badge>
@@ -227,7 +225,7 @@ export function UsagePage({ isEditing }: UsagePageProps) {
           <div>
             <h2 className="text-lg font-bold">이동 수단 표시 및 계산</h2>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
-              선택한 이동 수단만 일정 화면에 보이고 경로 계산 대상이 됩니다. 꺼진 이동 수단은 백그라운드에서도 Routes API를 호출하지 않습니다.
+              선택한 이동 수단만 일정 화면과 경로 계산에 사용합니다.
             </p>
           </div>
           {!isEditing ? <Badge variant="outline">편집 모드에서 변경</Badge> : null}

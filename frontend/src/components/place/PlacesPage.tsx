@@ -282,7 +282,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
       {isReferenceDialogOpen ? (
         <AccommodationSelectorDialog
           title="장소 기준점 변경"
-          description="장소 탭에서 거리 정렬과 지도 기준으로 사용할 위치를 선택합니다. 기본 숙소를 고르면 기존 기준점으로 돌아갑니다."
+          description="거리 정렬과 지도 기준으로 사용할 위치를 선택합니다."
           places={places}
           categories={categories}
           selectedPlaceId={referencePlaceId}

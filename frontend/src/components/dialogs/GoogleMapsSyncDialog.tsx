@@ -98,8 +98,8 @@ export function GoogleMapsSyncDialog({ onClose, onSynced }: GoogleMapsSyncDialog
         </label>
 
         <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm leading-6 text-muted-foreground">
-          조회된 장소는 기본으로 모두 선택됩니다. 앱에서 삭제한 장소는 <span className="font-semibold text-foreground">deleted</span>{' '}
-          상태로 남겨 다음 동기화 때 다시 생기지 않습니다. 기존 장소의 메모, 설명, 대표 항목은 기본값일 때만 보강하고 직접 수정한 값은 보존합니다.
+          조회된 장소는 기본으로 모두 선택됩니다. 앱에서 삭제한 장소는 숨김 처리되어 다음 동기화 때 다시 생기지 않습니다. 기존 장소의 메모,
+          설명, 대표 항목은 비어 있거나 기본값일 때만 보강합니다.
         </div>
 
         {formError ? (

@@ -192,13 +192,11 @@ export function TodoPage({ isEditing }: TodoPageProps) {
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
             여행 전 준비, DAY별 현장 할 일, 여행 후 정리 항목을 한 화면에서 관리합니다.
           </p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {status === 'loading'
-              ? '할 일을 불러오는 중입니다.'
-              : isSaving
-                ? '할 일을 저장하는 중입니다.'
-                : '할 일은 서버 DB에 저장됩니다.'}
-          </p>
+          {status === 'loading' || isSaving ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              {status === 'loading' ? '할 일을 불러오는 중입니다.' : '할 일을 저장하는 중입니다.'}
+            </p>
+          ) : null}
         </div>
         {isEditing ? <CreateChecklistForm disabled={isSaving} onCreate={addCustomChecklist} /> : null}
       </header>

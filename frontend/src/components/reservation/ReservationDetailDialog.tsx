@@ -4,7 +4,7 @@ import { MarkdownText } from '@/components/common/MarkdownText';
 import { ModalFrame } from '@/components/dialogs/ModalFrame';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { formatTravelDate } from '@/lib/schedule-utils';
+import { downloadReservationAttachment, formatBytes, formatReservationDayLabel, normalizeLink } from '@/lib/reservation-utils';
 import { cn } from '@/lib/utils';
 import type { Reservation, ReservationAttachment, ReservationType } from '@/types/reservation';
 import type { ScheduleDay } from '@/types/schedule';
@@ -163,59 +163,4 @@ function ReservationAttachmentGrid({ attachments }: { attachments: ReservationAt
       })}
     </div>
   );
-}
-
-function formatReservationDayLabel(dayIndex: number | null, scheduleDays: ScheduleDay[]) {
-  if (dayIndex == null) return 'DAY 미지정';
-
-  const dayLabel = `DAY ${dayIndex + 1}`;
-  const travelDate = scheduleDays[dayIndex]?.travelDate;
-  return travelDate ? `${dayLabel} · ${formatTravelDate(travelDate)}` : dayLabel;
-}
-
-function normalizeLink(linkUrl: string) {
-  const trimmedUrl = linkUrl.trim();
-  if (!trimmedUrl) return '';
-  if (/^https?:\/\//i.test(trimmedUrl)) return trimmedUrl;
-  return `https://${trimmedUrl}`;
-}
-
-function downloadReservationAttachment(attachment: ReservationAttachment) {
-  try {
-    const blob = dataUrlToBlob(attachment.dataUrl, attachment.contentType);
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = objectUrl;
-    link.download = attachment.fileName || 'reservation-file';
-    link.rel = 'noreferrer';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-  } catch (_error) {
-    window.open(attachment.dataUrl, '_blank', 'noopener,noreferrer');
-  }
-}
-
-function dataUrlToBlob(dataUrl: string, fallbackContentType: string) {
-  const separatorIndex = dataUrl.indexOf(',');
-  if (separatorIndex < 0) throw new Error('Invalid data URL');
-
-  const metadata = dataUrl.slice(0, separatorIndex);
-  const payload = dataUrl.slice(separatorIndex + 1);
-  const contentType = metadata.match(/^data:([^;,]+)/)?.[1] ?? fallbackContentType;
-  const raw = metadata.includes(';base64') ? window.atob(payload) : decodeURIComponent(payload);
-  const bytes = new Uint8Array(raw.length);
-
-  for (let index = 0; index < raw.length; index += 1) {
-    bytes[index] = raw.charCodeAt(index);
-  }
-
-  return new Blob([bytes], { type: contentType || 'application/octet-stream' });
-}
-
-function formatBytes(sizeBytes: number) {
-  if (sizeBytes < 1024) return `${sizeBytes}B`;
-  if (sizeBytes < 1024 * 1024) return `${(sizeBytes / 1024).toFixed(1)}KB`;
-  return `${(sizeBytes / 1024 / 1024).toFixed(1)}MB`;
 }

@@ -46,10 +46,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               <LockKeyhole className="h-4 w-4" />
             </div>
             <div className="min-w-0 text-sm">
-              <div className="font-bold">로그인 후에만 볼 수 있어요.</div>
-              <p className="mt-1 leading-5 text-muted-foreground">
-                장소, 일정, 예약, 할 일, 관리 화면은 인증된 사용자에게만 표시됩니다.
-              </p>
+              <div className="font-bold">로그인이 필요합니다.</div>
+              <p className="mt-1 leading-5 text-muted-foreground">여행 정보를 안전하게 보관하고 있어요.</p>
             </div>
           </div>
         </div>

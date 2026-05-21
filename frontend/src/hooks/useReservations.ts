@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getAuthToken } from '@/api/auth';
 import { fetchReservations, saveReservations, type ReservationSaveScope } from '@/api/reservations';
+import { createId } from '@/lib/id';
 import type { Reservation, ReservationDraft } from '@/types/reservation';
 
 type ReservationStatus = 'loading' | 'ready' | 'error';
@@ -168,9 +169,4 @@ function normalizeAttachments(attachments: ReservationDraft['attachments']) {
       sizeBytes: attachment.sizeBytes,
       dataUrl: attachment.dataUrl
     }));
-}
-
-function createId(prefix: string) {
-  if (window.crypto?.randomUUID) return `${prefix}-${window.crypto.randomUUID()}`;
-  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }

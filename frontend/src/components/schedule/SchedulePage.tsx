@@ -151,13 +151,11 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
           </p>
           <h1 className="text-2xl font-bold tracking-normal sm:text-5xl">여행 일정</h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground sm:mt-3 sm:text-base">DAY별로 장소를 배치하고 이동 순서를 조정합니다.</p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {scheduleStatus === 'loading'
-              ? '일정을 불러오는 중입니다.'
-              : isSavingSchedule
-                ? '일정을 저장하는 중입니다.'
-                : '일정은 서버 DB에 저장됩니다.'}
-          </p>
+          {scheduleStatus === 'loading' || isSavingSchedule ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              {scheduleStatus === 'loading' ? '일정을 불러오는 중입니다.' : '일정을 저장하는 중입니다.'}
+            </p>
+          ) : null}
         </div>
         {isEditing ? (
           <div className="grid gap-2 sm:flex sm:items-center">
