@@ -4,20 +4,20 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
+    --background: 220 20% 96%;
     --foreground: 220 23% 13%;
     --primary: 214 92% 58%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 216 20% 95%;
+    --secondary: 210 16% 93%;
     --secondary-foreground: 220 23% 13%;
-    --muted: 216 25% 97%;
-    --muted-foreground: 217 12% 45%;
+    --muted: 210 20% 97%;
+    --muted-foreground: 215 10% 48%;
     --accent: 211 100% 96%;
     --accent-foreground: 214 85% 42%;
     --destructive: 356 78% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 210 16% 90%;
-    --input: 210 16% 90%;
+    --border: 210 14% 91%;
+    --input: 210 14% 91%;
     --ring: 214 92% 58%;
     --radius: 0.875rem;
   }
@@ -68,7 +68,7 @@
 @layer components {
   .app-background {
     background:
-      linear-gradient(180deg, hsl(210 20% 99%) 0, hsl(216 20% 96%) 320px),
+      linear-gradient(180deg, hsl(210 20% 99%) 0, hsl(var(--background)) 280px),
       hsl(var(--background));
   }
 
@@ -79,19 +79,19 @@
   }
 
   .soft-panel {
-    @apply border border-border/80 bg-white shadow-[0_1px_2px_rgba(0,27,55,0.04),0_10px_28px_rgba(0,27,55,0.06)];
+    @apply border border-transparent bg-white shadow-[0_1px_2px_rgba(0,27,55,0.04),0_6px_18px_rgba(0,27,55,0.045)];
   }
 
   .dark .soft-panel {
-    @apply border-border/70 bg-secondary/90 shadow-[0_1px_0_rgba(255,255,255,0.04),0_16px_36px_rgba(0,0,0,0.32)];
+    @apply border-border/40 bg-secondary/95 shadow-[0_1px_0_rgba(255,255,255,0.04),0_12px_28px_rgba(0,0,0,0.34)];
   }
 
   .toss-card {
-    @apply border border-border/80 bg-white shadow-[0_1px_2px_rgba(0,27,55,0.04),0_10px_28px_rgba(0,27,55,0.06)];
+    @apply border border-transparent bg-white shadow-[0_1px_2px_rgba(0,27,55,0.04),0_6px_18px_rgba(0,27,55,0.045)];
   }
 
   .dark .toss-card {
-    @apply border-border/70 bg-secondary/90 shadow-[0_1px_0_rgba(255,255,255,0.04),0_16px_36px_rgba(0,0,0,0.32)];
+    @apply border-border/40 bg-secondary/95 shadow-[0_1px_0_rgba(255,255,255,0.04),0_12px_28px_rgba(0,0,0,0.34)];
   }
 
   .toss-segmented {
@@ -103,11 +103,23 @@
   }
 
   .toss-segment-active {
-    @apply bg-white text-primary shadow-[0_1px_2px_rgba(0,27,55,0.08),0_4px_12px_rgba(0,27,55,0.06)];
+    @apply bg-white text-primary shadow-[0_1px_2px_rgba(0,27,55,0.08),0_4px_10px_rgba(0,27,55,0.05)];
   }
 
   .dark .toss-segment-active {
     @apply bg-secondary text-primary shadow-[0_1px_0_rgba(255,255,255,0.06)];
+  }
+
+  .toss-eyebrow {
+    @apply text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground;
+  }
+
+  .toss-page-title {
+    @apply text-3xl font-extrabold leading-tight tracking-normal text-foreground sm:text-4xl;
+  }
+
+  .toss-page-description {
+    @apply mt-2 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base;
   }
 
   .gallery-slide-next {

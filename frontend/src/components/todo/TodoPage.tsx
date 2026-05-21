@@ -190,9 +190,9 @@ export function TodoPage({ isEditing }: TodoPageProps) {
     <PageContainer className="grid gap-5 px-3 py-4 sm:gap-6 sm:px-4 sm:py-5">
       <header className="flex flex-col gap-3 border-b border-border/70 pb-4 sm:gap-4 sm:pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <Badge variant="outline">Checklist</Badge>
-          <h1 className="mt-2 text-3xl font-bold tracking-normal sm:text-5xl">할일</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+          <p className="toss-eyebrow">Checklist</p>
+          <h1 className="toss-page-title mt-2">할일</h1>
+          <p className="toss-page-description">
             준비, 현장 할 일, 귀국 후 정리를 관리합니다.
           </p>
           {status === 'loading' || isSaving ? (

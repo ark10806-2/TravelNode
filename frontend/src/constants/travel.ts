@@ -18,7 +18,7 @@ export const travelLabel: Record<TravelMode, string> = {
 };
 
 export const inputClass =
-  'h-10 w-full rounded-xl border border-input bg-white px-3 text-sm outline-none ring-offset-background transition focus:border-ring focus:ring-2 focus:ring-ring/20 dark:bg-secondary/80';
+  'h-11 w-full rounded-2xl border border-transparent bg-muted px-3 text-sm font-medium outline-none ring-offset-background transition focus:bg-white focus:ring-2 focus:ring-ring/20 dark:bg-muted dark:focus:bg-secondary';
 
 export const textareaClass =
-  'min-h-20 w-full rounded-xl border border-input bg-white px-3 py-2 text-sm outline-none ring-offset-background transition focus:border-ring focus:ring-2 focus:ring-ring/20 dark:bg-secondary/80';
+  'min-h-20 w-full rounded-2xl border border-transparent bg-muted px-3 py-2 text-sm font-medium outline-none ring-offset-background transition focus:bg-white focus:ring-2 focus:ring-ring/20 dark:bg-muted dark:focus:bg-secondary';

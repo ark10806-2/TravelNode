@@ -174,9 +174,9 @@ export function ReservationPage({
       </datalist>
       <header className="flex flex-col gap-3 border-b border-border/70 pb-4 sm:gap-4 sm:pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <Badge variant="outline">Reservations</Badge>
-          <h1 className="mt-2 text-3xl font-bold tracking-normal sm:text-5xl">예약/티켓</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+          <p className="toss-eyebrow">Reservations</p>
+          <h1 className="toss-page-title mt-2">예약/티켓</h1>
+          <p className="toss-page-description">
             식당 예약, 입장권, 교통권, 숙소 바우처를 DAY와 장소에 연결해 보관합니다.
           </p>
           {status === 'loading' || isSaving ? (
@@ -198,8 +198,8 @@ export function ReservationPage({
               </Button>
             </>
           ) : null}
-          <div className="soft-panel flex items-center gap-3 rounded-xl px-4 py-3">
-            <div className="grid h-10 w-10 place-items-center rounded-md bg-primary/10 text-primary">
+          <div className="soft-panel flex items-center gap-3 rounded-3xl px-4 py-3">
+            <div className="grid h-10 w-10 place-items-center rounded-2xl bg-accent text-primary">
               <TicketCheck className="h-5 w-5" />
             </div>
             <div>

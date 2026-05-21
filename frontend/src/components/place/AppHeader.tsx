@@ -13,11 +13,9 @@ export function AppHeader({
   return (
     <header className="flex flex-col gap-3 pb-1 sm:gap-4 sm:pb-2 lg:flex-row lg:items-end lg:justify-between">
       <div className="max-w-2xl">
-        <p className="mb-2 inline-flex rounded-full bg-accent px-2.5 py-1 text-[11px] font-semibold uppercase text-primary sm:mb-3 sm:px-3 sm:text-xs">
-          Places
-        </p>
-        <h1 className="text-2xl font-bold tracking-normal sm:text-5xl">일정 별 장소</h1>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground sm:mt-3 sm:text-base">
+        <p className="toss-eyebrow mb-2 sm:mb-3">Places</p>
+        <h1 className="toss-page-title">일정 별 장소</h1>
+        <p className="toss-page-description">
           선택한 DAY 동선을 기준으로 가까운 후보를 비교하고 카테고리별 장소를 정리합니다.
         </p>
       </div>

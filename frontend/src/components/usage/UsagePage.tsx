@@ -111,9 +111,9 @@ export function UsagePage({ isEditing }: UsagePageProps) {
     <PageContainer className="grid gap-5 py-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <Badge variant="outline">Google API</Badge>
-          <h1 className="mt-2 text-3xl font-bold tracking-normal">API 사용량</h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">이번 달 Google API 사용량과 월간 한도를 확인합니다.</p>
+          <p className="toss-eyebrow">Google API</p>
+          <h1 className="toss-page-title mt-2">API 사용량</h1>
+          <p className="toss-page-description">이번 달 Google API 사용량과 월간 한도를 확인합니다.</p>
           {isEditing ? (
             <p className="mt-2 text-xs text-muted-foreground">
               이번 달 사용량과 월간 한도를 직접 보정할 수 있습니다. 실패한 Google 요청은 자동 집계에 포함하지 않습니다.

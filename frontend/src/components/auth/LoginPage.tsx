@@ -29,7 +29,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
   return (
     <main className="app-background grid min-h-[100dvh] place-items-center overflow-hidden px-4 py-8">
-      <section className="toss-card w-full max-w-[calc(100vw-2rem)] rounded-3xl p-5 backdrop-blur sm:max-w-[26rem] sm:p-6">
+      <section className="toss-card w-[calc(100vw-2rem)] max-w-[26rem] rounded-3xl p-5 backdrop-blur sm:p-6">
         <div className="flex items-center gap-3">
           <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-[0_8px_20px_rgba(49,130,246,0.24)]">
             <Plane className="h-5 w-5" />
