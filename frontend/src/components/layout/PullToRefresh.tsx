@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type PullStatus = 'idle' | 'pulling' | 'ready' | 'refreshing';
@@ -105,15 +104,14 @@ export function PullToRefresh({ onRefresh = () => window.location.reload() }: Pu
   const isVisible = status !== 'idle';
   const progress = Math.min(1, pullDistance / triggerDistance);
   const lift = Math.max(0, pullDistance - 54);
-  const cardScale = 0.96 + progress * 0.04;
-  const statusText = status === 'ready' ? '놓으면 새로고침' : status === 'refreshing' ? '새로고침 중' : '아래로 당겨 새로고침';
-  const cardStyle = {
+  const symbolScale = 0.7 + progress * 0.32;
+  const symbolStyle = {
     '--pull-progress': progress.toFixed(3),
-    transform: `translateY(${lift}px) scale(${cardScale})`
+    '--pull-geometry-rotate': `${progress * 150}deg`,
+    '--pull-blade-offset': `${-(1.5 + progress * 7)}px`,
+    '--pull-core-scale': `${0.74 + progress * 0.3}`,
+    transform: `translateY(${lift}px) scale(${symbolScale})`
   } as CSSProperties;
-  const ringStyle = {
-    background: `conic-gradient(var(--toss-refresh-blue) ${Math.round(progress * 360)}deg, var(--toss-refresh-track) 0deg)`
-  } satisfies CSSProperties;
 
   return (
     <div
@@ -125,50 +123,59 @@ export function PullToRefresh({ onRefresh = () => window.location.reload() }: Pu
     >
       <div
         className={cn(
-          'pull-refresh-card mt-3 flex h-11 items-center gap-2.5 rounded-full px-2.5 pr-4 text-left backdrop-blur-md transition-colors duration-150',
-          status === 'ready' && 'pull-refresh-card-ready',
-          status === 'refreshing' && 'pull-refresh-card-refreshing'
+          'pull-refresh-stage mt-1.5',
+          status === 'ready' && 'pull-refresh-stage-ready',
+          status === 'refreshing' && 'pull-refresh-stage-refreshing'
         )}
-        style={cardStyle}
+        style={symbolStyle}
       >
-        <div className="pull-refresh-orb" style={ringStyle}>
-          <div className="grid h-7 w-7 place-items-center rounded-full bg-white dark:bg-secondary">
-            <PullRefreshIcon status={status} progress={progress} />
-          </div>
-        </div>
-        <div className="min-w-0">
-          <div className="whitespace-nowrap text-[13px] font-semibold text-[var(--toss-refresh-text)]">{statusText}</div>
-        </div>
+        <PullRefreshSymbol />
       </div>
     </div>
   );
 }
 
-function PullRefreshIcon({ status, progress }: { status: PullStatus; progress: number }) {
-  if (status === 'refreshing') {
-    return <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--toss-refresh-icon)]" />;
-  }
-
-  if (status === 'ready') {
-    return <Check className="h-3.5 w-3.5 text-[var(--toss-refresh-icon)]" />;
-  }
-
+function PullRefreshSymbol() {
   return (
-    <span
-      className="pull-refresh-geometry"
-      style={
-        {
-          '--pull-icon-rotate': `${progress * 160}deg`,
-          '--pull-piece-distance': `${4 + progress * 3}px`,
-          '--pull-piece-scale': `${0.72 + progress * 0.28}`
-        } as CSSProperties
-      }
-    >
-      <span className="pull-refresh-geometry-piece pull-refresh-geometry-piece-top" />
-      <span className="pull-refresh-geometry-piece pull-refresh-geometry-piece-right" />
-      <span className="pull-refresh-geometry-piece pull-refresh-geometry-piece-bottom" />
-      <span className="pull-refresh-geometry-piece pull-refresh-geometry-piece-left" />
-    </span>
+    <svg className="pull-refresh-geometry" viewBox="0 0 72 72" aria-hidden="true">
+      <defs>
+        <linearGradient id="pull-refresh-blade-gradient" x1="28" y1="8" x2="44" y2="33" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#DDF0FF" />
+          <stop offset="0.42" stopColor="#64B0FF" />
+          <stop offset="1" stopColor="#3182F6" />
+        </linearGradient>
+        <radialGradient id="pull-refresh-core-gradient" cx="32" cy="30" r="12" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#FFFFFF" />
+          <stop offset="0.34" stopColor="#BEE0FF" />
+          <stop offset="1" stopColor="#3182F6" />
+        </radialGradient>
+        <filter id="pull-refresh-blade-shadow" x="-40%" y="-40%" width="180%" height="180%">
+          <feDropShadow dx="0" dy="4" stdDeviation="3" floodColor="#0B5BC8" floodOpacity="0.22" />
+          <feDropShadow dx="0" dy="1" stdDeviation="0.6" floodColor="#FFFFFF" floodOpacity="0.52" />
+        </filter>
+      </defs>
+      <g className="pull-refresh-blades">
+        <g className="pull-refresh-blade pull-refresh-blade-a">
+          <rect x="31" y="8" width="10" height="25" rx="5" />
+        </g>
+        <g className="pull-refresh-blade pull-refresh-blade-b">
+          <rect x="31" y="8" width="10" height="25" rx="5" />
+        </g>
+        <g className="pull-refresh-blade pull-refresh-blade-c">
+          <rect x="31" y="8" width="10" height="25" rx="5" />
+        </g>
+        <g className="pull-refresh-blade pull-refresh-blade-d">
+          <rect x="31" y="8" width="10" height="25" rx="5" />
+        </g>
+        <g className="pull-refresh-blade pull-refresh-blade-e">
+          <rect x="31" y="8" width="10" height="25" rx="5" />
+        </g>
+        <g className="pull-refresh-blade pull-refresh-blade-f">
+          <rect x="31" y="8" width="10" height="25" rx="5" />
+        </g>
+      </g>
+      <circle className="pull-refresh-geometry-core" cx="36" cy="36" r="5.2" />
+    </svg>
   );
 }
 
