@@ -114,7 +114,7 @@ export function MobilePlacesExplorer({
 
   return (
     <div className="grid gap-3 md:hidden">
-      <div className="sticky top-[6.65rem] z-30 -mx-1 rounded-b-2xl bg-background/95 px-1 pb-2 pt-1 shadow-sm shadow-black/5 backdrop-blur">
+      <div className="sticky top-[3.25rem] z-30 -mx-1 rounded-b-2xl bg-background/95 px-1 pb-2 pt-1 shadow-sm shadow-black/5 backdrop-blur">
         <div className="mb-2 flex items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
           <span className="font-semibold">선택 DAY 동선</span>
           <span>{dayPlaces.length}곳 기준</span>
