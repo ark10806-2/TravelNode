@@ -72,7 +72,7 @@ export function RouteLegRow({
           {departureTimeMinutes != null ? (
             <div className="mb-1.5 flex flex-wrap items-center gap-1 sm:absolute sm:left-2 sm:top-[-0.8rem] sm:mb-0">
               <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[11px] font-semibold leading-none text-muted-foreground/75 sm:text-[10px]">
-                기준 {formatDepartureTime(departureTimeMinutes)}
+                {formatDepartureTime(departureTimeMinutes)}
               </span>
             </div>
           ) : null}

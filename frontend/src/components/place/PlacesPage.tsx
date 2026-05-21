@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchSchedule, saveSchedule } from '@/api/schedule';
-import { AccommodationSelectorDialog } from '@/components/dialogs/AccommodationSelectorDialog';
 import { PlaceDetailDialog } from '@/components/dialogs/PlaceDetailDialog';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { AppHeader } from '@/components/place/AppHeader';
@@ -11,7 +10,6 @@ import { PlacesPageDialogs } from '@/components/place/PlacesPageDialogs';
 import { SelectedPlacePanel } from '@/components/place/SelectedPlacePanel';
 import { TravelMap } from '@/components/place/TravelMap';
 import { ReservationDetailDialog } from '@/components/reservation/ReservationDetailDialog';
-import { usePersistedState } from '@/hooks/usePersistedState';
 import { useReservations } from '@/hooks/useReservations';
 import type { TravelPlacesState } from '@/hooks/useTravelPlaces';
 import { getDuplicatePlaceIds, haversineKm, toHotelDistancePlaces } from '@/lib/place-utils';
@@ -34,12 +32,6 @@ type PlacesPageProps = {
   onRequireAuth: () => void;
 };
 
-const placeReferenceStorageKey = 'travel-node-place-reference-id';
-
-function isReferencePlaceId(value: unknown): value is string | null {
-  return value === null || typeof value === 'string';
-}
-
 export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onRequireAuth }: PlacesPageProps) {
   const {
     categories,
@@ -50,8 +42,6 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
     places,
     selectedPlace,
     setSelectedId,
-    travelMode,
-    setTravelMode,
     status,
     error,
     deletingId,
@@ -79,21 +69,12 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
   const [addingSchedulePlaceId, setAddingSchedulePlaceId] = useState<string | null>(null);
   const [scheduleActionMessage, setScheduleActionMessage] = useState('');
   const { reservations } = useReservations(false);
-  const [referencePlaceId, setReferencePlaceId] = usePersistedState<string | null>(
-    placeReferenceStorageKey,
-    null,
-    isReferencePlaceId
-  );
-  const [isReferenceDialogOpen, setIsReferenceDialogOpen] = useState(false);
   const canModify = isEditing && canEdit;
   const reservationsByPlaceId = useMemo(() => groupReservationsByPlaceId(reservations), [reservations]);
   const scheduleLabelsByPlaceId = useMemo(() => groupScheduleLabelsByPlaceId(scheduleDays), [scheduleDays]);
   const duplicatePlaceIds = useMemo(() => getDuplicatePlaceIds(places), [places]);
   const placesById = useMemo(() => new Map(places.map((place) => [place.id, place])), [places]);
-  const referencePlace = useMemo(
-    () => (referencePlaceId ? places.find((place) => place.id === referencePlaceId) ?? hotelSchedulePlace : hotelSchedulePlace),
-    [places, referencePlaceId]
-  );
+  const referencePlace = hotelSchedulePlace;
   const listReferencePlace = selectedPlace ?? referencePlace;
   const selectedScheduleDay = useMemo(
     () => scheduleDays.find((day) => day.id === selectedScheduleDayId) ?? scheduleDays[0] ?? null,
@@ -278,10 +259,6 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
     <>
       <PageContainer>
         <AppHeader
-          travelMode={travelMode}
-          onTravelModeChange={setTravelMode}
-          referencePlace={referencePlace}
-          onChangeReference={() => setIsReferenceDialogOpen(true)}
           isEditing={canModify}
           onOpenGoogleMapsSync={() => (canEdit ? setIsGoogleSyncDialogOpen(true) : onRequireAuth())}
         />
@@ -432,17 +409,6 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
           scheduleActionDisabled={isDetailTargetInSelectedDay}
           isScheduleActionLoading={addingSchedulePlaceId === detailTarget.id}
           onScheduleAction={(place) => void addSelectedPlaceToSchedule(place)}
-        />
-      ) : null}
-      {isReferenceDialogOpen ? (
-        <AccommodationSelectorDialog
-          title="장소 기준점 변경"
-          description="거리 정렬과 지도 기준으로 사용할 위치를 선택합니다."
-          places={places}
-          categories={categories}
-          selectedPlaceId={referencePlaceId}
-          onSelect={setReferencePlaceId}
-          onClose={() => setIsReferenceDialogOpen(false)}
         />
       ) : null}
       {reservationTarget ? (

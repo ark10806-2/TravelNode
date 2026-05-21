@@ -28,7 +28,6 @@ type DayScheduleCardProps = {
   placesById: Map<string, Place>;
   routeLegs: Record<string, RouteLeg>;
   visibleRouteModes: RouteMode[];
-  routeCalculatedAtLabel?: string | null;
   canCalculatePreciseRoutes: boolean;
   photoCache: Record<string, PhotoState>;
   reservationsByPlaceId: Record<string, Reservation[]>;
@@ -64,7 +63,6 @@ export function DayScheduleCard({
   placesById,
   routeLegs,
   visibleRouteModes,
-  routeCalculatedAtLabel,
   canCalculatePreciseRoutes,
   photoCache,
   reservationsByPlaceId,
@@ -160,11 +158,9 @@ export function DayScheduleCard({
             <span className="truncate font-semibold text-foreground">{hotelPlace.name}</span>
           </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            {routeCalculatedAtLabel ? (
-              <span className="text-xs font-medium text-muted-foreground">
-                {routeCalculatedAtLabel}
-              </span>
-            ) : null}
+            <span className="text-xs font-medium text-muted-foreground">
+              {formatDepartureTime(day.departureTimeMinutes)}
+            </span>
             {hasRouteCalculationNeeded ? (
               <Badge variant="outline" className="rounded-full bg-background text-[11px] text-muted-foreground">
                 경로 계산 필요

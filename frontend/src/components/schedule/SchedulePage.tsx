@@ -8,9 +8,8 @@ import { Button } from '@/components/ui/button';
 import { useReservations } from '@/hooks/useReservations';
 import { useSchedule } from '@/hooks/useSchedule';
 import { loadEnabledRouteModes } from '@/lib/route-preferences';
-import { scheduleRoutePairs } from '@/lib/schedule-state';
 import type { Reservation } from '@/types/reservation';
-import type { RouteLeg, RouteMode, ScheduleDay } from '@/types/schedule';
+import type { RouteMode } from '@/types/schedule';
 import type { CategoryOption, PhotoState, Place } from '@/types/travel';
 import { DayScheduleCard } from './DayScheduleCard';
 
@@ -66,15 +65,6 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
   const currentPhotoTarget = photoTarget ? placesById.get(photoTarget.id) ?? photoTarget : null;
   const reservationsByPlaceId = useMemo(() => groupReservationsByPlaceId(reservations), [reservations]);
   const canCalculatePreciseRoutes = enabledRouteModes.includes('driving');
-  const routeCalculatedAtByDay = useMemo(
-    () => Object.fromEntries(
-      days.map((day) => [
-        day.id,
-        formatRouteCalculatedAt(getLatestRouteCalculatedAt(day, placesById, routeLegs, enabledRouteModes))
-      ])
-    ),
-    [days, enabledRouteModes, placesById, routeLegs]
-  );
   const hasActiveRefreshCooldown = useMemo(
     () => Object.values(routeRefreshAvailableAtByDay).some((availableAt) => availableAt > currentTime),
     [routeRefreshAvailableAtByDay, currentTime]
@@ -184,7 +174,6 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
             placesById={placesById}
             routeLegs={routeLegs}
             visibleRouteModes={enabledRouteModes}
-            routeCalculatedAtLabel={routeCalculatedAtByDay[day.id]}
             canCalculatePreciseRoutes={canCalculatePreciseRoutes}
             photoCache={photoCache}
             reservationsByPlaceId={reservationsByPlaceId}
@@ -256,34 +245,4 @@ function groupReservationsByPlaceId(reservations: Reservation[]) {
     groups[reservation.placeId] = [...(groups[reservation.placeId] ?? []), reservation];
     return groups;
   }, {});
-}
-
-function getLatestRouteCalculatedAt(
-  day: ScheduleDay,
-  placesById: Map<string, Place>,
-  routeLegs: Record<string, RouteLeg>,
-  visibleRouteModes: RouteMode[]
-) {
-  const timestamps = scheduleRoutePairs(day, placesById)
-    .flatMap(({ key }) =>
-      visibleRouteModes.flatMap((mode) => {
-        const modeLeg = routeLegs[key]?.[mode];
-        return modeLeg && modeLeg.status !== 'loading' && modeLeg.updatedAt ? [Date.parse(modeLeg.updatedAt)] : [];
-      })
-    )
-    .filter((timestamp) => Number.isFinite(timestamp));
-
-  return timestamps.length ? Math.max(...timestamps) : null;
-}
-
-function formatRouteCalculatedAt(timestamp: number | null) {
-  if (timestamp == null) return null;
-
-  const date = new Date(timestamp);
-  const year = String(date.getFullYear()).slice(2);
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hour = String(date.getHours()).padStart(2, '0');
-  const minute = String(date.getMinutes()).padStart(2, '0');
-  return `${year}${month}${day} ${hour}:${minute} 기준으로 계산됨`;
 }
