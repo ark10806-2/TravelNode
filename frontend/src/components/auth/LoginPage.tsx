@@ -30,7 +30,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
   return (
     <main className="app-background grid min-h-[100dvh] place-items-center overflow-hidden px-4 py-8">
-      <section className="toss-card w-[calc(100vw-2rem)] max-w-[26rem] rounded-3xl p-5 backdrop-blur sm:p-6">
+      <section className="toss-card w-full max-w-[26rem] rounded-3xl p-5 backdrop-blur sm:p-6">
         <div className="flex items-center gap-3">
           <AppIcon className="h-12 w-12 shrink-0" />
           <div className="min-w-0">
@@ -39,7 +39,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           </div>
         </div>
 
-        <div className="mt-5 rounded-2xl bg-muted p-4">
+        <div className="toss-muted-texture mt-5 rounded-2xl p-4">
           <div className="flex items-start gap-3">
             <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-background text-muted-foreground ring-1 ring-border">
               <LockKeyhole className="h-4 w-4" />
@@ -62,7 +62,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               autoComplete="username"
               autoCapitalize="none"
               spellCheck={false}
-              autoFocus
             />
           </label>
           <label className="grid gap-2 text-sm font-semibold">

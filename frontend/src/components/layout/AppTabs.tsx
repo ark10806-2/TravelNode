@@ -100,7 +100,7 @@ export function AppTabs({
 
   return (
     <>
-      <div ref={introRef} className="relative z-50 border-b border-border/70 bg-background/90 backdrop-blur-xl">
+      <div ref={introRef} className="toss-header-surface relative z-50 border-b border-border/70 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-none items-center justify-between gap-3 px-3 py-2.5 sm:px-4 sm:py-3 lg:px-5">
           <div className="flex min-w-0 items-center gap-3">
             <AppIcon className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" />
@@ -114,7 +114,7 @@ export function AppTabs({
             <Button
               variant="outline"
               size="icon"
-              className="h-10 w-10 rounded-full bg-background shadow-sm"
+              className="h-10 w-10 rounded-full"
               aria-label={isMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
               aria-expanded={isMenuOpen}
               onClick={() => setIsMenuOpen((current) => !current)}
@@ -124,7 +124,7 @@ export function AppTabs({
             {isMenuOpen ? (
               <div className="toss-card absolute right-0 top-12 z-50 w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-3xl">
                 <div className="max-h-[33dvh] overflow-y-auto p-3">
-                  <div className="flex items-center justify-between gap-3 rounded-2xl bg-muted p-2.5">
+                  <div className="toss-muted-texture flex items-center justify-between gap-3 rounded-2xl p-2.5">
                     <div>
                       <div className="text-xs font-semibold text-muted-foreground">테마</div>
                       <div className="mt-0.5 text-sm font-semibold">화면 모드</div>
