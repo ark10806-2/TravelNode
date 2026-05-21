@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Loader2, MapPin } from 'lucide-react';
 import { googleMapsApiKey } from '@/config/env';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
-import { createHotelMarkerIcon, createPlaceMarkerIcon, getPlaceMapStyles } from '@/lib/google-maps';
+import { createHotelMarkerIcon, createPlaceMarkerIcon, createScheduleDotMarkerIcon, getPlaceMapStyles } from '@/lib/google-maps';
 import { getEmbedMapUrl } from '@/lib/place-utils';
+import { cn } from '@/lib/utils';
 import type { LoadStatus, Place } from '@/types/travel';
 
 type TravelMapProps = {
@@ -12,10 +13,23 @@ type TravelMapProps = {
   referencePlace: Place;
   status: LoadStatus;
   isDarkMode: boolean;
+  contextPlaces?: Place[];
+  compact?: boolean;
+  className?: string;
   onSelectPlace: (place: Place) => void;
 };
 
-export function TravelMap({ places, selectedPlace, referencePlace, status, isDarkMode, onSelectPlace }: TravelMapProps) {
+export function TravelMap({
+  places,
+  selectedPlace,
+  referencePlace,
+  status,
+  isDarkMode,
+  contextPlaces,
+  compact = false,
+  className,
+  onSelectPlace
+}: TravelMapProps) {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
@@ -60,6 +74,8 @@ export function TravelMap({ places, selectedPlace, referencePlace, status, isDar
     if (!mapReady || !maps || !mapInstanceRef.current) return;
     markersRef.current.forEach((marker) => marker.setMap(null));
     markersRef.current = [];
+    const isContextMap = Array.isArray(contextPlaces);
+    const contextPlaceIds = new Set((contextPlaces ?? []).map((place) => place.id));
 
     const referenceMarker = new maps.Marker({
       position: { lat: referencePlace.latitude, lng: referencePlace.longitude },
@@ -70,8 +86,27 @@ export function TravelMap({ places, selectedPlace, referencePlace, status, isDar
     });
     markersRef.current.push(referenceMarker);
 
-    places.forEach((place) => {
-      const isSelected = place.id === selectedPlace?.id;
+    const dotPlaces = isContextMap ? (contextPlaces ?? []).filter((place) => place.id !== selectedPlace?.id) : [];
+    dotPlaces.forEach((place) => {
+      const marker = new maps.Marker({
+        position: { lat: place.latitude, lng: place.longitude },
+        map: mapInstanceRef.current,
+        title: place.name,
+        icon: createScheduleDotMarkerIcon(maps, place.category),
+        zIndex: 80
+      });
+
+      marker.addListener('click', () => onSelectPlace(place));
+      markersRef.current.push(marker);
+    });
+
+    const pinPlaces = isContextMap
+      ? selectedPlace
+        ? [selectedPlace]
+        : []
+      : places;
+    pinPlaces.forEach((place) => {
+      const isSelected = isContextMap || place.id === selectedPlace?.id;
       const marker = new maps.Marker({
         position: { lat: place.latitude, lng: place.longitude },
         map: mapInstanceRef.current,
@@ -86,15 +121,21 @@ export function TravelMap({ places, selectedPlace, referencePlace, status, isDar
 
     const bounds = new maps.LatLngBounds();
     bounds.extend({ lat: referencePlace.latitude, lng: referencePlace.longitude });
-    places.forEach((place) => bounds.extend({ lat: place.latitude, lng: place.longitude }));
+    const placesToFit = isContextMap
+      ? [
+          ...(contextPlaces ?? []),
+          ...(selectedPlace && !contextPlaceIds.has(selectedPlace.id) ? [selectedPlace] : [])
+        ]
+      : places;
+    placesToFit.forEach((place) => bounds.extend({ lat: place.latitude, lng: place.longitude }));
 
-    if (places.length) {
-      mapInstanceRef.current.fitBounds(bounds, 64);
+    if (placesToFit.length) {
+      mapInstanceRef.current.fitBounds(bounds, compact ? 42 : 64);
     } else {
       mapInstanceRef.current.setCenter({ lat: referencePlace.latitude, lng: referencePlace.longitude });
       mapInstanceRef.current.setZoom(14);
     }
-  }, [mapReady, maps, onSelectPlace, places, referencePlace, selectedPlace?.id]);
+  }, [compact, contextPlaces, mapReady, maps, onSelectPlace, places, referencePlace, selectedPlace]);
 
   useEffect(() => {
     if (!mapReady || !mapInstanceRef.current || !selectedPlace) return;
@@ -102,14 +143,34 @@ export function TravelMap({ places, selectedPlace, referencePlace, status, isDar
   }, [mapReady, selectedPlace]);
 
   return (
-    <div className="soft-panel relative min-h-[280px] overflow-hidden rounded-xl p-1 sm:min-h-[420px] lg:min-h-[560px]">
+    <div
+      className={cn(
+        'soft-panel relative overflow-hidden rounded-xl p-1',
+        compact ? 'min-h-[188px] sm:min-h-[420px] lg:min-h-[560px]' : 'min-h-[280px] sm:min-h-[420px] lg:min-h-[560px]',
+        className
+      )}
+    >
       {googleMapsApiKey && !mapLoadFailed ? (
-        <div ref={mapRef} className="h-full min-h-[272px] w-full overflow-hidden rounded-lg sm:min-h-[412px] lg:min-h-[552px]" />
+        <div
+          ref={mapRef}
+          className={cn(
+            'h-full w-full overflow-hidden rounded-lg',
+            compact ? 'min-h-[180px] sm:min-h-[412px] lg:min-h-[552px]' : 'min-h-[272px] sm:min-h-[412px] lg:min-h-[552px]'
+          )}
+        />
       ) : null}
       {mapLoadFailed ? (
-        <div className="h-full min-h-[272px] w-full overflow-hidden rounded-lg sm:min-h-[412px] lg:min-h-[552px]">
+        <div
+          className={cn(
+            'h-full w-full overflow-hidden rounded-lg',
+            compact ? 'min-h-[180px] sm:min-h-[412px] lg:min-h-[552px]' : 'min-h-[272px] sm:min-h-[412px] lg:min-h-[552px]'
+          )}
+        >
           <iframe
-            className="h-full min-h-[272px] w-full border-0 sm:min-h-[412px] lg:min-h-[552px]"
+            className={cn(
+              'h-full w-full border-0',
+              compact ? 'min-h-[180px] sm:min-h-[412px] lg:min-h-[552px]' : 'min-h-[272px] sm:min-h-[412px] lg:min-h-[552px]'
+            )}
             src={getEmbedMapUrl(selectedPlace ?? referencePlace)}
             title="Google Maps fallback"
             loading="lazy"
@@ -122,7 +183,12 @@ export function TravelMap({ places, selectedPlace, referencePlace, status, isDar
         </div>
       ) : null}
       {!googleMapsApiKey ? (
-        <div className="map-shell flex h-full min-h-[272px] flex-col items-center justify-center gap-3 rounded-lg p-4 text-center sm:min-h-[412px] sm:p-6 lg:min-h-[552px]">
+        <div
+          className={cn(
+            'map-shell flex h-full flex-col items-center justify-center gap-3 rounded-lg p-4 text-center sm:min-h-[412px] sm:p-6 lg:min-h-[552px]',
+            compact ? 'min-h-[180px]' : 'min-h-[272px]'
+          )}
+        >
           <MapPin className="h-10 w-10 text-primary" />
           <div>
             <p className="font-semibold">지도 설정이 필요합니다.</p>

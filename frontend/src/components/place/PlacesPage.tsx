@@ -5,6 +5,7 @@ import { PageContainer } from '@/components/layout/PageContainer';
 import { AppHeader } from '@/components/place/AppHeader';
 import { CategoryFilterBar } from '@/components/place/CategoryFilterBar';
 import { PlaceList, type PlaceListViewMode } from '@/components/place/PlaceList';
+import { MobilePlacesExplorer, MobileScheduleDaySelector } from '@/components/place/MobilePlacesExplorer';
 import { PlacesPageDialogs } from '@/components/place/PlacesPageDialogs';
 import { SelectedPlacePanel } from '@/components/place/SelectedPlacePanel';
 import { TravelMap } from '@/components/place/TravelMap';
@@ -12,8 +13,8 @@ import { ReservationDetailDialog } from '@/components/reservation/ReservationDet
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { useReservations } from '@/hooks/useReservations';
 import type { TravelPlacesState } from '@/hooks/useTravelPlaces';
-import { getDuplicatePlaceIds, toHotelDistancePlaces } from '@/lib/place-utils';
-import { hotelSchedulePlace } from '@/lib/schedule-utils';
+import { getDuplicatePlaceIds, haversineKm, toHotelDistancePlaces } from '@/lib/place-utils';
+import { getScheduleHotelPlace, hotelSchedulePlace } from '@/lib/schedule-utils';
 import type { Reservation } from '@/types/reservation';
 import type { ScheduleDay } from '@/types/schedule';
 import type { CategoryId, NearbyPlace, PhotoState, Place } from '@/types/travel';
@@ -68,10 +69,10 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
   const [editTarget, setEditTarget] = useState<Place | null>(null);
   const [photoTarget, setPhotoTarget] = useState<Place | null>(null);
   const [isGoogleSyncDialogOpen, setIsGoogleSyncDialogOpen] = useState(false);
-  const [mobilePlaceListViewMode, setMobilePlaceListViewMode] = useState<PlaceListViewMode>('table');
   const [placeListViewMode, setPlaceListViewMode] = useState<PlaceListViewMode>('table');
   const [reservationTarget, setReservationTarget] = useState<{ place: Place; reservations: Reservation[] } | null>(null);
   const [scheduleDays, setScheduleDays] = useState<ScheduleDay[]>([]);
+  const [selectedScheduleDayId, setSelectedScheduleDayId] = useState<string | null>(null);
   const { reservations } = useReservations(false);
   const [referencePlaceId, setReferencePlaceId] = usePersistedState<string | null>(
     placeReferenceStorageKey,
@@ -83,11 +84,24 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
   const reservationsByPlaceId = useMemo(() => groupReservationsByPlaceId(reservations), [reservations]);
   const scheduleLabelsByPlaceId = useMemo(() => groupScheduleLabelsByPlaceId(scheduleDays), [scheduleDays]);
   const duplicatePlaceIds = useMemo(() => getDuplicatePlaceIds(places), [places]);
+  const placesById = useMemo(() => new Map(places.map((place) => [place.id, place])), [places]);
   const referencePlace = useMemo(
     () => (referencePlaceId ? places.find((place) => place.id === referencePlaceId) ?? hotelSchedulePlace : hotelSchedulePlace),
     [places, referencePlaceId]
   );
   const listReferencePlace = selectedPlace ?? referencePlace;
+  const selectedScheduleDay = useMemo(
+    () => scheduleDays.find((day) => day.id === selectedScheduleDayId) ?? scheduleDays[0] ?? null,
+    [scheduleDays, selectedScheduleDayId]
+  );
+  const selectedSchedulePlaces = useMemo(
+    () => (selectedScheduleDay ? selectedScheduleDay.stops.map((stop) => placesById.get(stop.placeId)).filter(isPlace) : []),
+    [placesById, selectedScheduleDay]
+  );
+  const selectedScheduleReferencePlace = useMemo(
+    () => (selectedScheduleDay ? getScheduleHotelPlace(selectedScheduleDay, placesById) : referencePlace),
+    [placesById, referencePlace, selectedScheduleDay]
+  );
   const selectedNearbyPlaces = useMemo<NearbyPlace[]>(
     () => {
       const sortedPlaces = toHotelDistancePlaces(visiblePlaces, listReferencePlace);
@@ -101,12 +115,17 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
     },
     [listReferencePlace, selectedPlace, visiblePlaces]
   );
+  const mobileScheduleNearbyPlaces = useMemo(
+    () => toAverageDistancePlaces(visiblePlaces, selectedSchedulePlaces, selectedScheduleReferencePlace),
+    [selectedSchedulePlaces, selectedScheduleReferencePlace, visiblePlaces]
+  );
 
   const selectPlace = useCallback(
     (place: Place) => {
+      if (place.category !== selectedCategoryId) setSelectedCategoryId(place.category);
       setSelectedId(place.id);
     },
-    [setSelectedId]
+    [selectedCategoryId, setSelectedCategoryId, setSelectedId]
   );
 
   const openPhotoDialog = useCallback(
@@ -151,6 +170,14 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
     setIsGoogleSyncDialogOpen(false);
   }, [canModify]);
 
+  useEffect(() => {
+    if (!scheduleDays.length) {
+      setSelectedScheduleDayId(null);
+      return;
+    }
+    setSelectedScheduleDayId((current) => (current && scheduleDays.some((day) => day.id === current) ? current : scheduleDays[0].id));
+  }, [scheduleDays]);
+
   return (
     <>
       <PageContainer>
@@ -168,6 +195,12 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
             {error}
           </div>
         ) : null}
+
+        <MobileScheduleDaySelector
+          days={scheduleDays}
+          selectedDayId={selectedScheduleDay?.id ?? null}
+          onSelectDay={setSelectedScheduleDayId}
+        />
 
         <section className="hidden gap-3 sm:gap-4 md:grid lg:grid-cols-[minmax(0,1fr)_360px]">
           <TravelMap
@@ -204,31 +237,26 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
             onDeleteCategory={(category) => (canEdit ? void deleteCategory(category) : onRequireAuth())}
           />
 
-          <div className="md:hidden">
-            <PlaceList
-              title={`${selectedCategory.emoji} ${selectedCategory.label} 선택 장소 주변`}
-              places={selectedNearbyPlaces}
-              referencePlace={listReferencePlace}
-              viewMode={mobilePlaceListViewMode}
-              onViewModeChange={setMobilePlaceListViewMode}
-              isEditing={canModify}
-              categories={categories}
-              photoCache={photoCache}
-              reservationsByPlaceId={reservationsByPlaceId}
-              scheduleLabelsByPlaceId={scheduleLabelsByPlaceId}
-              duplicatePlaceIds={duplicatePlaceIds}
-              onLoadPhotos={loadPhotos}
-              onAdd={() => (canEdit ? setAddPlaceCategory(selectedCategoryId) : onRequireAuth())}
-              onDelete={(place) => (canEdit ? void deletePlace(place) : onRequireAuth())}
-              onMoveCategory={(place, categoryId) => (canEdit ? void movePlaceToCategory(place, categoryId) : onRequireAuth())}
-              deletingId={deletingId}
-              movingCategoryPlaceId={movingCategoryPlaceId}
-              onOpenPhotos={openPhotoDialog}
-              onOpenReservations={openReservations}
-              onEditPlace={(place) => (canEdit ? setEditTarget(place) : onRequireAuth())}
-              onSelectPlace={selectPlace}
-            />
-          </div>
+          <MobilePlacesExplorer
+            places={mobileScheduleNearbyPlaces}
+            selectedPlace={selectedPlace}
+            dayPlaces={selectedSchedulePlaces}
+            referencePlace={selectedScheduleReferencePlace}
+            status={status}
+            isDarkMode={isDarkMode}
+            categoryLabel={`${selectedCategory.emoji} ${selectedCategory.label}`}
+            photoCache={photoCache}
+            reservationsByPlaceId={reservationsByPlaceId}
+            scheduleLabelsByPlaceId={scheduleLabelsByPlaceId}
+            duplicatePlaceIds={duplicatePlaceIds}
+            isEditing={canModify}
+            deletingId={deletingId}
+            onLoadPhotos={loadPhotos}
+            onSelectPlace={selectPlace}
+            onEditPlace={(place) => (canEdit ? setEditTarget(place) : onRequireAuth())}
+            onDelete={(place) => (canEdit ? void deletePlace(place) : onRequireAuth())}
+            onOpenReservations={openReservations}
+          />
 
           <div className="hidden md:block">
             <PlaceList
@@ -302,6 +330,26 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
       ) : null}
     </>
   );
+}
+
+function isPlace(place: Place | undefined): place is Place {
+  return Boolean(place);
+}
+
+function toAverageDistancePlaces(
+  places: Place[],
+  anchorPlaces: Place[],
+  fallbackReference: Pick<Place, 'latitude' | 'longitude'>
+): NearbyPlace[] {
+  const anchors = anchorPlaces.length ? anchorPlaces : [fallbackReference];
+
+  return places
+    .map((place) => ({
+      ...place,
+      distanceFromSelectedKm:
+        anchors.reduce((sum, anchor) => sum + haversineKm(anchor, place), 0) / Math.max(anchors.length, 1)
+    }))
+    .sort((a, b) => a.distanceFromSelectedKm - b.distanceFromSelectedKm);
 }
 
 function groupReservationsByPlaceId(reservations: Reservation[]) {

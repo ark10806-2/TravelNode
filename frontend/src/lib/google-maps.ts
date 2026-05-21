@@ -271,6 +271,27 @@ export function createPlaceMarkerIcon(maps: typeof google.maps, category: Catego
   };
 }
 
+export function createScheduleDotMarkerIcon(maps: typeof google.maps, category: CategoryId) {
+  const fill =
+    category === 'dessert'
+      ? '#c13584'
+      : category === 'sightseeing'
+        ? '#008489'
+        : category === 'shopping'
+          ? '#2563eb'
+          : '#ff385c';
+
+  return {
+    path: maps.SymbolPath.CIRCLE,
+    scale: 5.5,
+    fillColor: fill,
+    fillOpacity: 0.92,
+    strokeColor: '#ffffff',
+    strokeOpacity: 0.95,
+    strokeWeight: 2
+  };
+}
+
 export function createHotelMarkerIcon(maps: typeof google.maps, isSelected = false) {
   const fill = isSelected ? '#222222' : '#0f766e';
   const accent = isSelected ? '#222222' : '#0f766e';
