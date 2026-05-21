@@ -102,7 +102,7 @@ export function ModalFrame({
       >
         <div
           className={cn(
-            'toss-header-surface sticky top-0 z-10 flex items-start justify-between gap-3 border-b px-4 py-3 backdrop-blur sm:px-5 sm:py-4',
+            'sticky top-0 z-10 flex items-start justify-between gap-3 border-b bg-white/95 px-4 py-3 backdrop-blur dark:bg-secondary/95 sm:px-5 sm:py-4',
             headerClassName
           )}
         >
