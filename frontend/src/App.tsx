@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 import { downloadTripBookletPdf } from '@/api/booklet';
 import { LoginPage } from '@/components/auth/LoginPage';
@@ -44,6 +44,7 @@ function AuthenticatedApp({ auth }: { auth: ReturnType<typeof useAuth> }) {
   const [authDialogMode, setAuthDialogMode] = useState<'change' | null>(null);
   const [isBookletLoading, setIsBookletLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [pullRefreshOffset, setPullRefreshOffset] = useState(0);
 
   function toggleEditMode() {
     setIsEditing((current) => !current);
@@ -72,58 +73,63 @@ function AuthenticatedApp({ auth }: { auth: ReturnType<typeof useAuth> }) {
 
   return (
     <main className="app-background min-h-[100dvh] overflow-x-clip">
-      <PullToRefresh />
-      <AppTabs
-        activeTab={activeTab}
-        isAuthenticated={auth.isAuthenticated}
-        isEditing={isEditing}
-        theme={theme}
-        onTabChange={setActiveTab}
-        onEditToggle={toggleEditMode}
-        onThemeChange={setTheme}
-        onBookletClick={openTripBooklet}
-        onLogout={logout}
-        onChangePasswordClick={() => setAuthDialogMode('change')}
-        isBookletLoading={isBookletLoading}
-      />
-      {travelPlaces.status === 'error' ? (
-        <ServerConnectionBanner message={travelPlaces.error} onRetry={() => void travelPlaces.refreshAll()} />
-      ) : null}
-      {activeTab === 'places' ? (
-        <PlacesPage
-          travelPlaces={travelPlaces}
-          canEdit={auth.isAuthenticated}
+      <PullToRefresh onPullOffsetChange={setPullRefreshOffset} />
+      <div
+        className="pull-refresh-content"
+        style={{ '--pull-refresh-offset': `${pullRefreshOffset}px` } as CSSProperties}
+      >
+        <AppTabs
+          activeTab={activeTab}
+          isAuthenticated={auth.isAuthenticated}
           isEditing={isEditing}
-          isDarkMode={resolvedTheme === 'dark'}
-          onRequireAuth={auth.logout}
+          theme={theme}
+          onTabChange={setActiveTab}
+          onEditToggle={toggleEditMode}
+          onThemeChange={setTheme}
+          onBookletClick={openTripBooklet}
+          onLogout={logout}
+          onChangePasswordClick={() => setAuthDialogMode('change')}
+          isBookletLoading={isBookletLoading}
         />
-      ) : null}
-      {activeTab === 'schedule' ? (
-        <SchedulePage
-          categories={travelPlaces.categories}
-          places={travelPlaces.places}
-          isEditing={isEditing}
-          isDarkMode={resolvedTheme === 'dark'}
-          photoCache={travelPlaces.photoCache}
-          onLoadPhotos={travelPlaces.loadPhotos}
-        />
-      ) : null}
-      {activeTab === 'reservations' ? (
-        <ReservationPage
-          categories={travelPlaces.categories}
-          places={travelPlaces.places}
-          canComplete={auth.isAuthenticated}
-          isEditing={isEditing}
-          photoCache={travelPlaces.photoCache}
-          onLoadPhotos={travelPlaces.loadPhotos}
-          onRequireAuth={auth.logout}
-        />
-      ) : null}
-      {activeTab === 'todo' ? <TodoPage isEditing={isEditing} /> : null}
-      {activeTab === 'usage' ? <UsagePage isEditing={isEditing} /> : null}
-      <footer className="mx-auto mt-8 flex w-full max-w-none justify-center px-3 pb-12 pt-8 text-xs font-medium text-muted-foreground/70 sm:px-4 lg:px-5">
-        created by eigen.vector
-      </footer>
+        {travelPlaces.status === 'error' ? (
+          <ServerConnectionBanner message={travelPlaces.error} onRetry={() => void travelPlaces.refreshAll()} />
+        ) : null}
+        {activeTab === 'places' ? (
+          <PlacesPage
+            travelPlaces={travelPlaces}
+            canEdit={auth.isAuthenticated}
+            isEditing={isEditing}
+            isDarkMode={resolvedTheme === 'dark'}
+            onRequireAuth={auth.logout}
+          />
+        ) : null}
+        {activeTab === 'schedule' ? (
+          <SchedulePage
+            categories={travelPlaces.categories}
+            places={travelPlaces.places}
+            isEditing={isEditing}
+            isDarkMode={resolvedTheme === 'dark'}
+            photoCache={travelPlaces.photoCache}
+            onLoadPhotos={travelPlaces.loadPhotos}
+          />
+        ) : null}
+        {activeTab === 'reservations' ? (
+          <ReservationPage
+            categories={travelPlaces.categories}
+            places={travelPlaces.places}
+            canComplete={auth.isAuthenticated}
+            isEditing={isEditing}
+            photoCache={travelPlaces.photoCache}
+            onLoadPhotos={travelPlaces.loadPhotos}
+            onRequireAuth={auth.logout}
+          />
+        ) : null}
+        {activeTab === 'todo' ? <TodoPage isEditing={isEditing} /> : null}
+        {activeTab === 'usage' ? <UsagePage isEditing={isEditing} /> : null}
+        <footer className="mx-auto mt-8 flex w-full max-w-none justify-center px-3 pb-12 pt-8 text-xs font-medium text-muted-foreground/70 sm:px-4 lg:px-5">
+          created by eigen.vector
+        </footer>
+      </div>
       {authDialogMode ? (
         <AuthDialog
           mode={authDialogMode}

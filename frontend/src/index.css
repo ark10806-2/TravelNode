@@ -152,113 +152,158 @@
     animation: modal-panel-enter 160ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
 
+  .pull-refresh-content {
+    transform: translateY(var(--pull-refresh-offset, 0));
+    transition: transform 90ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    will-change: transform;
+  }
+
   .pull-refresh-stage {
-    --refresh-fill: rgb(64 70 88 / 0.26);
-    --refresh-core: rgb(25 28 38 / 0.2);
-    --refresh-rim: rgb(91 99 122 / 0.28);
-    --refresh-light: rgb(255 255 255 / 0.46);
-    --refresh-shadow: rgb(15 23 42 / 0.14);
+    --refresh-ink: rgb(36 41 56 / 0.34);
+    --refresh-deep: rgb(18 22 34 / 0.2);
+    --refresh-rim: rgb(116 124 145 / 0.24);
+    --refresh-light: rgb(255 255 255 / 0.5);
+    --refresh-shadow: rgb(15 23 42 / 0.12);
     position: relative;
     display: grid;
-    height: 5rem;
-    width: 5rem;
+    height: 4.8rem;
+    width: 4.8rem;
     place-items: center;
-    filter: drop-shadow(0 14px 24px var(--refresh-shadow));
+    filter: drop-shadow(0 12px 22px var(--refresh-shadow));
     transform-origin: top center;
     will-change: transform, opacity;
   }
 
   .dark .pull-refresh-stage {
-    --refresh-fill: rgb(86 91 112 / 0.3);
-    --refresh-core: rgb(14 16 24 / 0.24);
-    --refresh-rim: rgb(140 146 166 / 0.2);
-    --refresh-light: rgb(238 242 255 / 0.28);
+    --refresh-ink: rgb(148 154 176 / 0.28);
+    --refresh-deep: rgb(8 10 16 / 0.28);
+    --refresh-rim: rgb(214 220 238 / 0.18);
+    --refresh-light: rgb(245 248 255 / 0.3);
     --refresh-shadow: rgb(0 0 0 / 0.34);
   }
 
-  .pull-refresh-liquid {
+  .pull-refresh-symbol {
     position: relative;
-    height: 4.15rem;
-    width: 4.15rem;
-    opacity: var(--pull-liquid-opacity);
-    transform: translateY(var(--pull-liquid-y));
-    transform-origin: 50% 18%;
+    height: 3.9rem;
+    width: 3.9rem;
+    opacity: var(--pull-symbol-opacity);
+    transform: translateY(var(--pull-symbol-y));
+    transform-origin: center;
     will-change: opacity, transform;
   }
 
-  .pull-refresh-liquid::before {
+  .pull-refresh-symbol::before {
     content: "";
     position: absolute;
-    inset: 0.95rem;
+    inset: 0.72rem;
     border-radius: 999px;
-    background: radial-gradient(circle, var(--refresh-rim), transparent 66%);
-    filter: blur(0.65rem);
-    opacity: var(--pull-halo-opacity);
-    transform: scale(var(--pull-halo-scale));
+    background: radial-gradient(circle, var(--refresh-rim), transparent 68%);
+    filter: blur(0.58rem);
+    opacity: var(--pull-symbol-rim);
+    transform: scale(1.05);
   }
 
-  .pull-refresh-orb,
-  .pull-refresh-tail {
+  .pull-refresh-lens,
+  .pull-refresh-ribbon,
+  .pull-refresh-core {
     position: absolute;
-    left: 50%;
     pointer-events: none;
-    transform-origin: 50% 18%;
+    transform-origin: center;
   }
 
-  .pull-refresh-orb {
-    top: 0.7rem;
-    height: 2.65rem;
-    width: 2.65rem;
-    border-radius: 48% 52% 50% 50% / 46% 48% 54% 54%;
+  .pull-refresh-lens {
+    inset: 0.88rem;
+    border-radius: 42% 58% 52% 48% / 46% 42% 58% 54%;
     background:
-      radial-gradient(circle at 34% 24%, var(--refresh-light), transparent 18%),
-      radial-gradient(circle at 50% 56%, var(--refresh-core), var(--refresh-fill) 58%, transparent 100%),
-      radial-gradient(circle at 48% 52%, transparent 52%, var(--refresh-rim) 77%, transparent 100%);
+      radial-gradient(circle at 34% 24%, var(--refresh-light), transparent 20%),
+      radial-gradient(circle at 50% 55%, var(--refresh-deep), var(--refresh-ink) 58%, transparent 100%),
+      radial-gradient(circle at 50% 50%, transparent 55%, var(--refresh-rim) 78%, transparent 100%);
     box-shadow:
-      inset 0 0.2rem 0.65rem rgb(255 255 255 / 0.09),
-      inset 0 -0.55rem 0.85rem rgb(7 10 18 / 0.16),
-      0 0.45rem 1.25rem var(--refresh-shadow);
-    transform: translateX(-50%) scaleX(var(--pull-orb-scale-x)) scaleY(var(--pull-orb-scale-y));
+      inset 0 0.12rem 0.48rem rgb(255 255 255 / 0.12),
+      inset 0 -0.46rem 0.72rem rgb(7 10 18 / 0.12);
     will-change: border-radius, transform;
   }
 
-  .pull-refresh-tail {
-    top: 2.72rem;
-    height: 1.35rem;
-    width: 0.92rem;
-    border-radius: 46% 46% 62% 62% / 20% 20% 88% 88%;
+  .pull-refresh-ribbon {
+    left: 50%;
+    top: 50%;
+    height: 0.86rem;
+    width: 2.52rem;
+    border-radius: 999px;
     background:
-      linear-gradient(180deg, var(--refresh-fill), var(--refresh-core) 72%, transparent 100%),
-      radial-gradient(circle at 50% 78%, var(--refresh-rim), transparent 62%);
-    filter: blur(0.02rem);
-    opacity: var(--pull-tail-opacity);
-    transform: translateX(-50%) translateY(-0.2rem) scaleX(var(--pull-tail-scale-x)) scaleY(var(--pull-tail-scale-y));
-    will-change: opacity, transform;
+      radial-gradient(circle at 24% 28%, var(--refresh-light), transparent 28%),
+      linear-gradient(90deg, transparent, var(--refresh-ink) 22%, var(--refresh-deep) 58%, transparent);
+    filter: blur(0.01rem);
+    opacity: 0.58;
+    mix-blend-mode: multiply;
+    will-change: opacity, transform, border-radius;
   }
 
-  .pull-refresh-stage-ready .pull-refresh-liquid {
-    opacity: 1;
+  .dark .pull-refresh-ribbon {
+    mix-blend-mode: screen;
   }
 
-  .pull-refresh-stage-refreshing .pull-refresh-liquid {
-    animation: pull-refresh-liquid-float 1180ms cubic-bezier(0.45, 0, 0.25, 1) infinite;
-    opacity: 0.92;
+  .pull-refresh-ribbon-a {
+    transform: translate(calc(-50% - var(--pull-symbol-spread)), -50%) rotate(18deg) scale(0.92, 0.9);
   }
 
-  .pull-refresh-stage-refreshing .pull-refresh-orb {
-    animation: pull-refresh-orb-morph 1180ms cubic-bezier(0.45, 0, 0.25, 1) infinite;
+  .pull-refresh-ribbon-b {
+    transform: translate(-50%, -50%) rotate(138deg) scale(0.82, 0.92);
   }
 
-  .pull-refresh-stage-refreshing .pull-refresh-tail {
-    animation: pull-refresh-tail-morph 1180ms cubic-bezier(0.45, 0, 0.25, 1) infinite;
+  .pull-refresh-ribbon-c {
+    transform: translate(calc(-50% + var(--pull-symbol-spread)), -50%) rotate(258deg) scale(0.78, 0.9);
+  }
+
+  .pull-refresh-core {
+    inset: 1.64rem;
+    border-radius: 999px;
+    background: radial-gradient(circle at 38% 32%, rgb(255 255 255 / 0.3), var(--refresh-deep) 62%, transparent);
+    opacity: 0.28;
+  }
+
+  .pull-refresh-stage-pulling .pull-refresh-symbol,
+  .pull-refresh-stage-ready .pull-refresh-symbol,
+  .pull-refresh-stage-refreshing .pull-refresh-symbol {
+    animation: pull-refresh-symbol-breathe 1150ms cubic-bezier(0.45, 0, 0.25, 1) infinite;
+  }
+
+  .pull-refresh-stage-pulling .pull-refresh-lens,
+  .pull-refresh-stage-ready .pull-refresh-lens,
+  .pull-refresh-stage-refreshing .pull-refresh-lens {
+    animation: pull-refresh-lens-morph 1150ms cubic-bezier(0.45, 0, 0.25, 1) infinite;
+  }
+
+  .pull-refresh-stage-pulling .pull-refresh-ribbon-a,
+  .pull-refresh-stage-ready .pull-refresh-ribbon-a,
+  .pull-refresh-stage-refreshing .pull-refresh-ribbon-a {
+    animation: pull-refresh-ribbon-a 1150ms cubic-bezier(0.45, 0, 0.25, 1) infinite;
+  }
+
+  .pull-refresh-stage-pulling .pull-refresh-ribbon-b,
+  .pull-refresh-stage-ready .pull-refresh-ribbon-b,
+  .pull-refresh-stage-refreshing .pull-refresh-ribbon-b {
+    animation: pull-refresh-ribbon-b 1150ms cubic-bezier(0.45, 0, 0.25, 1) infinite;
+  }
+
+  .pull-refresh-stage-pulling .pull-refresh-ribbon-c,
+  .pull-refresh-stage-ready .pull-refresh-ribbon-c,
+  .pull-refresh-stage-refreshing .pull-refresh-ribbon-c {
+    animation: pull-refresh-ribbon-c 1150ms cubic-bezier(0.45, 0, 0.25, 1) infinite;
   }
 
   @media (prefers-reduced-motion: reduce) {
     .modal-overlay-enter,
     .modal-panel-enter,
-    .pull-refresh-stage-refreshing .pull-refresh-liquid,
-    .pull-refresh-stage-refreshing .pull-refresh-orb,
-    .pull-refresh-stage-refreshing .pull-refresh-tail {
+    .pull-refresh-stage-pulling .pull-refresh-symbol,
+    .pull-refresh-stage-ready .pull-refresh-symbol,
+    .pull-refresh-stage-refreshing .pull-refresh-symbol,
+    .pull-refresh-stage-pulling .pull-refresh-lens,
+    .pull-refresh-stage-ready .pull-refresh-lens,
+    .pull-refresh-stage-refreshing .pull-refresh-lens,
+    .pull-refresh-stage-pulling .pull-refresh-ribbon,
+    .pull-refresh-stage-ready .pull-refresh-ribbon,
+    .pull-refresh-stage-refreshing .pull-refresh-ribbon {
       animation: none;
     }
   }
@@ -286,75 +331,94 @@
   }
 }
 
-@keyframes pull-refresh-liquid-float {
+@keyframes pull-refresh-symbol-breathe {
   0% {
-    transform: translateY(0) scale(1);
+    transform: translateY(var(--pull-symbol-y)) scale(1);
   }
 
-  42% {
-    transform: translateY(-0.16rem) scale(1.015);
+  46% {
+    transform: translateY(calc(var(--pull-symbol-y) - 0.12rem)) scale(1.018);
   }
 
-  70% {
-    transform: translateY(0.08rem) scale(0.985);
+  76% {
+    transform: translateY(calc(var(--pull-symbol-y) + 0.05rem)) scale(0.992);
   }
 
   100% {
-    transform: translateY(0) scale(1);
+    transform: translateY(var(--pull-symbol-y)) scale(1);
   }
 }
 
-@keyframes pull-refresh-orb-morph {
+@keyframes pull-refresh-lens-morph {
   0% {
-    border-radius: 999px;
-    transform: translateX(-50%) scale(0.98, 0.98);
-  }
-
-  36% {
-    border-radius: 48% 52% 58% 58% / 44% 46% 68% 68%;
-    transform: translateX(-50%) scale(1.05, 0.86);
-  }
-
-  56% {
-    border-radius: 52% 48% 42% 42% / 48% 48% 62% 62%;
-    transform: translateX(-50%) scale(0.88, 1.08);
-  }
-
-  78% {
-    border-radius: 999px;
-    transform: translateX(-50%) scale(1.02, 0.98);
-  }
-
-  100% {
-    border-radius: 999px;
-    transform: translateX(-50%) scale(0.98, 0.98);
-  }
-}
-
-@keyframes pull-refresh-tail-morph {
-  0% {
-    opacity: 0.08;
-    transform: translateX(-50%) translateY(-0.35rem) scale(0.44, 0.15);
+    border-radius: 42% 58% 52% 48% / 46% 42% 58% 54%;
+    transform: rotate(0deg) scale(0.96, 1.02);
   }
 
   34% {
-    opacity: 0.74;
-    transform: translateX(-50%) translateY(-0.18rem) scale(0.82, 0.95);
+    border-radius: 58% 42% 48% 52% / 42% 52% 48% 58%;
+    transform: rotate(22deg) scale(1.08, 0.9);
   }
 
-  58% {
-    opacity: 0.92;
-    transform: translateX(-50%) translateY(-0.14rem) scale(0.56, 1.1);
-  }
-
-  82% {
-    opacity: 0.12;
-    transform: translateX(-50%) translateY(-0.34rem) scale(0.42, 0.18);
+  62% {
+    border-radius: 46% 54% 60% 40% / 54% 40% 60% 46%;
+    transform: rotate(-14deg) scale(0.92, 1.08);
   }
 
   100% {
-    opacity: 0.08;
-    transform: translateX(-50%) translateY(-0.35rem) scale(0.44, 0.15);
+    border-radius: 42% 58% 52% 48% / 46% 42% 58% 54%;
+    transform: rotate(0deg) scale(0.96, 1.02);
+  }
+}
+
+@keyframes pull-refresh-ribbon-a {
+  0% {
+    opacity: 0.5;
+    transform: translate(calc(-50% - var(--pull-symbol-spread)), -50%) rotate(18deg) scale(0.9, 0.88);
+  }
+
+  48% {
+    opacity: 0.72;
+    transform: translate(-50%, -50%) rotate(94deg) scale(1.08, 0.78);
+  }
+
+  100% {
+    opacity: 0.5;
+    transform: translate(calc(-50% - var(--pull-symbol-spread)), -50%) rotate(18deg) scale(0.9, 0.88);
+  }
+}
+
+@keyframes pull-refresh-ribbon-b {
+  0% {
+    opacity: 0.46;
+    transform: translate(-50%, -50%) rotate(138deg) scale(0.82, 0.92);
+  }
+
+  46% {
+    opacity: 0.68;
+    transform: translate(calc(-50% + 0.08rem), calc(-50% - 0.04rem)) rotate(204deg) scale(1.02, 0.82);
+  }
+
+  100% {
+    opacity: 0.46;
+    transform: translate(-50%, -50%) rotate(138deg) scale(0.82, 0.92);
+  }
+}
+
+@keyframes pull-refresh-ribbon-c {
+  0% {
+    opacity: 0.42;
+    transform: translate(calc(-50% + var(--pull-symbol-spread)), -50%) rotate(258deg) scale(0.78, 0.9);
+  }
+
+  52% {
+    opacity: 0.62;
+    transform: translate(calc(-50% - 0.08rem), calc(-50% + 0.03rem)) rotate(320deg) scale(1, 0.8);
+  }
+
+  100% {
+    opacity: 0.42;
+    transform: translate(calc(-50% + var(--pull-symbol-spread)), -50%) rotate(258deg) scale(0.78, 0.9);
   }
 }
 

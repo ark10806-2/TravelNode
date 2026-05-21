@@ -5,16 +5,18 @@ type PullStatus = 'idle' | 'pulling' | 'ready' | 'refreshing';
 
 type PullToRefreshProps = {
   onRefresh?: () => void;
+  onPullOffsetChange?: (offset: number) => void;
 };
 
 const triggerDistance = 72;
 const maxPullDistance = 96;
 
-export function PullToRefresh({ onRefresh = () => window.location.reload() }: PullToRefreshProps) {
+export function PullToRefresh({ onRefresh = () => window.location.reload(), onPullOffsetChange }: PullToRefreshProps) {
   const startYRef = useRef(0);
   const startXRef = useRef(0);
   const pullDistanceRef = useRef(0);
   const onRefreshRef = useRef(onRefresh);
+  const onPullOffsetChangeRef = useRef(onPullOffsetChange);
   const isTrackingRef = useRef(false);
   const isRefreshingRef = useRef(false);
   const [pullDistance, setPullDistance] = useState(0);
@@ -25,8 +27,13 @@ export function PullToRefresh({ onRefresh = () => window.location.reload() }: Pu
   }, [onRefresh]);
 
   useEffect(() => {
+    onPullOffsetChangeRef.current = onPullOffsetChange;
+  }, [onPullOffsetChange]);
+
+  useEffect(() => {
     function updatePullDistance(distance: number) {
       pullDistanceRef.current = distance;
+      onPullOffsetChangeRef.current?.(Math.min(82, distance * 0.72));
       setPullDistance(distance);
     }
 
@@ -94,6 +101,7 @@ export function PullToRefresh({ onRefresh = () => window.location.reload() }: Pu
     window.addEventListener('touchcancel', resetPull);
 
     return () => {
+      onPullOffsetChangeRef.current?.(0);
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
@@ -103,19 +111,13 @@ export function PullToRefresh({ onRefresh = () => window.location.reload() }: Pu
 
   const isVisible = status !== 'idle';
   const progress = Math.min(1, pullDistance / triggerDistance);
-  const lift = Math.max(0, pullDistance - 54);
-  const symbolScale = 0.68 + progress * 0.28;
-  const tailScale = Math.max(0, Math.min(1, (progress - 0.24) / 0.76));
+  const lift = Math.max(0, pullDistance - 52) * 0.22;
+  const symbolScale = 0.72 + progress * 0.22;
   const symbolStyle = {
-    '--pull-liquid-opacity': (0.22 + progress * 0.72).toFixed(3),
-    '--pull-liquid-y': `${(progress * 0.2).toFixed(3)}rem`,
-    '--pull-halo-opacity': (0.18 + progress * 0.32).toFixed(3),
-    '--pull-halo-scale': (0.8 + progress * 0.24).toFixed(3),
-    '--pull-tail-opacity': (tailScale * 0.9).toFixed(3),
-    '--pull-tail-scale-x': (0.5 + tailScale * 0.48).toFixed(3),
-    '--pull-tail-scale-y': (0.18 + tailScale * 0.88).toFixed(3),
-    '--pull-orb-scale-x': (0.9 + progress * 0.1).toFixed(3),
-    '--pull-orb-scale-y': (0.82 + progress * 0.18).toFixed(3),
+    '--pull-symbol-opacity': (0.2 + progress * 0.78).toFixed(3),
+    '--pull-symbol-y': `${(progress * 0.24).toFixed(3)}rem`,
+    '--pull-symbol-spread': `${(progress * 0.22).toFixed(3)}rem`,
+    '--pull-symbol-rim': (0.2 + progress * 0.34).toFixed(3),
     transform: `translateY(${lift}px) scale(${symbolScale})`
   } as CSSProperties;
 
@@ -130,22 +132,26 @@ export function PullToRefresh({ onRefresh = () => window.location.reload() }: Pu
       <div
         className={cn(
           'pull-refresh-stage mt-1.5',
+          status === 'pulling' && 'pull-refresh-stage-pulling',
           status === 'ready' && 'pull-refresh-stage-ready',
           status === 'refreshing' && 'pull-refresh-stage-refreshing'
         )}
         style={symbolStyle}
       >
-        <PullRefreshLiquid />
+        <PullRefreshSymbol />
       </div>
     </div>
   );
 }
 
-function PullRefreshLiquid() {
+function PullRefreshSymbol() {
   return (
-    <div className="pull-refresh-liquid" aria-hidden="true">
-      <span className="pull-refresh-tail" />
-      <span className="pull-refresh-orb" />
+    <div className="pull-refresh-symbol" aria-hidden="true">
+      <span className="pull-refresh-lens" />
+      <span className="pull-refresh-ribbon pull-refresh-ribbon-a" />
+      <span className="pull-refresh-ribbon pull-refresh-ribbon-b" />
+      <span className="pull-refresh-ribbon pull-refresh-ribbon-c" />
+      <span className="pull-refresh-core" />
     </div>
   );
 }
