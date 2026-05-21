@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Loader2, MapPin } from 'lucide-react';
 import { googleMapsApiKey } from '@/config/env';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
@@ -22,6 +22,7 @@ type TravelMapProps = {
   contextPlaces?: Place[];
   compact?: boolean;
   className?: string;
+  minHeight?: CSSProperties['minHeight'];
   onSelectPlace: (place: Place) => void;
 };
 
@@ -34,6 +35,7 @@ export function TravelMap({
   contextPlaces,
   compact = false,
   className,
+  minHeight,
   onSelectPlace
 }: TravelMapProps) {
   const mapRef = useRef<HTMLDivElement | null>(null);
@@ -45,6 +47,7 @@ export function TravelMap({
   const { maps, status: mapLoadStatus, error: mapLoadError } = useGoogleMapsLoader(status === 'ready', '지도를 불러오지 못해 기본 보기로 전환했습니다.');
   const mapLoadFailed = Boolean(authError) || mapLoadStatus === 'error';
   const mapError = authError || mapLoadError;
+  const mapMinHeightStyle = minHeight ? ({ minHeight } satisfies CSSProperties) : undefined;
 
   useEffect(() => {
     window.gm_authFailure = () => {
@@ -173,6 +176,7 @@ export function TravelMap({
         compact ? 'min-h-[188px] sm:min-h-[420px] lg:min-h-[560px]' : 'min-h-[280px] sm:min-h-[420px] lg:min-h-[560px]',
         className
       )}
+      style={mapMinHeightStyle}
     >
       {googleMapsApiKey && !mapLoadFailed ? (
         <div
@@ -181,6 +185,7 @@ export function TravelMap({
             'h-full w-full overflow-hidden rounded-lg',
             compact ? 'min-h-[180px] sm:min-h-[412px] lg:min-h-[552px]' : 'min-h-[272px] sm:min-h-[412px] lg:min-h-[552px]'
           )}
+          style={mapMinHeightStyle}
         />
       ) : null}
       {mapLoadFailed ? (
@@ -189,12 +194,14 @@ export function TravelMap({
             'h-full w-full overflow-hidden rounded-lg',
             compact ? 'min-h-[180px] sm:min-h-[412px] lg:min-h-[552px]' : 'min-h-[272px] sm:min-h-[412px] lg:min-h-[552px]'
           )}
+          style={mapMinHeightStyle}
         >
           <iframe
             className={cn(
               'h-full w-full border-0',
               compact ? 'min-h-[180px] sm:min-h-[412px] lg:min-h-[552px]' : 'min-h-[272px] sm:min-h-[412px] lg:min-h-[552px]'
             )}
+            style={mapMinHeightStyle}
             src={getEmbedMapUrl(selectedPlace ?? referencePlace)}
             title="Google Maps fallback"
             loading="lazy"
@@ -212,6 +219,7 @@ export function TravelMap({
             'map-shell flex h-full flex-col items-center justify-center gap-3 rounded-lg p-4 text-center sm:min-h-[412px] sm:p-6 lg:min-h-[552px]',
             compact ? 'min-h-[180px]' : 'min-h-[272px]'
           )}
+          style={mapMinHeightStyle}
         >
           <MapPin className="h-10 w-10 text-primary" />
           <div>

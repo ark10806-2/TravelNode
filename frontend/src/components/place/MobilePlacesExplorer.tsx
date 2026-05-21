@@ -16,6 +16,9 @@ const emptyPhotoState: PhotoState = {
   photos: []
 };
 const emptyMapPlaces: Place[] = [];
+const compactRouteMapHeight = 196;
+const expandedRouteMapHeight = Math.round(compactRouteMapHeight * 1.2);
+const fallbackShrinkDistance = 220;
 
 type MobileScheduleDaySelectorProps = {
   days: ScheduleDay[];
@@ -114,15 +117,70 @@ export function MobilePlacesExplorer({
   onDelete,
   onOpenReservations
 }: MobilePlacesExplorerProps) {
+  const mapSentinelRef = useRef<HTMLDivElement | null>(null);
+  const mapShellRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     places.forEach((place) => {
       void onLoadPhotos(place);
     });
   }, [onLoadPhotos, places]);
 
+  useEffect(() => {
+    let expandedTop: number | null = null;
+    let animationFrame = 0;
+
+    function updateMapHeight() {
+      const sentinel = mapSentinelRef.current;
+      const shell = mapShellRef.current;
+      if (!sentinel || !shell) return;
+
+      const stickyTop = Number.parseFloat(window.getComputedStyle(shell).top) || 0;
+      const sentinelTop = sentinel.getBoundingClientRect().top;
+
+      if (sentinelTop > stickyTop + 1) {
+        expandedTop = Math.max(expandedTop ?? sentinelTop, sentinelTop);
+      }
+
+      const startTop = expandedTop ?? stickyTop + fallbackShrinkDistance;
+      const shrinkDistance = Math.max(startTop - stickyTop, 1);
+      const progress = Math.min(Math.max((startTop - sentinelTop) / shrinkDistance, 0), 1);
+      const nextHeight = expandedRouteMapHeight - (expandedRouteMapHeight - compactRouteMapHeight) * progress;
+
+      shell.style.setProperty('--mobile-route-map-height', `${nextHeight.toFixed(1)}px`);
+    }
+
+    function requestUpdate() {
+      if (animationFrame) return;
+      animationFrame = window.requestAnimationFrame(() => {
+        animationFrame = 0;
+        updateMapHeight();
+      });
+    }
+
+    function handleResize() {
+      expandedTop = null;
+      requestUpdate();
+    }
+
+    updateMapHeight();
+    window.addEventListener('scroll', requestUpdate, { passive: true });
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      if (animationFrame) window.cancelAnimationFrame(animationFrame);
+      window.removeEventListener('scroll', requestUpdate);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
   return (
     <div className="grid gap-3 md:hidden">
-      <div className="sticky top-[3.25rem] z-30 -mx-1 rounded-b-2xl bg-background/95 px-1 pb-2 pt-1 shadow-sm shadow-black/5 backdrop-blur">
+      <div ref={mapSentinelRef} aria-hidden="true" className="h-0" />
+      <div
+        ref={mapShellRef}
+        className="sticky top-[3.25rem] z-30 -mx-1 rounded-b-2xl bg-background/95 px-1 pb-2 pt-1 shadow-sm shadow-black/5 backdrop-blur [--mobile-route-map-height:235px]"
+      >
         <div className="mb-2 flex items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
           <span className="font-semibold">선택 DAY 동선</span>
           <span>{dayPlaces.length}곳 기준</span>
@@ -135,7 +193,8 @@ export function MobilePlacesExplorer({
           status={status}
           isDarkMode={isDarkMode}
           compact
-          className="min-h-[196px] rounded-2xl"
+          minHeight="var(--mobile-route-map-height)"
+          className="rounded-2xl transition-[min-height] duration-100 ease-out"
           onSelectPlace={onSelectPlace}
         />
       </div>
