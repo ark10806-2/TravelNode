@@ -15,6 +15,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Base64
 import kotlin.math.min
 import javax.imageio.ImageIO
 import org.apache.pdfbox.pdmodel.PDDocument
@@ -274,13 +275,26 @@ private class BookletPdfRenderer(
     }
 
     reservations.forEach { reservation ->
-      ensureSpace(118f)
       val place = reservation.placeId?.let(placesById::get)
+      val notes = plainMarkdown(reservation.notes).takeIf { it.isNotBlank() }
+      val placeDescription = place?.description?.takeIf { it.isNotBlank() }?.let(::plainMarkdown)
+      val linkUrl = reservation.linkUrl.takeIf { it.isNotBlank() }
+      val attachments = reservation.attachments
+      val cardHeight = reservationCardHeight(notes, placeDescription, linkUrl, attachments)
+      ensureSpace(cardHeight + 16f)
+
       val cardTop = y
-      drawCard(42f, y - 108f, 511f, 108f, Colors.Soft)
+      drawCard(42f, y - cardHeight, 511f, cardHeight, Colors.Soft)
       drawText(reservationTypeLabel(reservation.reservationType), 58f, cardTop - 21f, 8f, fonts.bold, Colors.Rose)
       drawWrappedText(reservation.title, 58f, 315f, 14f, 18f, fonts.bold, Colors.Ink, maxLines = 2, yOverride = cardTop - 43f)
-      drawText(formatDayLabel(reservation.dayIndex), 456f, cardTop - 21f, 9f, fonts.bold, Colors.Muted)
+      drawText(
+        listOf(formatDayLabel(reservation.dayIndex), if (reservation.completed) "사용 완료" else null).filterNotNull().joinToString(" · "),
+        430f,
+        cardTop - 21f,
+        9f,
+        fonts.bold,
+        if (reservation.completed) Colors.LightText else Colors.Muted
+      )
 
       val detail = listOfNotNull(
         reservation.timeLabel.takeIf { it.isNotBlank() }?.let { "시간 $it" },
@@ -290,20 +304,85 @@ private class BookletPdfRenderer(
       ).joinToString(" · ")
       var detailY = drawWrappedText(detail, 58f, 478f, 9f, 13f, color = Colors.Muted, maxLines = 2, yOverride = cardTop - 64f)
 
-      val notes = plainMarkdown(reservation.notes).takeIf { it.isNotBlank() }
+      if (linkUrl != null) {
+        detailY = drawWrappedText("링크 $linkUrl", 58f, 478f, 8f, 11f, color = Colors.LightText, maxLines = 1, yOverride = detailY - 2f)
+      }
       if (notes != null) {
-        detailY = drawWrappedText("메모 $notes", 58f, 478f, 9f, 13f, color = Colors.Muted, maxLines = 2, yOverride = detailY - 2f)
+        drawText("세부 메모", 58f, detailY - 6f, 8f, fonts.bold, Colors.Ink)
+        detailY = drawWrappedText(notes, 58f, 478f, 8.5f, 12f, color = Colors.Muted, maxLines = 5, yOverride = detailY - 20f)
       }
-      if (place?.description?.isNotBlank() == true) {
-        detailY = drawWrappedText("장소 설명 ${plainMarkdown(place.description)}", 58f, 478f, 9f, 13f, color = Colors.Muted, maxLines = 2, yOverride = detailY - 2f)
+      if (placeDescription != null) {
+        drawText("연결 장소 설명", 58f, detailY - 4f, 8f, fonts.bold, Colors.Ink)
+        detailY = drawWrappedText(placeDescription, 58f, 478f, 8f, 11f, color = Colors.Muted, maxLines = 3, yOverride = detailY - 17f)
       }
-      val attachmentNames = reservation.attachments.map { it.fileName }.takeIf { it.isNotEmpty() }
-      if (attachmentNames != null) {
-        drawWrappedText("첨부 ${attachmentNames.joinToString(", ")}", 58f, 478f, 8f, 12f, color = Colors.LightText, maxLines = 1, yOverride = detailY - 2f)
+      if (attachments.isNotEmpty()) {
+        drawReservationAttachments(attachments, 58f, detailY - 6f)
       }
-      y -= 122f
+      y -= cardHeight + 14f
     }
     drawPageFooter("Reservations")
+  }
+
+  private fun reservationCardHeight(
+    notes: String?,
+    placeDescription: String?,
+    linkUrl: String?,
+    attachments: List<ReservationAttachmentResponse>
+  ): Float {
+    var height = 112f
+    if (linkUrl != null) height += 12f
+    if (notes != null) height += 74f
+    if (placeDescription != null) height += 46f
+    if (attachments.isNotEmpty()) height += 74f
+    return height
+  }
+
+  private fun drawReservationAttachments(
+    attachments: List<ReservationAttachmentResponse>,
+    x: Float,
+    labelY: Float
+  ) {
+    drawText("첨부파일", x, labelY, 8f, fonts.bold, Colors.Ink)
+    val previewBottom = labelY - 54f
+    val previewSize = 42f
+
+    attachments.take(4).forEachIndexed { index, attachment ->
+      val previewX = x + index * 50f
+      drawAttachmentPreview(attachment, previewX, previewBottom, previewSize)
+    }
+
+    val labels = attachments.take(5).map(::attachmentLabel)
+    val moreLabel = if (attachments.size > 5) " 외 ${attachments.size - 5}개" else ""
+    drawWrappedText(
+      labels.joinToString(", ") + moreLabel,
+      x + 214f,
+      262f,
+      7.5f,
+      10f,
+      color = Colors.LightText,
+      maxLines = 3,
+      yOverride = labelY - 2f
+    )
+  }
+
+  private fun drawAttachmentPreview(
+    attachment: ReservationAttachmentResponse,
+    x: Float,
+    bottom: Float,
+    size: Float
+  ) {
+    drawFilledRect(x, bottom, size, size, Colors.White)
+    drawStrokedRect(x, bottom, size, size, Colors.Border)
+
+    val imageBytes = if (attachment.contentType.startsWith("image/")) decodeDataUrl(attachment.dataUrl) else null
+    if (imageBytes != null) {
+      drawImage(imageBytes, x + 2f, bottom + 2f, size - 4f, size - 4f)
+      return
+    }
+
+    val label = if (attachment.contentType == "application/pdf") "PDF" else "FILE"
+    drawFilledRect(x + 4f, bottom + 4f, size - 8f, size - 8f, Colors.Sand)
+    drawText(label, x + 10f, bottom + 22f, 8f, fonts.bold, Colors.Muted)
   }
 
   private fun renderPlaces() {
@@ -626,6 +705,32 @@ private class BookletPdfRenderer(
       .replace("\t", " ")
       .replace(Regex("[\\uD800-\\uDFFF]"), "")
       .replace(Regex("[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F]"), "")
+  }
+
+  private fun decodeDataUrl(value: String): ByteArray? {
+    val commaIndex = value.indexOf(',')
+    if (commaIndex < 0 || !value.take(commaIndex).contains(";base64", ignoreCase = true)) return null
+
+    return runCatching {
+      Base64.getDecoder().decode(value.substring(commaIndex + 1))
+    }.getOrNull()
+  }
+
+  private fun attachmentLabel(attachment: ReservationAttachmentResponse): String {
+    val typeLabel = when {
+      attachment.contentType.startsWith("image/") -> "이미지"
+      attachment.contentType == "application/pdf" -> "PDF"
+      else -> "파일"
+    }
+
+    return "${attachment.fileName} ($typeLabel · ${formatBytes(attachment.sizeBytes)})"
+  }
+
+  private fun formatBytes(value: Int): String {
+    if (value < 1024) return "${value}B"
+    val kb = value / 1024.0
+    if (kb < 1024) return "${"%.1f".format(kb)}KB"
+    return "${"%.1f".format(kb / 1024.0)}MB"
   }
 
   private fun plainMarkdown(value: String?): String {
