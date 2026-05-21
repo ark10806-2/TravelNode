@@ -1,5 +1,6 @@
 import { authHeaders } from '@/api/auth';
 import { apiBaseUrl } from '@/config/env';
+import { downloadBlob } from '@/lib/downloads';
 
 export async function downloadTripBookletPdf() {
   const response = await fetch(`${apiBaseUrl}/api/booklet/pdf`, {
@@ -12,14 +13,7 @@ export async function downloadTripBookletPdf() {
 
   const blob = await response.blob();
   const fileName = filenameFromDisposition(response.headers.get('Content-Disposition')) ?? 'travel-node-booklet.pdf';
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.URL.revokeObjectURL(url);
+  downloadBlob(blob, fileName);
 }
 
 async function errorMessage(response: Response) {

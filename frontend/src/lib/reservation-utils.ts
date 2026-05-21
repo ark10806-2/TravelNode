@@ -1,4 +1,5 @@
 import { formatTravelDate } from '@/lib/schedule-utils';
+import { downloadBlob } from '@/lib/downloads';
 import type { ReservationAttachment } from '@/types/reservation';
 import type { ScheduleDay } from '@/types/schedule';
 
@@ -20,17 +21,9 @@ export function normalizeLink(linkUrl: string) {
 export function downloadReservationAttachment(attachment: ReservationAttachment) {
   try {
     const blob = dataUrlToBlob(attachment.dataUrl, attachment.contentType);
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = objectUrl;
-    link.download = attachment.fileName || 'reservation-file';
-    link.rel = 'noreferrer';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    downloadBlob(blob, attachment.fileName || 'reservation-file');
   } catch (_error) {
-    window.open(attachment.dataUrl, '_blank', 'noopener,noreferrer');
+    window.alert('첨부파일을 다운로드하지 못했습니다.');
   }
 }
 

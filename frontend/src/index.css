@@ -4,16 +4,16 @@
 
 @layer base {
   :root {
-    --background: 28 100% 99%;
+    --background: 0 0% 100%;
     --foreground: 232 17% 15%;
     --primary: 348 100% 62%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 28 100% 96%;
+    --secondary: 0 0% 97%;
     --secondary-foreground: 232 17% 15%;
-    --muted: 30 33% 94%;
+    --muted: 0 0% 96%;
     --muted-foreground: 230 9% 42%;
-    --accent: 176 65% 94%;
-    --accent-foreground: 185 74% 25%;
+    --accent: 0 0% 96%;
+    --accent-foreground: 232 17% 15%;
     --destructive: 356 74% 47%;
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 87%;
@@ -68,26 +68,22 @@
 @layer components {
   .app-background {
     background:
-      linear-gradient(135deg, rgba(255, 56, 92, 0.14) 0, rgba(255, 222, 89, 0.1) 28%, transparent 54%),
-      linear-gradient(225deg, rgba(0, 180, 170, 0.12) 0, rgba(80, 176, 255, 0.08) 34%, transparent 62%),
-      linear-gradient(180deg, hsl(24 100% 98%) 0, hsl(var(--background)) 330px),
+      linear-gradient(180deg, hsl(0 0% 99%) 0, hsl(var(--background)) 320px),
       hsl(var(--background));
   }
 
   .dark .app-background {
     background:
-      linear-gradient(135deg, rgba(255, 86, 122, 0.16) 0, transparent 46%),
-      linear-gradient(225deg, rgba(48, 213, 200, 0.12) 0, transparent 56%),
-      linear-gradient(180deg, hsl(240 8% 11%) 0, hsl(var(--background)) 320px),
+      linear-gradient(180deg, hsl(240 8% 11%) 0, hsl(var(--background)) 300px),
       hsl(var(--background));
   }
 
   .soft-panel {
-    @apply border border-white/70 bg-background/90 shadow-[0_16px_40px_rgba(255,56,92,0.08),0_6px_18px_rgba(24,119,128,0.05)] backdrop-blur;
+    @apply border bg-background shadow-[0_14px_36px_rgba(15,23,42,0.06),0_4px_12px_rgba(15,23,42,0.04)];
   }
 
   .dark .soft-panel {
-    @apply border-white/10 bg-secondary/80 shadow-[0_18px_44px_rgba(0,0,0,0.32),0_0_28px_rgba(255,86,122,0.05)];
+    @apply bg-secondary/80 shadow-[0_18px_44px_rgba(0,0,0,0.30)];
   }
 
   .gallery-slide-next {

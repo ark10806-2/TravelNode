@@ -228,6 +228,9 @@ export function PlaceGallery({
           <div className="flex min-w-0 flex-col gap-2 border-t p-2.5 sm:gap-3 sm:p-4 lg:border-l lg:border-t-0">
             <div className="flex min-w-0 items-center justify-between gap-2">
               <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                <span className="shrink-0 text-xs font-medium leading-6 text-muted-foreground">
+                  {activePlace.distanceFromSelectedKm.toFixed(1)}km
+                </span>
                 <PlaceContextBadges
                   reservations={activeReservations}
                   scheduleLabels={activeScheduleLabels}
@@ -242,10 +245,6 @@ export function PlaceGallery({
                   onOpenReservations={onOpenReservations ? () => onOpenReservations(activePlace, activeReservations) : undefined}
                 />
               </div>
-              <span className="inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-secondary px-2 text-[11px] font-bold leading-none text-muted-foreground">
-                <MapPin className="h-3.5 w-3.5" />
-                {activePlace.distanceFromSelectedKm.toFixed(1)}km
-              </span>
               <div className="flex shrink-0 gap-1">
                 <Button
                   variant="outline"

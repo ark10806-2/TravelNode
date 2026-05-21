@@ -74,10 +74,10 @@ export function AppTabs({
 
   return (
     <>
-      <div ref={introRef} className="border-b border-white/60 bg-background/80 shadow-sm shadow-primary/5 backdrop-blur-xl dark:border-border/70">
+      <div ref={introRef} className="border-b border-border/70 bg-background/95 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-none flex-col gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3 lg:flex-row lg:items-center lg:justify-between lg:px-5">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[linear-gradient(135deg,hsl(var(--primary)),#ffb454)] text-primary-foreground shadow-sm shadow-primary/30 sm:h-9 sm:w-9">
+            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm shadow-primary/20 sm:h-9 sm:w-9">
               <Plane className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
             <div className="min-w-0">
@@ -127,14 +127,14 @@ export function AppTabs({
         </div>
       </div>
 
-      <div className="sticky top-0 z-40 transform-gpu border-b border-white/60 bg-background/80 shadow-sm shadow-primary/5 backdrop-blur-xl will-change-transform dark:border-border/70">
+      <div className="sticky top-0 z-40 transform-gpu border-b border-border/70 bg-background/95 shadow-sm shadow-black/5 backdrop-blur-xl will-change-transform">
         <div
           className={cn(
             'mx-auto flex w-full max-w-none justify-center px-2 transition-all duration-200 sm:px-4 sm:py-2 lg:px-5',
             isCompact ? 'py-1' : 'py-1.5 sm:py-2'
           )}
         >
-          <div className="grid w-full grid-cols-5 gap-1 rounded-full border border-white/70 bg-background/80 p-1 shadow-sm shadow-primary/10 dark:border-border dark:bg-secondary/80 sm:w-[42rem]" role="tablist" aria-label="페이지 전환">
+          <div className="grid w-full grid-cols-5 gap-1 rounded-full border bg-secondary p-1 shadow-sm shadow-black/5 sm:w-[42rem]" role="tablist" aria-label="페이지 전환">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = tab.id === activeTab;
