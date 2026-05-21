@@ -63,7 +63,7 @@ export function useTravelPlaces() {
   }, [places, selectedCategoryId, travelMode]);
 
   const selectedPlace = useMemo(() => {
-    return visiblePlaces.find((place) => place.id === selectedId) ?? visiblePlaces[0] ?? null;
+    return visiblePlaces.find((place) => place.id === selectedId) ?? null;
   }, [selectedId, visiblePlaces]);
 
   const nearbyPlaces = useMemo(() => {
@@ -93,7 +93,7 @@ export function useTravelPlaces() {
   const refreshPlaces = useCallback(async () => {
     const nextPlaces = await fetchPlaces();
     setPlaces(nextPlaces);
-    setSelectedId((current) => current ?? nextPlaces[0]?.id ?? null);
+    setSelectedId((current) => (current && nextPlaces.some((place) => place.id === current) ? current : null));
     return nextPlaces;
   }, []);
 
