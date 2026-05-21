@@ -1,9 +1,17 @@
 import { ExternalLink, Loader2, Map, Navigation, Pencil, Trash2 } from 'lucide-react';
 import { recordApiUsage } from '@/api/usage';
 import { MarkdownText } from '@/components/common/MarkdownText';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { googleMapsApiKey } from '@/config/env';
-import { getHotelToPlaceEmbedUrl, getPlaceInfoUrl, haversineKm } from '@/lib/place-utils';
+import {
+  getHotelToPlaceEmbedUrl,
+  getPlaceInfoUrl,
+  getVisibleGoogleMapsNote,
+  getVisiblePlaceDescription,
+  haversineKm,
+  shouldShowPlaceInfoNeedsReview
+} from '@/lib/place-utils';
 import type { CategoryId, CategoryOption, NearbyPlace, PhotoState, Place } from '@/types/travel';
 import { CategoryMoveSelect } from './CategoryMoveSelect';
 import { PhotoBundlePreview } from './PhotoBundlePreview';
@@ -37,6 +45,9 @@ export function PlaceExpandedDetails({
 }: PlaceExpandedDetailsProps) {
   const isBusy = isDeleting || isMovingCategory;
   const distanceKm = haversineKm(referencePlace, place);
+  const visibleDescription = getVisiblePlaceDescription(place);
+  const visibleNote = getVisibleGoogleMapsNote(place);
+  const needsReview = shouldShowPlaceInfoNeedsReview(place);
 
   return (
     <div className="grid gap-3 border-t bg-background px-3 py-3 sm:px-4 sm:py-4 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -58,15 +69,24 @@ export function PlaceExpandedDetails({
           />
         </section>
 
-        <section className="rounded-xl border bg-muted/20 p-3">
-          <div className="text-sm font-semibold">설명</div>
-          <MarkdownText className="mt-2" text={place.description} />
-        </section>
+        {visibleDescription || needsReview ? (
+          <section className="rounded-xl border bg-muted/20 p-3">
+            <div className="text-sm font-semibold">설명</div>
+            {visibleDescription ? <MarkdownText className="mt-2" text={visibleDescription} /> : null}
+            {needsReview ? (
+              <Badge variant="outline" className="mt-2 rounded-full bg-background text-muted-foreground">
+                정보 보강 필요
+              </Badge>
+            ) : null}
+          </section>
+        ) : null}
 
-        <section className="rounded-xl border bg-muted/20 p-3">
-          <div className="text-sm font-semibold">Google Maps 메모</div>
-          <MarkdownText className="mt-2" text={place.googleMapsNote} />
-        </section>
+        {visibleNote ? (
+          <section className="rounded-xl border bg-muted/20 p-3">
+            <div className="text-sm font-semibold">Google Maps 메모</div>
+            <MarkdownText className="mt-2" text={visibleNote} />
+          </section>
+        ) : null}
       </div>
 
       <aside className="grid content-start gap-3">

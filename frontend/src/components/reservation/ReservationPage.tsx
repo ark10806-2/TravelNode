@@ -34,6 +34,7 @@ import { mergeReservationAttachments, readReservationAttachment } from '@/lib/re
 import { defaultReservationPlatforms, parseGoogleBookingsCsv, parseGoogleBookingsCsvRows, parseGoogleReservationText } from '@/lib/reservation-import';
 import { sortReservationsBySchedule } from '@/lib/reservation-sort';
 import { downloadReservationAttachment, formatBytes, formatReservationDayLabel, normalizeLink } from '@/lib/reservation-utils';
+import { getVisibleGoogleMapsNote, getVisiblePlaceDescription, shouldShowPlaceInfoNeedsReview } from '@/lib/place-utils';
 import { cn } from '@/lib/utils';
 import type { Reservation, ReservationAttachment, ReservationDraft, ReservationType } from '@/types/reservation';
 import type { ScheduleDay } from '@/types/schedule';
@@ -344,6 +345,9 @@ function ReservationCard({
   onRemove: () => void;
 }) {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const visiblePlaceDescription = place ? getVisiblePlaceDescription(place) : '';
+  const visiblePlaceNote = place ? getVisibleGoogleMapsNote(place) : '';
+  const placeNeedsReview = place ? shouldShowPlaceInfoNeedsReview(place) : false;
 
   if (isEditingThis) {
     return (
@@ -449,12 +453,21 @@ function ReservationCard({
               <span className="min-w-0 truncate">{place.name}</span>
               <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" />
             </div>
-            <div className="mt-1 line-clamp-2 text-sm leading-5 text-foreground/75">
-              설명: <MarkdownInline text={place.description} />
-            </div>
-            <div className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
-              메모: <MarkdownInline text={place.googleMapsNote} />
-            </div>
+            {visiblePlaceDescription ? (
+              <div className="mt-1 line-clamp-2 text-sm leading-5 text-foreground/75">
+                설명: <MarkdownInline text={visiblePlaceDescription} />
+              </div>
+            ) : null}
+            {placeNeedsReview ? (
+              <Badge variant="outline" className="mt-1 rounded-full bg-background text-[11px] text-muted-foreground">
+                정보 보강 필요
+              </Badge>
+            ) : null}
+            {visiblePlaceNote ? (
+              <div className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
+                메모: <MarkdownInline text={visiblePlaceNote} />
+              </div>
+            ) : null}
           </button>
         ) : null}
         {reservation.referenceNumber ? (

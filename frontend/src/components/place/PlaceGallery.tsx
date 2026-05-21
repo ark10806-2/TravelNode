@@ -5,6 +5,7 @@ import { PlaceReservationBadge } from '@/components/reservation/PlaceReservation
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { travelLabel } from '@/constants/travel';
+import { getVisibleGoogleMapsNote, getVisiblePlaceDescription, shouldShowPlaceInfoNeedsReview } from '@/lib/place-utils';
 import { cn } from '@/lib/utils';
 import type { Reservation } from '@/types/reservation';
 import type { CategoryId, CategoryOption, NearbyPlace, PhotoState, Place } from '@/types/travel';
@@ -54,6 +55,9 @@ export function PlaceGallery({
   const activeReservations = activePlace ? reservationsByPlaceId[activePlace.id] ?? [] : [];
   const activeScheduleLabels = activePlace ? scheduleLabelsByPlaceId[activePlace.id] ?? [] : [];
   const isActivePhotoVisible = Boolean(activePhoto && !failedPhotoUrls.has(activePhoto.url));
+  const visibleDescription = activePlace ? getVisiblePlaceDescription(activePlace) : '';
+  const visibleNote = activePlace ? getVisibleGoogleMapsNote(activePlace) : '';
+  const needsReview = activePlace ? shouldShowPlaceInfoNeedsReview(activePlace) : false;
 
   useEffect(() => {
     setActiveIndex((current) => Math.min(current, Math.max(places.length - 1, 0)));
@@ -260,9 +264,16 @@ export function PlaceGallery({
 
             <div className="min-w-0 sm:block">
               <h3 className="hidden text-lg font-bold leading-snug sm:block sm:text-xl">{activePlace.name}</h3>
-              <p className="line-clamp-2 text-xs leading-5 text-muted-foreground sm:mt-2 sm:text-sm sm:leading-6">
-                설명: <MarkdownInline text={activePlace.description} />
-              </p>
+              {visibleDescription ? (
+                <p className="line-clamp-2 text-xs leading-5 text-muted-foreground sm:mt-2 sm:text-sm sm:leading-6">
+                  설명: <MarkdownInline text={visibleDescription} />
+                </p>
+              ) : null}
+              {needsReview ? (
+                <Badge variant="outline" className="mt-1 rounded-full bg-background text-[11px] text-muted-foreground">
+                  정보 보강 필요
+                </Badge>
+              ) : null}
             </div>
 
             <div className="grid min-w-0 gap-1 text-xs sm:gap-1.5 sm:text-sm">
@@ -270,12 +281,14 @@ export function PlaceGallery({
               <div className="line-clamp-1 leading-5 text-muted-foreground sm:line-clamp-none">{activePlace.menu}</div>
             </div>
 
-            <div className="grid min-w-0 gap-1 text-xs sm:gap-1.5 sm:text-sm">
-              <div className="font-semibold">Google Maps 메모</div>
-              <div className="line-clamp-2 leading-5 text-muted-foreground">
-                <MarkdownInline text={activePlace.googleMapsNote} />
+            {visibleNote ? (
+              <div className="grid min-w-0 gap-1 text-xs sm:gap-1.5 sm:text-sm">
+                <div className="font-semibold">Google Maps 메모</div>
+                <div className="line-clamp-2 leading-5 text-muted-foreground">
+                  <MarkdownInline text={visibleNote} />
+                </div>
               </div>
-            </div>
+            ) : null}
 
             <div className="grid min-w-0 gap-1 text-xs sm:gap-1.5 sm:text-sm">
               <div className="font-semibold">이동 정보</div>

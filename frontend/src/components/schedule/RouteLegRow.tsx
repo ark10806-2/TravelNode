@@ -99,7 +99,7 @@ export function RouteLegRow({
                   href={buildPlaceDirectionsUrl(from, to, mode)}
                   target="_blank"
                   rel="noreferrer"
-                  title={`${modeMeta[mode].label}${isPending ? ' 계산 전' : isEstimated ? ' 예상값' : ''}`}
+                  title={`${modeMeta[mode].label}${isEstimated ? ' 예상값' : ''}`}
                   aria-label={`${modeMeta[mode].label} 경로 열기`}
                 >
                   {isLoading ? (
@@ -125,7 +125,13 @@ export function RouteLegRow({
                       keepModeLine ? 'truncate whitespace-nowrap' : 'whitespace-normal sm:truncate sm:whitespace-nowrap'
                     )}
                   >
-                    {isLoading ? '...' : isPending ? '계산 전' : modeLeg.durationLabel}
+                    {isLoading ? (
+                      '...'
+                    ) : isPending ? (
+                      <span aria-hidden="true" className="inline-block h-px w-6 border-t border-dashed border-current opacity-40 align-middle" />
+                    ) : (
+                      modeLeg.durationLabel
+                    )}
                   </span>
                   {!isLoading && !isPending ? (
                     <span

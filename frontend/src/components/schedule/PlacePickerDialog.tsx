@@ -1,10 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ExternalLink, Images, Loader2, MapPin, MapPinned, Plus, Route, Search, X } from 'lucide-react';
 import { MarkdownInline } from '@/components/common/MarkdownText';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import { createHotelMarkerIcon, createPlaceMarkerIcon, getPlaceMapStyles } from '@/lib/google-maps';
-import { getCategoryBadgeClass, getCategoryOption, getPlaceInfoUrl } from '@/lib/place-utils';
+import {
+  getCategoryBadgeClass,
+  getCategoryOption,
+  getPlaceInfoUrl,
+  getVisibleGoogleMapsNote,
+  getVisiblePlaceDescription,
+  shouldShowPlaceInfoNeedsReview
+} from '@/lib/place-utils';
 import { cn } from '@/lib/utils';
 import type { CategoryId, CategoryOption, PhotoState, Place } from '@/types/travel';
 
@@ -150,6 +158,9 @@ export function PlacePickerDialog({
                   const isFocused = focusedPlace?.id === place.id;
                   const isSelected = selectedPlaceIds.includes(place.id);
                   const isDisabled = !isSelected && isSelectionFull;
+                  const visibleDescription = getVisiblePlaceDescription(place);
+                  const visibleNote = getVisibleGoogleMapsNote(place);
+                  const needsReview = shouldShowPlaceInfoNeedsReview(place);
 
                   return (
                     <button
@@ -193,12 +204,21 @@ export function PlacePickerDialog({
                           </div>
                           <div className="line-clamp-2 text-base font-bold leading-snug">{place.name}</div>
                           <div className="mt-1 line-clamp-2 text-sm text-muted-foreground">{place.menu}</div>
-                          <div className="mt-2 line-clamp-3 text-sm leading-5 text-foreground/80">
-                            설명: <MarkdownInline text={place.description} />
-                          </div>
-                          <div className="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">
-                            메모: <MarkdownInline text={place.googleMapsNote} />
-                          </div>
+                          {visibleDescription ? (
+                            <div className="mt-2 line-clamp-3 text-sm leading-5 text-foreground/80">
+                              설명: <MarkdownInline text={visibleDescription} />
+                            </div>
+                          ) : null}
+                          {needsReview ? (
+                            <Badge variant="outline" className="mt-2 rounded-full bg-background text-[11px] text-muted-foreground">
+                              정보 보강 필요
+                            </Badge>
+                          ) : null}
+                          {visibleNote ? (
+                            <div className="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">
+                              메모: <MarkdownInline text={visibleNote} />
+                            </div>
+                          ) : null}
                         </div>
                         <div
                           className={`grid h-9 w-9 shrink-0 place-items-center rounded-md ${
@@ -546,6 +566,9 @@ function PlacePickerDetails({
 }) {
   const primaryPhoto = photoState.photos[0] ?? null;
   const extraPhotos = photoState.photos.slice(1, 4);
+  const visibleDescription = getVisiblePlaceDescription(place);
+  const visibleNote = getVisibleGoogleMapsNote(place);
+  const needsReview = shouldShowPlaceInfoNeedsReview(place);
 
   return (
     <div className="overflow-hidden rounded-md border bg-background">
@@ -598,20 +621,29 @@ function PlacePickerDetails({
               <div className="text-foreground">{place.menu}</div>
             </div>
           ) : null}
-          {place.description ? (
+          {visibleDescription || needsReview ? (
             <div>
               <div className="text-xs font-bold text-muted-foreground">설명</div>
-              <div className="text-foreground/85">
-                <MarkdownInline text={place.description} />
+              {visibleDescription ? (
+                <div className="text-foreground/85">
+                  <MarkdownInline text={visibleDescription} />
+                </div>
+              ) : null}
+              {needsReview ? (
+                <Badge variant="outline" className="mt-1 rounded-full bg-background text-[11px] text-muted-foreground">
+                  정보 보강 필요
+                </Badge>
+              ) : null}
+            </div>
+          ) : null}
+          {visibleNote ? (
+            <div>
+              <div className="text-xs font-bold text-muted-foreground">메모</div>
+              <div className="text-muted-foreground">
+                <MarkdownInline text={visibleNote} />
               </div>
             </div>
           ) : null}
-          <div>
-            <div className="text-xs font-bold text-muted-foreground">메모</div>
-            <div className="text-muted-foreground">
-              <MarkdownInline text={place.googleMapsNote} />
-            </div>
-          </div>
           <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
             <div className="rounded-lg bg-muted/40 p-2">
               <div className="font-bold text-foreground">거리</div>

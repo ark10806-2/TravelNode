@@ -5,7 +5,13 @@ import { MarkdownInline } from '@/components/common/MarkdownText';
 import { PlaceReservationBadge } from '@/components/reservation/PlaceReservationBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { getCategoryBadgeClass, getCategoryOption } from '@/lib/place-utils';
+import {
+  getCategoryBadgeClass,
+  getCategoryOption,
+  getVisibleGoogleMapsNote,
+  getVisiblePlaceDescription,
+  shouldShowPlaceInfoNeedsReview
+} from '@/lib/place-utils';
 import { formatDepartureTime, formatTravelDate, getScheduleHotelPlace, maxStopsPerDay, routeLegKey } from '@/lib/schedule-utils';
 import type { Reservation } from '@/types/reservation';
 import type { RouteLeg, RouteMode, ScheduleDay } from '@/types/schedule';
@@ -103,6 +109,31 @@ export function DayScheduleCard({
     lastScheduledPlace && lastScheduledPlace.id !== hotelPlace.id
       ? routeLegs[routeLegKey(lastScheduledPlace, hotelPlace, lastStop?.departureTimeMinutes, day.travelDate)]
       : undefined;
+  const hasRouteCalculationNeeded = useMemo(() => {
+    if (!day.stops.length) return false;
+    const modes = visibleRouteModes.length ? visibleRouteModes : [];
+    if (!modes.length) return false;
+
+    const missingStopLeg = day.stops.some((stop, index) => {
+      const place = placesById.get(stop.placeId);
+      if (!place) return false;
+
+      const previousStop = index > 0 ? day.stops[index - 1] : null;
+      const previousPlace = index > 0 ? placesById.get(day.stops[index - 1].placeId) : null;
+      const edgeFrom = previousPlace ?? hotelPlace;
+      if (edgeFrom.id === place.id) return false;
+
+      const departureTimeMinutes = previousStop
+        ? previousStop.departureTimeMinutes ?? null
+        : day.departureTimeMinutes ?? null;
+      const leg = routeLegs[routeLegKey(edgeFrom, place, departureTimeMinutes, day.travelDate)];
+      return !leg || modes.some((mode) => !leg[mode]);
+    });
+
+    if (missingStopLeg) return true;
+    if (!lastScheduledPlace || lastScheduledPlace.id === hotelPlace.id) return false;
+    return !returnLeg || modes.some((mode) => !returnLeg[mode]);
+  }, [day, hotelPlace, lastScheduledPlace, placesById, returnLeg, routeLegs, visibleRouteModes]);
 
   function addPlaces(selectedPlaces: Place[]) {
     onAddStops(
@@ -129,33 +160,93 @@ export function DayScheduleCard({
             <span className="shrink-0">숙소</span>
             <span className="truncate font-semibold text-foreground">{hotelPlace.name}</span>
           </div>
-          {routeCalculatedAtLabel ? (
-            <div className="mt-1.5 text-xs font-medium text-muted-foreground">
-              {routeCalculatedAtLabel}
-            </div>
-          ) : null}
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            {routeCalculatedAtLabel ? (
+              <span className="text-xs font-medium text-muted-foreground">
+                {routeCalculatedAtLabel}
+              </span>
+            ) : null}
+            {hasRouteCalculationNeeded ? (
+              <Badge variant="outline" className="rounded-full bg-background text-[11px] text-muted-foreground">
+                경로 계산 필요
+              </Badge>
+            ) : null}
+          </div>
           {isEditing ? (
-            <div className="mt-3 grid max-w-2xl gap-3 sm:grid-cols-[13rem_minmax(0,1fr)]">
-              <label className="rounded-xl border bg-background p-2.5 shadow-sm shadow-black/0">
-                <span className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                  <CalendarDays className="h-3.5 w-3.5 text-primary" />
-                  DAY 날짜
-                </span>
-                <input
-                  type="date"
-                  className="mt-2 h-9 w-full rounded-md border bg-background px-2 text-sm font-semibold text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  value={day.travelDate ?? ''}
-                  onChange={(event) => onSetDayTravelDate(day.id, event.currentTarget.value || null)}
-                />
-                <p className="mt-1 text-[11px] leading-4 text-muted-foreground">날짜와 출발 기준이 캐시 키가 됩니다.</p>
-              </label>
-              <DepartureTimePicker
-                label="숙소 출발 기준"
-                value={day.departureTimeMinutes}
-                description="첫 장소로 이동할 때 사용할 기준 시간입니다."
-                compact
-                onChange={(value) => onSetDayDepartureTime(day.id, value)}
-              />
+            <div className="mt-3 grid max-w-2xl gap-2">
+              <details className="group rounded-xl border bg-background p-2.5 shadow-sm shadow-black/0">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-xs font-bold text-foreground marker:hidden">
+                  <span>시간 설정</span>
+                  <span className="text-[11px] font-semibold text-muted-foreground group-open:hidden">
+                    {day.travelDate ? formatTravelDate(day.travelDate) : '날짜 미정'} · 숙소 출발 {formatDepartureTime(day.departureTimeMinutes)}
+                  </span>
+                </summary>
+                <div className="mt-3 grid gap-3 sm:grid-cols-[13rem_minmax(0,1fr)]">
+                  <label className="rounded-xl border bg-background p-2.5 shadow-sm shadow-black/0">
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                      <CalendarDays className="h-3.5 w-3.5 text-primary" />
+                      DAY 날짜
+                    </span>
+                    <input
+                      type="date"
+                      className="mt-2 h-9 w-full rounded-md border bg-background px-2 text-sm font-semibold text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      value={day.travelDate ?? ''}
+                      onChange={(event) => onSetDayTravelDate(day.id, event.currentTarget.value || null)}
+                    />
+                  </label>
+                  <DepartureTimePicker
+                    label="숙소 출발 기준"
+                    value={day.departureTimeMinutes}
+                    description="첫 장소로 이동할 때 사용할 기준 시간입니다."
+                    compact
+                    onChange={(value) => onSetDayDepartureTime(day.id, value)}
+                  />
+                </div>
+              </details>
+              {scheduledPlaces.length > 0 ? (
+                <details className="group rounded-xl border bg-background p-2.5 shadow-sm shadow-black/0">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-xs font-bold text-foreground marker:hidden">
+                    <span>경로 고급 설정</span>
+                    <span className="text-[11px] font-semibold text-muted-foreground">
+                      {hasRouteCalculationNeeded ? '경로 계산 필요' : '계산값 유지 중'}
+                    </span>
+                  </summary>
+                  <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                    <Button
+                      className="min-w-0 rounded-full px-2 text-xs sm:px-3 sm:text-sm"
+                      variant="outline"
+                      onClick={onOptimizeRoutes}
+                      disabled={isOptimizingRoutes || isRefreshingRoutes}
+                    >
+                      <Sparkles className={`h-4 w-4 ${isOptimizingRoutes ? 'animate-pulse' : ''}`} />
+                      {isOptimizingRoutes ? '최적화 중' : '동선 최적화'}
+                    </Button>
+                    <Button
+                      className="min-w-0 rounded-full px-2 text-xs sm:px-3 sm:text-sm"
+                      variant="outline"
+                      onClick={onRefreshRoutes}
+                      disabled={isRefreshingRoutes || isCalculatingPreciseRoutes || routeRefreshRemainingSeconds > 0}
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isRefreshingRoutes ? 'animate-spin' : ''}`} />
+                      {routeRefreshRemainingSeconds > 0 ? `${routeRefreshRemainingSeconds}초 후` : '경로 새로고침'}
+                    </Button>
+                    <Button
+                      className="min-w-0 rounded-full px-2 text-xs sm:px-3 sm:text-sm"
+                      variant="outline"
+                      onClick={onPreciseRoutes}
+                      disabled={!canCalculatePreciseRoutes || isOptimizingRoutes || isRefreshingRoutes || isCalculatingPreciseRoutes}
+                      title={
+                        canCalculatePreciseRoutes
+                          ? '현재 경로를 최신 교통 정보로 다시 계산합니다. API 사용량이 늘 수 있어 필요한 날에만 사용하세요.'
+                          : '자동차 이동수단이 표시 중일 때만 정밀계산을 사용할 수 있습니다.'
+                      }
+                    >
+                      <Gauge className={`h-4 w-4 ${isCalculatingPreciseRoutes ? 'animate-pulse' : ''}`} />
+                      {isCalculatingPreciseRoutes ? '정밀계산 중' : '정밀계산'}
+                    </Button>
+                  </div>
+                </details>
+              ) : null}
             </div>
           ) : day.travelDate || day.departureTimeMinutes != null ? (
             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -182,18 +273,7 @@ export function DayScheduleCard({
                 동선 지도
               </Button>
             ) : null}
-            {isEditing && scheduledPlaces.length > 0 ? (
-              <Button
-                className="min-w-0 flex-1 rounded-full px-2 text-xs sm:flex-none sm:px-3 sm:text-sm"
-                variant="outline"
-                onClick={onOptimizeRoutes}
-                disabled={isOptimizingRoutes || isRefreshingRoutes}
-              >
-                <Sparkles className={`h-4 w-4 ${isOptimizingRoutes ? 'animate-pulse' : ''}`} />
-                {isOptimizingRoutes ? '최적화 중' : '동선 최적화'}
-              </Button>
-            ) : null}
-            {scheduledPlaces.length > 0 ? (
+            {!isEditing && scheduledPlaces.length > 0 ? (
               <Button
                 className="min-w-0 flex-1 rounded-full px-2 text-xs sm:flex-none sm:px-3 sm:text-sm"
                 variant="outline"
@@ -202,22 +282,6 @@ export function DayScheduleCard({
               >
                 <RefreshCw className={`h-4 w-4 ${isRefreshingRoutes ? 'animate-spin' : ''}`} />
                 {routeRefreshRemainingSeconds > 0 ? `${routeRefreshRemainingSeconds}초 후` : '경로 새로고침'}
-              </Button>
-            ) : null}
-            {isEditing && scheduledPlaces.length > 0 ? (
-              <Button
-                className="min-w-0 flex-1 rounded-full px-2 text-xs sm:flex-none sm:px-3 sm:text-sm"
-                variant="outline"
-                onClick={onPreciseRoutes}
-                disabled={!canCalculatePreciseRoutes || isOptimizingRoutes || isRefreshingRoutes || isCalculatingPreciseRoutes}
-                title={
-                  canCalculatePreciseRoutes
-                    ? '현재 경로를 최신 교통 정보로 다시 계산합니다. API 사용량이 늘 수 있어 필요한 날에만 사용하세요.'
-                    : '자동차 이동수단이 표시 중일 때만 정밀계산을 사용할 수 있습니다.'
-                }
-              >
-                <Gauge className={`h-4 w-4 ${isCalculatingPreciseRoutes ? 'animate-pulse' : ''}`} />
-                {isCalculatingPreciseRoutes ? '정밀계산 중' : '정밀계산'}
               </Button>
             ) : null}
             {isEditing ? (
@@ -311,22 +375,39 @@ export function DayScheduleCard({
                               {place.name}
                             </button>
                             <div className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground sm:line-clamp-1">{place.menu}</div>
-                            <div className="mt-1 line-clamp-2 text-sm leading-5 text-foreground/75">
-                              설명: <MarkdownInline text={place.description} />
-                            </div>
-                            <div className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
-                              메모: <MarkdownInline text={place.googleMapsNote} />
-                            </div>
-                            {isEditing ? (
-                              <div className="mt-3">
-                                <DepartureTimePicker
-                                  label="이 장소 출발 기준"
-                                  value={stop.departureTimeMinutes}
-                                  description="이 장소에서 다음 목적지로 이동할 때 반영합니다."
-                                  compact
-                                  onChange={(value) => onSetStopDepartureTime(day.id, stop.id, value)}
-                                />
+                            {getVisiblePlaceDescription(place) ? (
+                              <div className="mt-1 line-clamp-2 text-sm leading-5 text-foreground/75">
+                                설명: <MarkdownInline text={getVisiblePlaceDescription(place)} />
                               </div>
+                            ) : null}
+                            {shouldShowPlaceInfoNeedsReview(place) ? (
+                              <Badge variant="outline" className="mt-1 rounded-full bg-background text-[11px] text-muted-foreground">
+                                정보 보강 필요
+                              </Badge>
+                            ) : null}
+                            {getVisibleGoogleMapsNote(place) ? (
+                              <div className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
+                                메모: <MarkdownInline text={getVisibleGoogleMapsNote(place)} />
+                              </div>
+                            ) : null}
+                            {isEditing ? (
+                              <details className="group mt-3 rounded-lg border bg-secondary/40 p-2">
+                                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-xs font-bold text-foreground marker:hidden">
+                                  <span>출발 기준</span>
+                                  <span className="rounded-full bg-background px-2 py-1 text-[11px] font-semibold text-muted-foreground group-open:hidden">
+                                    {formatDepartureTime(stop.departureTimeMinutes)}
+                                  </span>
+                                </summary>
+                                <div className="mt-2">
+                                  <DepartureTimePicker
+                                    label="이 장소 출발 기준"
+                                    value={stop.departureTimeMinutes}
+                                    description="이 장소에서 다음 목적지로 이동할 때 반영합니다."
+                                    compact
+                                    onChange={(value) => onSetStopDepartureTime(day.id, stop.id, value)}
+                                  />
+                                </div>
+                              </details>
                             ) : stop.departureTimeMinutes != null ? (
                               <div className="mt-2 inline-flex rounded-full bg-secondary px-2 py-1 text-xs font-semibold text-muted-foreground">
                                 출발 기준 {formatDepartureTime(stop.departureTimeMinutes)}

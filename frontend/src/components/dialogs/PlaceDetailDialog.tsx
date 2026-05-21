@@ -4,7 +4,14 @@ import { PlaceReservationBadge } from '@/components/reservation/PlaceReservation
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { travelLabel } from '@/constants/travel';
-import { getCategoryBadgeClass, getCategoryOption, getPlaceInfoUrl } from '@/lib/place-utils';
+import {
+  getCategoryBadgeClass,
+  getCategoryOption,
+  getPlaceInfoUrl,
+  getVisibleGoogleMapsNote,
+  getVisiblePlaceDescription,
+  shouldShowPlaceInfoNeedsReview
+} from '@/lib/place-utils';
 import type { Reservation } from '@/types/reservation';
 import type { CategoryOption, PhotoState, Place } from '@/types/travel';
 import { PhotoBundlePreview } from '@/components/place/PhotoBundlePreview';
@@ -30,6 +37,9 @@ export function PlaceDetailDialog({
   onOpenReservations
 }: PlaceDetailDialogProps) {
   const category = getCategoryOption(categories, place.category);
+  const visibleDescription = getVisiblePlaceDescription(place);
+  const visibleNote = getVisibleGoogleMapsNote(place);
+  const needsReview = shouldShowPlaceInfoNeedsReview(place);
 
   return (
     <ModalFrame
@@ -79,15 +89,24 @@ export function PlaceDetailDialog({
             </div>
           </section>
 
-          <section className="rounded-md border bg-muted/20 p-3 sm:col-span-2">
-            <div className="font-semibold">설명</div>
-            <MarkdownText className="mt-1" text={place.description} />
-          </section>
+          {visibleDescription || needsReview ? (
+            <section className="rounded-md border bg-muted/20 p-3 sm:col-span-2">
+              <div className="font-semibold">설명</div>
+              {visibleDescription ? <MarkdownText className="mt-1" text={visibleDescription} /> : null}
+              {needsReview ? (
+                <Badge variant="outline" className="mt-2 rounded-full bg-background text-muted-foreground">
+                  정보 보강 필요
+                </Badge>
+              ) : null}
+            </section>
+          ) : null}
 
-          <section className="rounded-md border bg-muted/20 p-3 sm:col-span-2">
-            <div className="font-semibold">Google Maps 메모</div>
-            <MarkdownText className="mt-1" text={place.googleMapsNote} />
-          </section>
+          {visibleNote ? (
+            <section className="rounded-md border bg-muted/20 p-3 sm:col-span-2">
+              <div className="font-semibold">Google Maps 메모</div>
+              <MarkdownText className="mt-1" text={visibleNote} />
+            </section>
+          ) : null}
         </div>
 
         <Button asChild className="w-full sm:w-fit sm:justify-self-end">

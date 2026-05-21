@@ -1,5 +1,6 @@
 import { Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { isDefaultCategoryId } from '@/lib/place-utils';
 import type { CategoryId, CategoryOption } from '@/types/travel';
 
 type CategoryFilterBarProps = {
@@ -24,19 +25,20 @@ export function CategoryFilterBar({
       <div className="flex w-full min-w-0 max-w-full gap-1 overflow-x-auto overscroll-x-contain rounded-xl border bg-background p-1 shadow-sm shadow-slate-900/5 [-ms-overflow-style:none] [scrollbar-width:none] dark:shadow-black/20 md:flex-wrap md:gap-2 md:rounded-full [&::-webkit-scrollbar]:hidden">
         {categories.map((category) => {
           const isSelected = category.id === selectedCategoryId;
+          const canDeleteCategory = isEditing && !isDefaultCategoryId(category.id);
 
           return (
             <div key={category.id} className="flex shrink-0 items-center rounded-full">
               <Button
                 variant={isSelected ? 'default' : 'ghost'}
                 size="sm"
-                className={`h-9 shrink-0 rounded-full px-3 ${isEditing ? 'pr-2' : ''}`}
+                className={`h-9 shrink-0 rounded-full px-3 ${canDeleteCategory ? 'pr-2' : ''}`}
                 onClick={() => onSelectCategory(category.id)}
               >
                 <span aria-hidden="true">{category.emoji}</span>
                 {category.label}
               </Button>
-              {isEditing ? (
+              {canDeleteCategory ? (
                 <button
                   type="button"
                   className="ml-[-0.35rem] grid h-7 w-7 place-items-center rounded-full text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

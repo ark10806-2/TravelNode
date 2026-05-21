@@ -53,6 +53,34 @@ export function getGoogleMapsNoteLabel(place: Pick<Place, 'googleMapsNote'>) {
   return place.googleMapsNote?.trim() || '';
 }
 
+export function isDefaultCategoryId(categoryId: CategoryId) {
+  return defaultCategoryOptions.some((category) => category.id === categoryId);
+}
+
+export function getVisiblePlaceDescription(place: Pick<Place, 'description'>) {
+  const description = place.description.trim();
+  if (!description) return '';
+  return isGeneratedPlaceDescription(description) ? '' : description;
+}
+
+export function shouldShowPlaceInfoNeedsReview(place: Pick<Place, 'description'>) {
+  return isGeneratedPlaceDescription(place.description.trim());
+}
+
+export function getVisibleGoogleMapsNote(place: Pick<Place, 'googleMapsNote'>) {
+  return place.googleMapsNote?.trim() ?? '';
+}
+
+function isGeneratedPlaceDescription(description: string) {
+  if (!description) return false;
+
+  return (
+    /^.+의 Google Maps 링크에서 가져온 초안입니다\. 대표 항목과 설명은 저장 전에 확인해주세요\.$/.test(description) ||
+    /^.+은 Google Maps 즐겨찾기에서 가져온 장소입니다\. 방문 전 영업시간과 휴무일을 확인해주세요\.$/.test(description) ||
+    /^.+은 .+ 목록에서 가져온 장소입니다\. 방문 전 영업시간과 휴무일을 확인해주세요\.$/.test(description)
+  );
+}
+
 export function getEmbedMapUrl(target: Pick<Place, 'latitude' | 'longitude'> | typeof hotel) {
   return `https://www.google.com/maps?q=${target.latitude},${target.longitude}&z=15&output=embed`;
 }

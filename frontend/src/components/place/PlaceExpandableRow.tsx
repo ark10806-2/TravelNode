@@ -3,7 +3,12 @@ import { MarkdownInline } from '@/components/common/MarkdownText';
 import { PlaceReservationBadge } from '@/components/reservation/PlaceReservationBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { getCategoryBadgeClass } from '@/lib/place-utils';
+import {
+  getCategoryBadgeClass,
+  getVisibleGoogleMapsNote,
+  getVisiblePlaceDescription,
+  shouldShowPlaceInfoNeedsReview
+} from '@/lib/place-utils';
 import { cn } from '@/lib/utils';
 import type { Reservation } from '@/types/reservation';
 import type { CategoryId, CategoryOption, NearbyPlace, PhotoState, Place } from '@/types/travel';
@@ -60,6 +65,9 @@ export function PlaceExpandableRow({
 }: PlaceExpandableRowProps) {
   const isBusy = isDeleting || isMovingCategory;
   const isHighlighted = isExpanded || (!enableExpandedDetails && isSelected);
+  const visibleDescription = getVisiblePlaceDescription(place);
+  const visibleNote = getVisibleGoogleMapsNote(place);
+  const needsReview = shouldShowPlaceInfoNeedsReview(place);
 
   return (
     <article className={cn(hasDivider && 'border-t')}>
@@ -100,12 +108,21 @@ export function PlaceExpandableRow({
             <PlaceScheduleBadges labels={scheduleLabels} compact />
           </div>
           <h3 className="mt-1.5 line-clamp-2 text-base font-bold leading-snug sm:truncate">{place.name}</h3>
-          <div className="mt-1 line-clamp-1 text-xs font-medium text-foreground/75">
-            설명: <MarkdownInline text={place.description} />
-          </div>
-          <div className="mt-1 line-clamp-1 text-xs font-medium text-muted-foreground">
-            메모: <MarkdownInline text={place.googleMapsNote} />
-          </div>
+          {visibleDescription ? (
+            <div className="mt-1 line-clamp-1 text-xs font-medium text-foreground/75">
+              설명: <MarkdownInline text={visibleDescription} />
+            </div>
+          ) : null}
+          {needsReview ? (
+            <Badge variant="outline" className="mt-1 rounded-full bg-background text-[11px] text-muted-foreground">
+              정보 보강 필요
+            </Badge>
+          ) : null}
+          {visibleNote ? (
+            <div className="mt-1 line-clamp-1 text-xs font-medium text-muted-foreground">
+              메모: <MarkdownInline text={visibleNote} />
+            </div>
+          ) : null}
         </div>
 
         <SummaryCell className="col-span-3 sm:col-auto" label="대표 항목" value={place.menu} />

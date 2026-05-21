@@ -5,6 +5,7 @@ import { ModalFrame } from '@/components/dialogs/ModalFrame';
 import { Badge } from '@/components/ui/badge';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import { createHotelMarkerIcon, createPlaceMarkerIcon, getPlaceMapStyles } from '@/lib/google-maps';
+import { getVisibleGoogleMapsNote, getVisiblePlaceDescription, shouldShowPlaceInfoNeedsReview } from '@/lib/place-utils';
 import { cn } from '@/lib/utils';
 import type { Place } from '@/types/travel';
 
@@ -300,6 +301,9 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
             <ol className="mt-3 grid gap-2.5 sm:mt-4">
               {orderedPlaces.map((place, index) => {
                 const isSelected = place.id === selectedPlaceId;
+                const visibleDescription = getVisiblePlaceDescription(place);
+                const visibleNote = getVisibleGoogleMapsNote(place);
+                const needsReview = shouldShowPlaceInfoNeedsReview(place);
 
                 return (
                   <li
@@ -337,12 +341,21 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
                       <span className="min-w-0">
                         <span className="block truncate text-[15px] font-bold leading-5">{place.name}</span>
                         <span className="mt-1 block line-clamp-1 text-sm leading-5 text-foreground/70">{place.menu}</span>
-                        <span className="mt-2 inline-flex max-w-full rounded-full bg-background/75 px-2 py-1 text-[11px] leading-none text-foreground/70 ring-1 ring-border/70">
-                          <span className="truncate">설명: <MarkdownInline text={place.description} /></span>
-                        </span>
-                        <span className="mt-1 inline-flex max-w-full rounded-full bg-background/75 px-2 py-1 text-[11px] leading-none text-muted-foreground ring-1 ring-border/70">
-                          <span className="truncate">메모: <MarkdownInline text={place.googleMapsNote} /></span>
-                        </span>
+                        {visibleDescription ? (
+                          <span className="mt-2 inline-flex max-w-full rounded-full bg-background/75 px-2 py-1 text-[11px] leading-none text-foreground/70 ring-1 ring-border/70">
+                            <span className="truncate">설명: <MarkdownInline text={visibleDescription} /></span>
+                          </span>
+                        ) : null}
+                        {needsReview ? (
+                          <span className="mt-2 inline-flex max-w-full rounded-full bg-background/75 px-2 py-1 text-[11px] leading-none text-muted-foreground ring-1 ring-border/70">
+                            정보 보강 필요
+                          </span>
+                        ) : null}
+                        {visibleNote ? (
+                          <span className="mt-1 inline-flex max-w-full rounded-full bg-background/75 px-2 py-1 text-[11px] leading-none text-muted-foreground ring-1 ring-border/70">
+                            <span className="truncate">메모: <MarkdownInline text={visibleNote} /></span>
+                          </span>
+                        ) : null}
                       </span>
                     </button>
                   </li>
