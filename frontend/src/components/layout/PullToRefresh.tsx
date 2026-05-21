@@ -104,12 +104,18 @@ export function PullToRefresh({ onRefresh = () => window.location.reload() }: Pu
   const isVisible = status !== 'idle';
   const progress = Math.min(1, pullDistance / triggerDistance);
   const lift = Math.max(0, pullDistance - 54);
-  const symbolScale = 0.7 + progress * 0.32;
+  const symbolScale = 0.68 + progress * 0.28;
+  const tailScale = Math.max(0, Math.min(1, (progress - 0.24) / 0.76));
   const symbolStyle = {
-    '--pull-progress': progress.toFixed(3),
-    '--pull-geometry-rotate': `${progress * 150}deg`,
-    '--pull-blade-offset': `${-(1.5 + progress * 7)}px`,
-    '--pull-core-scale': `${0.74 + progress * 0.3}`,
+    '--pull-liquid-opacity': (0.22 + progress * 0.72).toFixed(3),
+    '--pull-liquid-y': `${(progress * 0.2).toFixed(3)}rem`,
+    '--pull-halo-opacity': (0.18 + progress * 0.32).toFixed(3),
+    '--pull-halo-scale': (0.8 + progress * 0.24).toFixed(3),
+    '--pull-tail-opacity': (tailScale * 0.9).toFixed(3),
+    '--pull-tail-scale-x': (0.5 + tailScale * 0.48).toFixed(3),
+    '--pull-tail-scale-y': (0.18 + tailScale * 0.88).toFixed(3),
+    '--pull-orb-scale-x': (0.9 + progress * 0.1).toFixed(3),
+    '--pull-orb-scale-y': (0.82 + progress * 0.18).toFixed(3),
     transform: `translateY(${lift}px) scale(${symbolScale})`
   } as CSSProperties;
 
@@ -129,53 +135,18 @@ export function PullToRefresh({ onRefresh = () => window.location.reload() }: Pu
         )}
         style={symbolStyle}
       >
-        <PullRefreshSymbol />
+        <PullRefreshLiquid />
       </div>
     </div>
   );
 }
 
-function PullRefreshSymbol() {
+function PullRefreshLiquid() {
   return (
-    <svg className="pull-refresh-geometry" viewBox="0 0 72 72" aria-hidden="true">
-      <defs>
-        <linearGradient id="pull-refresh-blade-gradient" x1="28" y1="8" x2="44" y2="33" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#DDF0FF" />
-          <stop offset="0.42" stopColor="#64B0FF" />
-          <stop offset="1" stopColor="#3182F6" />
-        </linearGradient>
-        <radialGradient id="pull-refresh-core-gradient" cx="32" cy="30" r="12" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#FFFFFF" />
-          <stop offset="0.34" stopColor="#BEE0FF" />
-          <stop offset="1" stopColor="#3182F6" />
-        </radialGradient>
-        <filter id="pull-refresh-blade-shadow" x="-40%" y="-40%" width="180%" height="180%">
-          <feDropShadow dx="0" dy="4" stdDeviation="3" floodColor="#0B5BC8" floodOpacity="0.22" />
-          <feDropShadow dx="0" dy="1" stdDeviation="0.6" floodColor="#FFFFFF" floodOpacity="0.52" />
-        </filter>
-      </defs>
-      <g className="pull-refresh-blades">
-        <g className="pull-refresh-blade pull-refresh-blade-a">
-          <rect x="31" y="8" width="10" height="25" rx="5" />
-        </g>
-        <g className="pull-refresh-blade pull-refresh-blade-b">
-          <rect x="31" y="8" width="10" height="25" rx="5" />
-        </g>
-        <g className="pull-refresh-blade pull-refresh-blade-c">
-          <rect x="31" y="8" width="10" height="25" rx="5" />
-        </g>
-        <g className="pull-refresh-blade pull-refresh-blade-d">
-          <rect x="31" y="8" width="10" height="25" rx="5" />
-        </g>
-        <g className="pull-refresh-blade pull-refresh-blade-e">
-          <rect x="31" y="8" width="10" height="25" rx="5" />
-        </g>
-        <g className="pull-refresh-blade pull-refresh-blade-f">
-          <rect x="31" y="8" width="10" height="25" rx="5" />
-        </g>
-      </g>
-      <circle className="pull-refresh-geometry-core" cx="36" cy="36" r="5.2" />
-    </svg>
+    <div className="pull-refresh-liquid" aria-hidden="true">
+      <span className="pull-refresh-tail" />
+      <span className="pull-refresh-orb" />
+    </div>
   );
 }
 
