@@ -39,7 +39,7 @@ export function RouteLegRow({
 
   return (
     <div className="grid grid-cols-[2rem_minmax(0,1fr)] px-2 sm:grid-cols-[2.25rem_minmax(0,1fr)] sm:px-3">
-      <div className="relative flex min-h-16 justify-center sm:min-h-14">
+      <div className="relative flex min-h-20 justify-center sm:min-h-14">
         <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border/60" />
         {isEditing && onToggleLock ? (
           <button
@@ -64,13 +64,13 @@ export function RouteLegRow({
           </span>
         ) : null}
       </div>
-      <div className="relative flex min-h-16 min-w-0 items-center py-2 sm:min-h-14">
+      <div className="relative flex min-h-20 min-w-0 items-center py-2 sm:min-h-14">
         <div className="absolute inset-x-0 top-1/2 h-px bg-border/45" />
         <div
-          className="relative w-full max-w-[34rem] bg-background px-2 py-1 text-[10px] text-muted-foreground/60 sm:mr-auto sm:text-[11px]"
+          className="relative w-full max-w-[22rem] rounded-2xl bg-background/95 px-2.5 py-2 text-xs text-muted-foreground/80 shadow-sm shadow-black/5 sm:mr-auto sm:max-w-[34rem] sm:px-2 sm:py-1.5 sm:text-[11px]"
         >
-          <div className="mb-1 flex flex-wrap items-center gap-1 sm:absolute sm:left-2 sm:top-[-0.8rem] sm:mb-0">
-            <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground/70">
+          <div className="mb-1.5 flex flex-wrap items-center gap-1 sm:absolute sm:left-2 sm:top-[-0.8rem] sm:mb-0">
+            <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[11px] font-semibold leading-none text-muted-foreground/75 sm:text-[10px]">
               {departureTimeMinutes == null ? '현재 기준' : `기준 ${formatDepartureTime(departureTimeMinutes)}`}
             </span>
           </div>
@@ -90,7 +90,7 @@ export function RouteLegRow({
                 <a
                   key={mode}
                   className={cn(
-                    'min-w-0 content-center items-center justify-self-stretch rounded px-1 py-1.5 text-left underline-offset-4 transition hover:bg-muted/50 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex sm:gap-1 sm:py-1',
+                    'min-w-0 content-center items-center justify-self-stretch rounded-lg px-1.5 py-1.5 text-left underline-offset-4 transition hover:bg-muted/50 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex sm:gap-1 sm:py-1',
                     keepModeLine
                       ? 'flex gap-1 overflow-hidden'
                       : 'grid grid-cols-[auto_minmax(0,1fr)] gap-x-1 gap-y-0.5',
@@ -105,16 +105,16 @@ export function RouteLegRow({
                   {isLoading ? (
                     <Loader2
                       className={cn(
-                        'h-3 w-3 animate-spin text-muted-foreground/50',
+                        'h-4 w-4 animate-spin text-muted-foreground/55 sm:h-3.5 sm:w-3.5',
                         keepModeLine ? 'shrink-0 self-auto' : 'self-start sm:self-auto'
                       )}
                     />
                   ) : (
                     <Icon
                       className={cn(
-                        'h-3 w-3 text-muted-foreground/55',
+                        'h-4 w-4 text-muted-foreground/60 sm:h-3.5 sm:w-3.5',
                         keepModeLine ? 'shrink-0 self-auto' : 'self-start sm:self-auto',
-                        isPending && 'text-muted-foreground/35',
+                        isPending && 'text-muted-foreground/45',
                         isSelected && 'text-primary'
                       )}
                     />

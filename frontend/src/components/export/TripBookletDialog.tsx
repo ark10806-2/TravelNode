@@ -88,7 +88,7 @@ export function TripBookletDialog({ snapshot, photoCache, onClose }: TripBooklet
           <BookletArticle
             snapshot={snapshot}
             photoCache={photoCache}
-            className="mx-auto w-[920px] max-w-[920px] shadow-sm"
+            className="trip-booklet-preview-article mx-auto w-[920px] max-w-[920px] shadow-sm"
           />
         </div>
       </ModalFrame>

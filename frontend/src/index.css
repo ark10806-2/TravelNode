@@ -220,6 +220,10 @@
   counter-reset: booklet-page;
 }
 
+.trip-booklet-preview-article {
+  zoom: min(1, calc((100vw - 48px) / 920));
+}
+
 .booklet-page {
   counter-increment: booklet-page;
   min-height: 1080px;
