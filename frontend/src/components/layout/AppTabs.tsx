@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Activity, CalendarDays, Check, FileDown, KeyRound, ListChecks, Loader2, LogOut, MapPinned, Menu, Pencil, Plane, TicketCheck, X } from 'lucide-react';
+import { Activity, CalendarDays, Check, FileDown, KeyRound, ListChecks, Loader2, LogOut, MapPinned, Menu, Pencil, TicketCheck, X } from 'lucide-react';
+import { AppIcon } from '@/components/common/AppIcon';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { AppTab } from '@/types/schedule';
@@ -102,9 +103,7 @@ export function AppTabs({
       <div ref={introRef} className="relative z-50 border-b border-border/70 bg-background/90 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-none items-center justify-between gap-3 px-3 py-2.5 sm:px-4 sm:py-3 lg:px-5">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-[0_6px_16px_rgba(49,130,246,0.22)] sm:h-9 sm:w-9">
-              <Plane className="h-4 w-4 sm:h-5 sm:w-5" />
-            </div>
+            <AppIcon className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" />
             <div className="min-w-0">
               <div className="truncate text-sm font-bold sm:text-base">Japan Trip Planner</div>
               <div className="truncate text-xs text-muted-foreground">Ginza Capital Hotel Moegi 기준 여행 정리</div>
