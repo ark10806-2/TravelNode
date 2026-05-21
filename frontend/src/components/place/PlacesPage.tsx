@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { fetchSchedule } from '@/api/schedule';
+import { fetchSchedule, saveSchedule } from '@/api/schedule';
 import { AccommodationSelectorDialog } from '@/components/dialogs/AccommodationSelectorDialog';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { AppHeader } from '@/components/place/AppHeader';
@@ -14,7 +14,8 @@ import { usePersistedState } from '@/hooks/usePersistedState';
 import { useReservations } from '@/hooks/useReservations';
 import type { TravelPlacesState } from '@/hooks/useTravelPlaces';
 import { getDuplicatePlaceIds, haversineKm, toHotelDistancePlaces } from '@/lib/place-utils';
-import { getScheduleHotelPlace, hotelSchedulePlace } from '@/lib/schedule-utils';
+import { clearSelectedRouteModes, storeDays } from '@/lib/schedule-state';
+import { createId, getScheduleHotelPlace, hotelSchedulePlace, maxStopsPerDay } from '@/lib/schedule-utils';
 import type { Reservation } from '@/types/reservation';
 import type { ScheduleDay } from '@/types/schedule';
 import type { CategoryId, NearbyPlace, PhotoState, Place } from '@/types/travel';
@@ -73,6 +74,8 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
   const [reservationTarget, setReservationTarget] = useState<{ place: Place; reservations: Reservation[] } | null>(null);
   const [scheduleDays, setScheduleDays] = useState<ScheduleDay[]>([]);
   const [selectedScheduleDayId, setSelectedScheduleDayId] = useState<string | null>(null);
+  const [addingSchedulePlaceId, setAddingSchedulePlaceId] = useState<string | null>(null);
+  const [scheduleActionMessage, setScheduleActionMessage] = useState('');
   const { reservations } = useReservations(false);
   const [referencePlaceId, setReferencePlaceId] = usePersistedState<string | null>(
     placeReferenceStorageKey,
@@ -94,6 +97,10 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
     () => scheduleDays.find((day) => day.id === selectedScheduleDayId) ?? scheduleDays[0] ?? null,
     [scheduleDays, selectedScheduleDayId]
   );
+  const selectedScheduleDayLabel = useMemo(() => {
+    const dayIndex = selectedScheduleDay ? scheduleDays.findIndex((day) => day.id === selectedScheduleDay.id) : -1;
+    return dayIndex >= 0 ? `DAY-${dayIndex + 1}` : 'DAY';
+  }, [scheduleDays, selectedScheduleDay]);
   const selectedSchedulePlaces = useMemo(
     () => (selectedScheduleDay ? selectedScheduleDay.stops.map((stop) => placesById.get(stop.placeId)).filter(isPlace) : []),
     [placesById, selectedScheduleDay]
@@ -141,6 +148,73 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
     setReservationTarget({ place, reservations: linkedReservations });
   }, []);
 
+  const addSelectedPlaceToSchedule = useCallback(
+    async (place: Place) => {
+      if (addingSchedulePlaceId) return;
+
+      if (!canEdit) {
+        onRequireAuth();
+        return;
+      }
+
+      const sourceDays = scheduleDays.length ? scheduleDays : [createEmptyScheduleDay()];
+      const targetDay = selectedScheduleDay ?? sourceDays[0];
+
+      const targetDayIndex = sourceDays.findIndex((day) => day.id === targetDay.id);
+      const targetDayLabel = targetDayIndex >= 0 ? `DAY-${targetDayIndex + 1}` : 'DAY';
+
+      if (targetDay.stops.some((stop) => stop.placeId === place.id)) {
+        setScheduleActionMessage(`${targetDayLabel}에 이미 포함된 장소입니다.`);
+        return;
+      }
+
+      if (targetDay.stops.length >= maxStopsPerDay) {
+        setScheduleActionMessage(`${targetDayLabel}은 최대 ${maxStopsPerDay}곳까지 추가할 수 있습니다.`);
+        return;
+      }
+
+      const previousDays = scheduleDays;
+      const nextDays = sourceDays.map((day) =>
+        day.id === targetDay.id
+          ? {
+              ...day,
+              selectedReturnRouteMode: null,
+              lockedReturnRoute: false,
+              stops: clearSelectedRouteModes([
+                ...day.stops,
+                {
+                  id: createId('stop'),
+                  placeId: place.id,
+                  selectedRouteMode: null,
+                  departureTimeMinutes: null,
+                  lockedFromPrevious: false
+                }
+              ])
+            }
+          : day
+      );
+
+      setAddingSchedulePlaceId(place.id);
+      setScheduleActionMessage(`${targetDayLabel} 마지막에 추가 중...`);
+      setScheduleDays(nextDays);
+      storeDays(nextDays);
+
+      try {
+        const savedDays = await saveSchedule(nextDays);
+        setScheduleDays(savedDays);
+        storeDays(savedDays);
+        setScheduleActionMessage(`${targetDayLabel} 마지막에 추가했습니다.`);
+      } catch (saveError) {
+        setScheduleDays(previousDays);
+        storeDays(previousDays);
+        setScheduleActionMessage(saveError instanceof Error ? saveError.message : '일정에 장소를 추가하지 못했습니다.');
+      } finally {
+        setAddingSchedulePlaceId(null);
+      }
+    },
+    [addingSchedulePlaceId, canEdit, onRequireAuth, scheduleDays, selectedScheduleDay]
+  );
+
   useEffect(() => {
     if (!selectedPlace) return;
     void loadPhotos(selectedPlace);
@@ -177,6 +251,13 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
     }
     setSelectedScheduleDayId((current) => (current && scheduleDays.some((day) => day.id === current) ? current : scheduleDays[0].id));
   }, [scheduleDays]);
+
+  useEffect(() => {
+    if (!scheduleActionMessage) return undefined;
+
+    const timer = window.setTimeout(() => setScheduleActionMessage(''), 2600);
+    return () => window.clearTimeout(timer);
+  }, [scheduleActionMessage]);
 
   return (
     <>
@@ -251,8 +332,12 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
             duplicatePlaceIds={duplicatePlaceIds}
             isEditing={canModify}
             deletingId={deletingId}
+            addingSchedulePlaceId={addingSchedulePlaceId}
+            selectedDayLabel={selectedScheduleDayLabel}
+            scheduleActionMessage={scheduleActionMessage}
             onLoadPhotos={loadPhotos}
             onSelectPlace={selectPlace}
+            onAddToSchedule={addSelectedPlaceToSchedule}
             onEditPlace={(place) => (canEdit ? setEditTarget(place) : onRequireAuth())}
             onDelete={(place) => (canEdit ? void deletePlace(place) : onRequireAuth())}
             onOpenReservations={openReservations}
@@ -334,6 +419,18 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
 
 function isPlace(place: Place | undefined): place is Place {
   return Boolean(place);
+}
+
+function createEmptyScheduleDay(): ScheduleDay {
+  return {
+    id: createId('day'),
+    stops: [],
+    selectedReturnRouteMode: null,
+    hotelPlaceId: null,
+    departureTimeMinutes: null,
+    travelDate: null,
+    lockedReturnRoute: false
+  };
 }
 
 function toAverageDistancePlaces(

@@ -1,4 +1,4 @@
-import { useEffect, type KeyboardEvent } from 'react';
+import { useEffect, useRef, type KeyboardEvent } from 'react';
 import { CalendarDays, Images, Pencil, Trash2 } from 'lucide-react';
 import { MarkdownInline } from '@/components/common/MarkdownText';
 import { PlaceContextBadges } from '@/components/place/PlaceContextBadges';
@@ -79,8 +79,12 @@ type MobilePlacesExplorerProps = {
   duplicatePlaceIds: Set<string>;
   isEditing: boolean;
   deletingId: string | null;
+  addingSchedulePlaceId: string | null;
+  selectedDayLabel: string;
+  scheduleActionMessage?: string;
   onLoadPhotos: (place: Place) => Promise<void>;
   onSelectPlace: (place: Place) => void;
+  onAddToSchedule: (place: Place) => void;
   onEditPlace: (place: Place) => void;
   onDelete: (place: Place) => void;
   onOpenReservations?: (place: Place, reservations: Reservation[]) => void;
@@ -100,8 +104,12 @@ export function MobilePlacesExplorer({
   duplicatePlaceIds,
   isEditing,
   deletingId,
+  addingSchedulePlaceId,
+  selectedDayLabel,
+  scheduleActionMessage,
   onLoadPhotos,
   onSelectPlace,
+  onAddToSchedule,
   onEditPlace,
   onDelete,
   onOpenReservations
@@ -135,7 +143,10 @@ export function MobilePlacesExplorer({
       <div className="flex items-center justify-between gap-3 px-0.5">
         <div>
           <h2 className="text-base font-extrabold">{categoryLabel}</h2>
-          <p className="text-xs text-muted-foreground">일정 장소와 평균 거리가 가까운 순</p>
+          <p className="text-xs text-muted-foreground">일정 장소와 평균 거리가 가까운 순 · 선택 후 더블탭 추가</p>
+          {scheduleActionMessage ? (
+            <p className="mt-1 text-xs font-semibold text-primary">{scheduleActionMessage}</p>
+          ) : null}
         </div>
         <Badge variant="outline" className="rounded-full bg-background">
           {places.length}곳
@@ -155,7 +166,10 @@ export function MobilePlacesExplorer({
               isDuplicateCandidate={duplicatePlaceIds.has(place.id)}
               isEditing={isEditing}
               isDeleting={deletingId === place.id}
+              isAddingToSchedule={addingSchedulePlaceId === place.id}
+              selectedDayLabel={selectedDayLabel}
               onSelect={onSelectPlace}
+              onAddToSchedule={onAddToSchedule}
               onEdit={onEditPlace}
               onDelete={onDelete}
               onOpenReservations={onOpenReservations}
@@ -180,7 +194,10 @@ type MobilePlaceCardProps = {
   isDuplicateCandidate: boolean;
   isEditing: boolean;
   isDeleting: boolean;
+  isAddingToSchedule: boolean;
+  selectedDayLabel: string;
   onSelect: (place: Place) => void;
+  onAddToSchedule: (place: Place) => void;
   onEdit: (place: Place) => void;
   onDelete: (place: Place) => void;
   onOpenReservations?: (place: Place, reservations: Reservation[]) => void;
@@ -195,18 +212,36 @@ function MobilePlaceCard({
   isDuplicateCandidate,
   isEditing,
   isDeleting,
+  isAddingToSchedule,
+  selectedDayLabel,
   onSelect,
+  onAddToSchedule,
   onEdit,
   onDelete,
   onOpenReservations
 }: MobilePlaceCardProps) {
   const primaryPhoto = photoState.photos[0] ?? null;
   const note = place.googleMapsNote?.trim() ?? '';
+  const lastTapAtRef = useRef(0);
+
+  function handlePlaceTap() {
+    const now = Date.now();
+    const isDoubleTap = isSelected && now - lastTapAtRef.current <= 360;
+    lastTapAtRef.current = now;
+
+    if (isDoubleTap) {
+      onAddToSchedule(place);
+      lastTapAtRef.current = 0;
+      return;
+    }
+
+    onSelect(place);
+  }
 
   function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
     if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
-    onSelect(place);
+    handlePlaceTap();
   }
 
   return (
@@ -215,11 +250,13 @@ function MobilePlaceCard({
       tabIndex={0}
       className={cn(
         'soft-panel grid cursor-pointer grid-cols-[4.5rem_minmax(0,1fr)] gap-3 rounded-xl p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        isAddingToSchedule && 'opacity-75',
         isSelected ? 'border-primary/45 bg-primary/5 shadow-sm shadow-primary/10 ring-1 ring-primary/20' : 'hover:border-primary/25 hover:bg-muted/20'
       )}
-      onClick={() => onSelect(place)}
+      onClick={handlePlaceTap}
       onKeyDown={handleKeyDown}
       aria-current={isSelected ? 'true' : undefined}
+      aria-label={`${place.name} 선택. 선택된 상태에서 더블탭하면 ${selectedDayLabel} 마지막에 추가됩니다.`}
     >
       <div className="relative h-[4.5rem] w-[4.5rem] overflow-hidden rounded-xl border bg-muted">
         {primaryPhoto ? (
