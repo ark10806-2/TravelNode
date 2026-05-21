@@ -4,7 +4,7 @@ import { MarkdownInline } from '@/components/common/MarkdownText';
 import { ModalFrame } from '@/components/dialogs/ModalFrame';
 import { Badge } from '@/components/ui/badge';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
-import { createHotelMarkerIcon, createPlaceMarkerIcon, getPlaceMapStyles } from '@/lib/google-maps';
+import { createDirectionalDottedRouteOptions, createHotelMarkerIcon, createPlaceMarkerIcon, getPlaceMapStyles } from '@/lib/google-maps';
 import { getVisibleGoogleMapsNote, getVisiblePlaceDescription } from '@/lib/place-utils';
 import { cn } from '@/lib/utils';
 import type { Place } from '@/types/travel';
@@ -127,24 +127,9 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
 
     if (path.length > 1) {
       pathRef.current = new maps.Polyline({
-        path,
+        ...createDirectionalDottedRouteOptions(maps, path, isDarkMode),
         map: mapInstanceRef.current,
-        geodesic: true,
-        strokeColor: isDarkMode ? '#ff7a92' : '#ff385c',
-        strokeOpacity: 0.9,
-        strokeWeight: 5,
-        icons: [
-          {
-            icon: {
-              path: maps.SymbolPath.FORWARD_CLOSED_ARROW,
-              scale: 3,
-              strokeColor: isDarkMode ? '#ff7a92' : '#ff385c',
-              strokeOpacity: 0.9
-            },
-            offset: '50%',
-            repeat: '120px'
-          }
-        ]
+        zIndex: 10
       });
     }
 

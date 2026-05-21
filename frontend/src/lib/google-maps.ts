@@ -292,6 +292,49 @@ export function createScheduleDotMarkerIcon(maps: typeof google.maps, category: 
   };
 }
 
+export function createDirectionalDottedRouteOptions(
+  maps: typeof google.maps,
+  path: google.maps.LatLngLiteral[],
+  isDarkMode: boolean
+): google.maps.PolylineOptions {
+  const color = isDarkMode ? '#a3a3a3' : '#737373';
+
+  return {
+    path,
+    geodesic: true,
+    strokeOpacity: 0,
+    strokeWeight: 2,
+    icons: [
+      {
+        icon: {
+          path: maps.SymbolPath.CIRCLE,
+          scale: 2.1,
+          fillColor: color,
+          fillOpacity: 0.72,
+          strokeColor: color,
+          strokeOpacity: 0.72,
+          strokeWeight: 1
+        },
+        offset: '0',
+        repeat: '14px'
+      },
+      {
+        icon: {
+          path: maps.SymbolPath.FORWARD_CLOSED_ARROW,
+          scale: 2.25,
+          fillColor: color,
+          fillOpacity: 0.82,
+          strokeColor: color,
+          strokeOpacity: 0.82,
+          strokeWeight: 1.4
+        },
+        offset: '42px',
+        repeat: '108px'
+      }
+    ]
+  };
+}
+
 export function createHotelMarkerIcon(maps: typeof google.maps, isSelected = false) {
   const fill = isSelected ? '#222222' : '#0f766e';
   const accent = isSelected ? '#222222' : '#0f766e';

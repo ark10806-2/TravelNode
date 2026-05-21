@@ -4,7 +4,7 @@ import { MarkdownInline } from '@/components/common/MarkdownText';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
-import { createHotelMarkerIcon, createPlaceMarkerIcon, getPlaceMapStyles } from '@/lib/google-maps';
+import { createDirectionalDottedRouteOptions, createHotelMarkerIcon, createPlaceMarkerIcon, getPlaceMapStyles } from '@/lib/google-maps';
 import {
   getCategoryBadgeClass,
   getCategoryOption,
@@ -383,25 +383,11 @@ function PlacePickerRoutePreview({
     });
 
     if (pathPlaces.length > 1) {
+      const path = pathPlaces.map((place) => ({ lat: place.latitude, lng: place.longitude }));
       pathRef.current = new maps.Polyline({
-        path: pathPlaces.map((place) => ({ lat: place.latitude, lng: place.longitude })),
+        ...createDirectionalDottedRouteOptions(maps, path, isDarkMode),
         map: mapInstanceRef.current,
-        geodesic: true,
-        strokeColor: isDarkMode ? '#ff7a92' : '#ff385c',
-        strokeOpacity: 0.86,
-        strokeWeight: 4,
-        icons: [
-          {
-            icon: {
-              path: maps.SymbolPath.FORWARD_CLOSED_ARROW,
-              scale: 2.6,
-              strokeColor: isDarkMode ? '#ff7a92' : '#ff385c',
-              strokeOpacity: 0.86
-            },
-            offset: '50%',
-            repeat: '110px'
-          }
-        ]
+        zIndex: 10
       });
     }
   }, [anchorPlace, focusedPlace.id, isDarkMode, maps, markerPlaces, onFocusPlace, pathPlaces, routePlaces, status]);

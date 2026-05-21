@@ -2,7 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { Loader2, MapPin } from 'lucide-react';
 import { googleMapsApiKey } from '@/config/env';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
-import { createHotelMarkerIcon, createPlaceMarkerIcon, createScheduleDotMarkerIcon, getPlaceMapStyles } from '@/lib/google-maps';
+import {
+  createDirectionalDottedRouteOptions,
+  createHotelMarkerIcon,
+  createPlaceMarkerIcon,
+  createScheduleDotMarkerIcon,
+  getPlaceMapStyles
+} from '@/lib/google-maps';
 import { getEmbedMapUrl } from '@/lib/place-utils';
 import { cn } from '@/lib/utils';
 import type { LoadStatus, Place } from '@/types/travel';
@@ -33,6 +39,7 @@ export function TravelMap({
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
+  const pathRef = useRef<google.maps.Polyline | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [authError, setAuthError] = useState('');
   const { maps, status: mapLoadStatus, error: mapLoadError } = useGoogleMapsLoader(status === 'ready', '지도를 불러오지 못해 기본 보기로 전환했습니다.');
@@ -74,6 +81,8 @@ export function TravelMap({
     if (!mapReady || !maps || !mapInstanceRef.current) return;
     markersRef.current.forEach((marker) => marker.setMap(null));
     markersRef.current = [];
+    pathRef.current?.setMap(null);
+    pathRef.current = null;
     const isContextMap = Array.isArray(contextPlaces);
     const contextPlaceIds = new Set((contextPlaces ?? []).map((place) => place.id));
 
@@ -99,6 +108,20 @@ export function TravelMap({
       marker.addListener('click', () => onSelectPlace(place));
       markersRef.current.push(marker);
     });
+
+    const routePath = isContextMap
+      ? [referencePlace, ...(contextPlaces ?? []), referencePlace]
+          .filter((place, index, routePlaces) => index === 0 || place.id !== routePlaces[index - 1].id)
+          .map((place) => ({ lat: place.latitude, lng: place.longitude }))
+      : [];
+
+    if (routePath.length > 1) {
+      pathRef.current = new maps.Polyline({
+        ...createDirectionalDottedRouteOptions(maps, routePath, isDarkMode),
+        map: mapInstanceRef.current,
+        zIndex: 5
+      });
+    }
 
     const pinPlaces = isContextMap
       ? selectedPlace
@@ -130,17 +153,18 @@ export function TravelMap({
     placesToFit.forEach((place) => bounds.extend({ lat: place.latitude, lng: place.longitude }));
 
     if (placesToFit.length) {
-      mapInstanceRef.current.fitBounds(bounds, compact ? 42 : 64);
+      mapInstanceRef.current.fitBounds(bounds, isContextMap ? contextMapBoundsPadding(compact) : compact ? 42 : 64);
     } else {
       mapInstanceRef.current.setCenter({ lat: referencePlace.latitude, lng: referencePlace.longitude });
       mapInstanceRef.current.setZoom(14);
     }
-  }, [compact, contextPlaces, mapReady, maps, onSelectPlace, places, referencePlace, selectedPlace]);
+  }, [compact, contextPlaces, isDarkMode, mapReady, maps, onSelectPlace, places, referencePlace, selectedPlace]);
 
   useEffect(() => {
     if (!mapReady || !mapInstanceRef.current || !selectedPlace) return;
+    if (Array.isArray(contextPlaces)) return;
     mapInstanceRef.current.panTo({ lat: selectedPlace.latitude, lng: selectedPlace.longitude });
-  }, [mapReady, selectedPlace]);
+  }, [contextPlaces, mapReady, selectedPlace]);
 
   return (
     <div
@@ -203,4 +227,10 @@ export function TravelMap({
       ) : null}
     </div>
   );
+}
+
+function contextMapBoundsPadding(compact: boolean) {
+  if (compact) return 18;
+  const isMobile = window.matchMedia('(max-width: 767px)').matches;
+  return isMobile ? 22 : 42;
 }
