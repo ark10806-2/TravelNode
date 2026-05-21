@@ -8,8 +8,8 @@ type PullToRefreshProps = {
   onPullOffsetChange?: (offset: number) => void;
 };
 
-const triggerDistance = 72;
-const maxPullDistance = 96;
+const triggerDistance = 96;
+const maxPullDistance = 158;
 
 export function PullToRefresh({ onRefresh = () => window.location.reload(), onPullOffsetChange }: PullToRefreshProps) {
   const startYRef = useRef(0);
@@ -33,7 +33,7 @@ export function PullToRefresh({ onRefresh = () => window.location.reload(), onPu
   useEffect(() => {
     function updatePullDistance(distance: number) {
       pullDistanceRef.current = distance;
-      onPullOffsetChangeRef.current?.(Math.min(82, distance * 0.72));
+      onPullOffsetChangeRef.current?.(Math.min(148, distance * 1.02));
       setPullDistance(distance);
     }
 
@@ -74,7 +74,7 @@ export function PullToRefresh({ onRefresh = () => window.location.reload(), onPu
       }
 
       event.preventDefault();
-      const nextDistance = Math.min(maxPullDistance, deltaY * 0.48);
+      const nextDistance = Math.min(maxPullDistance, deltaY * 0.62);
       updatePullDistance(nextDistance);
       setStatus(nextDistance >= triggerDistance ? 'ready' : 'pulling');
     }
@@ -111,13 +111,15 @@ export function PullToRefresh({ onRefresh = () => window.location.reload(), onPu
 
   const isVisible = status !== 'idle';
   const progress = Math.min(1, pullDistance / triggerDistance);
-  const lift = Math.max(0, pullDistance - 52) * 0.22;
-  const symbolScale = 0.72 + progress * 0.22;
+  const lift = Math.max(0, pullDistance - 52) * 0.2;
+  const symbolScale = 0.74 + progress * 0.18;
   const symbolStyle = {
-    '--pull-symbol-opacity': (0.2 + progress * 0.78).toFixed(3),
-    '--pull-symbol-y': `${(progress * 0.24).toFixed(3)}rem`,
-    '--pull-symbol-spread': `${(progress * 0.22).toFixed(3)}rem`,
-    '--pull-symbol-rim': (0.2 + progress * 0.34).toFixed(3),
+    '--pull-symbol-opacity': (0.18 + progress * 0.74).toFixed(3),
+    '--pull-symbol-y': `${(progress * 0.34).toFixed(3)}rem`,
+    '--pull-wave-scale-x': (0.86 + progress * 0.2).toFixed(3),
+    '--pull-wave-scale-y': (0.78 + progress * 0.18).toFixed(3),
+    '--pull-wave-opacity': (0.3 + progress * 0.52).toFixed(3),
+    '--pull-wave-rim': (0.18 + progress * 0.3).toFixed(3),
     transform: `translateY(${lift}px) scale(${symbolScale})`
   } as CSSProperties;
 
@@ -147,11 +149,11 @@ export function PullToRefresh({ onRefresh = () => window.location.reload(), onPu
 function PullRefreshSymbol() {
   return (
     <div className="pull-refresh-symbol" aria-hidden="true">
-      <span className="pull-refresh-lens" />
-      <span className="pull-refresh-ribbon pull-refresh-ribbon-a" />
-      <span className="pull-refresh-ribbon pull-refresh-ribbon-b" />
-      <span className="pull-refresh-ribbon pull-refresh-ribbon-c" />
-      <span className="pull-refresh-core" />
+      <span className="pull-refresh-wave-surface" />
+      <span className="pull-refresh-wave pull-refresh-wave-back" />
+      <span className="pull-refresh-wave pull-refresh-wave-mid" />
+      <span className="pull-refresh-wave pull-refresh-wave-front" />
+      <span className="pull-refresh-wave-sheen" />
     </div>
   );
 }
