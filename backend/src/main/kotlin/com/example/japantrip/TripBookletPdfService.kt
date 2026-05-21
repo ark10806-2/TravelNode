@@ -81,18 +81,23 @@ private data class BookletFonts(
       val regularFile = findFontFile(
         envName = "TRAVEL_NODE_PDF_FONT",
         candidates = listOf(
-          "/usr/share/fonts/droid-nonlatin/DroidSansFallbackFull.ttf",
-          "/usr/share/fonts/droid-nonlatin/DroidSansFallback.ttf",
+          "/usr/share/fonts/noto/NotoSansCJK-Regular.ttc",
+          "/usr/share/fonts/noto/NotoSerifCJK-Regular.ttc",
           "/System/Library/Fonts/Supplemental/AppleGothic.ttf",
-          "/System/Library/Fonts/AppleSDGothicNeo.ttc"
+          "/System/Library/Fonts/AppleSDGothicNeo.ttc",
+          "/usr/share/fonts/droid-nonlatin/DroidSansFallbackFull.ttf",
+          "/usr/share/fonts/droid-nonlatin/DroidSansFallback.ttf"
         )
       )
       val boldFile = findFontFile(
         envName = "TRAVEL_NODE_PDF_BOLD_FONT",
         candidates = listOf(
+          "/usr/share/fonts/noto/NotoSansCJK-Bold.ttc",
+          "/usr/share/fonts/noto/NotoSerifCJK-Bold.ttc",
+          "/System/Library/Fonts/Supplemental/AppleGothic.ttf",
+          "/System/Library/Fonts/AppleSDGothicNeo.ttc",
           "/usr/share/fonts/droid-nonlatin/DroidSansFallbackFull.ttf",
           "/usr/share/fonts/droid-nonlatin/DroidSansFallback.ttf",
-          "/System/Library/Fonts/Supplemental/AppleGothic.ttf",
           regularFile.absolutePath
         )
       )
@@ -112,11 +117,20 @@ private data class BookletFonts(
 
     private fun loadAwtFont(file: File, style: Int): Font {
       return runCatching {
-        Font.createFont(Font.TRUETYPE_FONT, file).deriveFont(style, 12f)
+        val fonts = Font.createFonts(file)
+        val preferredFont = fonts.firstOrNull { font ->
+          font.fontName.contains("KR", ignoreCase = true) && font.canDisplayUpTo(KOREAN_FONT_SAMPLE) == -1
+        } ?: fonts.firstOrNull { font ->
+          font.canDisplayUpTo(KOREAN_FONT_SAMPLE) == -1
+        } ?: fonts.firstOrNull() ?: error("No font loaded from ${file.absolutePath}")
+
+        preferredFont.deriveFont(style, 12f)
       }.getOrElse {
         Font("SansSerif", style, 12)
       }
     }
+
+    private const val KOREAN_FONT_SAMPLE = "나의 여행 책자 예약 장소 체크리스트 東京 日本 ABC 123"
   }
 }
 
