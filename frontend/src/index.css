@@ -220,8 +220,25 @@
   counter-reset: booklet-page;
 }
 
+.trip-booklet-preview-frame {
+  scrollbar-gutter: stable both-edges;
+}
+
+.trip-booklet-preview-viewport {
+  --booklet-preview-scale: min(1, calc((100vw - 72px) / 920));
+  width: calc(920px * var(--booklet-preview-scale));
+  overflow: hidden;
+}
+
 .trip-booklet-preview-article {
-  zoom: min(1, calc((100vw - 48px) / 920));
+  transform: scale(var(--booklet-preview-scale));
+  transform-origin: top left;
+}
+
+@media (min-width: 640px) {
+  .trip-booklet-preview-viewport {
+    --booklet-preview-scale: min(1, calc((100vw - 128px) / 920));
+  }
 }
 
 .booklet-page {

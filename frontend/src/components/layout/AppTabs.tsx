@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Activity, CalendarDays, Check, FileDown, KeyRound, ListChecks, Loader2, LogOut, MapPinned, Pencil, Plane, TicketCheck } from 'lucide-react';
+import { Activity, CalendarDays, Check, FileDown, KeyRound, ListChecks, Loader2, LogOut, MapPinned, Menu, Pencil, Plane, TicketCheck, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { AppTab } from '@/types/schedule';
@@ -42,8 +42,10 @@ export function AppTabs({
   isBookletLoading
 }: AppTabsProps) {
   const introRef = useRef<HTMLDivElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const isCompactRef = useRef(false);
   const [isCompact, setIsCompact] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     let frameId = 0;
@@ -72,10 +74,33 @@ export function AppTabs({
     };
   }, []);
 
+  useEffect(() => {
+    if (!isMenuOpen) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!menuRef.current?.contains(event.target as Node)) setIsMenuOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setIsMenuOpen(false);
+    }
+
+    window.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isMenuOpen]);
+
+  function closeMenu() {
+    setIsMenuOpen(false);
+  }
+
   return (
     <>
-      <div ref={introRef} className="border-b border-border/70 bg-background/95 backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-none flex-col gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3 lg:flex-row lg:items-center lg:justify-between lg:px-5">
+      <div ref={introRef} className="relative z-50 border-b border-border/70 bg-background/95 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-none items-center justify-between gap-3 px-3 py-2.5 sm:px-4 sm:py-3 lg:px-5">
           <div className="flex min-w-0 items-center gap-3">
             <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm shadow-primary/20 sm:h-9 sm:w-9">
               <Plane className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -86,43 +111,71 @@ export function AppTabs({
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-            <div className="flex w-full flex-wrap items-center gap-1 sm:w-auto sm:flex-nowrap">
-              <ThemeToggle theme={theme} onThemeChange={onThemeChange} />
-              <Button
-                className="flex-1 rounded-full sm:flex-none"
-                variant="outline"
-                size="sm"
-                onClick={onBookletClick}
-                disabled={isBookletLoading}
-              >
-                {isBookletLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
-                PDF
-              </Button>
-              <div className="flex flex-1 basis-full gap-1 rounded-full border bg-background p-1 sm:basis-auto sm:flex-none">
-                <Button
-                  className="flex-1 sm:flex-none"
-                  variant={isEditing ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={onEditToggle}
-                >
-                  {isEditing ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
-                  {isEditing ? '완료' : '편집'}
-                </Button>
-                {isAuthenticated ? (
-                  <>
-                    <Button className="flex-1 sm:flex-none" variant="ghost" size="sm" onClick={onChangePasswordClick}>
-                      <KeyRound className="h-4 w-4" />
-                      변경
-                    </Button>
-                    <Button className="flex-1 sm:flex-none" variant="ghost" size="sm" onClick={onLogout}>
-                      <LogOut className="h-4 w-4" />
-                      잠금
-                    </Button>
-                  </>
-                ) : null}
+          <div ref={menuRef} className="relative shrink-0">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 rounded-full bg-background shadow-sm"
+              aria-label={isMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
+              aria-expanded={isMenuOpen}
+              onClick={() => setIsMenuOpen((current) => !current)}
+            >
+              {isMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            </Button>
+            {isMenuOpen ? (
+              <div className="absolute right-0 top-12 z-50 w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border bg-background shadow-2xl shadow-slate-950/15">
+                <div className="max-h-[33dvh] overflow-y-auto p-3">
+                  <div className="flex items-center justify-between gap-3 rounded-xl bg-secondary/70 p-2.5">
+                    <div>
+                      <div className="text-xs font-bold text-muted-foreground">테마</div>
+                      <div className="mt-0.5 text-sm font-semibold">화면 모드</div>
+                    </div>
+                    <ThemeToggle theme={theme} onThemeChange={onThemeChange} />
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <MenuActionButton
+                      icon={isBookletLoading ? Loader2 : FileDown}
+                      label="PDF"
+                      disabled={isBookletLoading}
+                      spinning={isBookletLoading}
+                      onClick={() => {
+                        closeMenu();
+                        onBookletClick();
+                      }}
+                    />
+                    <MenuActionButton
+                      icon={isEditing ? Check : Pencil}
+                      label={isEditing ? '완료' : '편집'}
+                      active={isEditing}
+                      onClick={() => {
+                        closeMenu();
+                        onEditToggle();
+                      }}
+                    />
+                    {isAuthenticated ? (
+                      <>
+                        <MenuActionButton
+                          icon={KeyRound}
+                          label="변경"
+                          onClick={() => {
+                            closeMenu();
+                            onChangePasswordClick();
+                          }}
+                        />
+                        <MenuActionButton
+                          icon={LogOut}
+                          label="잠금"
+                          onClick={() => {
+                            closeMenu();
+                            onLogout();
+                          }}
+                        />
+                      </>
+                    ) : null}
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
         </div>
       </div>
@@ -163,5 +216,34 @@ export function AppTabs({
         </div>
       </div>
     </>
+  );
+}
+
+function MenuActionButton({
+  icon: Icon,
+  label,
+  active,
+  disabled,
+  spinning,
+  onClick
+}: {
+  icon: typeof FileDown;
+  label: string;
+  active?: boolean;
+  disabled?: boolean;
+  spinning?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      type="button"
+      variant={active ? 'default' : 'outline'}
+      className="h-11 rounded-xl px-3"
+      disabled={disabled}
+      onClick={onClick}
+    >
+      <Icon className={cn('h-4 w-4', spinning && 'animate-spin')} />
+      {label}
+    </Button>
   );
 }

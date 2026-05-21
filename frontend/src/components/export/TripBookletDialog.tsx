@@ -66,30 +66,33 @@ export function TripBookletDialog({ snapshot, photoCache, onClose }: TripBooklet
   }
 
   return (
-      <ModalFrame
-        title="여행 책자 PDF"
-        maxWidth="max-w-6xl"
-        scroll
-        headerClassName="trip-booklet-controls"
-        onClose={onClose}
-        eyebrow={<Badge variant="outline">PDF</Badge>}
-      >
-        <div className="trip-booklet-controls flex flex-col gap-3 border-b bg-secondary/60 px-4 py-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-5">
-          <div className="leading-6">완성 파일은 A4 고정 레이아웃으로 다운로드됩니다.</div>
-          <Button className="rounded-full" onClick={downloadBooklet} disabled={isDownloading}>
+    <ModalFrame
+      title="여행 책자"
+      maxWidth="max-w-[calc(100vw-1rem)] sm:max-w-6xl"
+      scroll
+      headerClassName="trip-booklet-controls px-3 py-2.5 sm:px-5 sm:py-4"
+      panelClassName="max-h-[92dvh]"
+      onClose={onClose}
+      eyebrow={<Badge variant="outline">PDF</Badge>}
+    >
+      <div className="trip-booklet-controls flex items-center justify-between gap-2 border-b bg-secondary/40 px-3 py-2 text-xs text-muted-foreground sm:px-5 sm:py-3 sm:text-sm">
+        <div className="min-w-0 truncate">A4 여행 책자 미리보기</div>
+        <Button size="sm" className="h-9 shrink-0 rounded-full" onClick={downloadBooklet} disabled={isDownloading}>
             {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            완성 PDF 다운로드
-          </Button>
-        </div>
+            PDF 다운로드
+        </Button>
+      </div>
 
-        <div className="trip-booklet-preview-frame max-h-[74vh] overflow-auto bg-muted/30 p-3 sm:p-5">
+      <div className="trip-booklet-preview-frame h-[calc(92dvh-8.75rem)] overflow-auto bg-muted/30 p-2 sm:max-h-[74vh] sm:p-5">
+        <div className="trip-booklet-preview-viewport mx-auto">
           <BookletArticle
             snapshot={snapshot}
             photoCache={photoCache}
-            className="trip-booklet-preview-article mx-auto w-[920px] max-w-[920px] shadow-sm"
+            className="trip-booklet-preview-article w-[920px] max-w-[920px] shadow-sm"
           />
         </div>
-      </ModalFrame>
+      </div>
+    </ModalFrame>
   );
 }
 
