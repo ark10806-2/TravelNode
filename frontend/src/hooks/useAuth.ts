@@ -4,6 +4,8 @@ import {
   clearAuthToken,
   getAuthToken,
   login as loginRequest,
+  loginWithPasskey as loginWithPasskeyRequest,
+  registerPasskey,
   setAuthToken,
   verifySession
 } from '@/api/auth';
@@ -39,6 +41,18 @@ export function useAuth() {
   async function login(username: string, password: string) {
     const session = await loginRequest(username, password);
     setAuthToken(session.token);
+    try {
+      await registerPasskey();
+    } catch (error) {
+      console.warn('Passkey registration was not completed.', error);
+    }
+    setIsAuthenticated(true);
+    setUsername(session.username);
+  }
+
+  async function loginWithPasskey() {
+    const session = await loginWithPasskeyRequest();
+    setAuthToken(session.token);
     setIsAuthenticated(true);
     setUsername(session.username);
   }
@@ -61,6 +75,7 @@ export function useAuth() {
     isCheckingSession,
     username,
     login,
+    loginWithPasskey,
     logout,
     changePassword
   };

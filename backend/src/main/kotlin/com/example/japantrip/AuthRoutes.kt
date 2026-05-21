@@ -1,6 +1,7 @@
 package com.example.japantrip
 
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.HttpHeaders
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -8,7 +9,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 
-fun Route.authRoutes(authRepository: AuthRepository) {
+fun Route.authRoutes(authRepository: AuthRepository, webAuthnRepository: WebAuthnRepository, config: AppConfig) {
   route("/api/auth") {
     get("session") {
       val username = authRepository.usernameForToken(call.bearerToken())
@@ -29,9 +30,69 @@ fun Route.authRoutes(authRepository: AuthRepository) {
         return@post
       }
 
+      if (webAuthnRepository.hasCredential(username)) {
+        call.respondError(HttpStatusCode.Forbidden, "Face ID가 등록된 계정입니다. Face ID로 로그인해주세요.")
+        return@post
+      }
+
       val session = authRepository.createSession(username, password)
       if (session == null) {
         call.respondError(HttpStatusCode.Unauthorized, "username or password is incorrect")
+        return@post
+      }
+
+      call.respond(DataResponse(session))
+    }
+
+    post("passkey/register-options") {
+      val username = authRepository.usernameForToken(call.bearerToken())
+      if (username == null) {
+        call.respondError(HttpStatusCode.Unauthorized, "authentication required")
+        return@post
+      }
+
+      val origin = call.webAuthnOrigin(config)
+      val options = webAuthnRepository.beginRegistration(username, origin)
+      if (options == null) {
+        call.respondError(HttpStatusCode.BadRequest, "Face ID 등록을 시작하지 못했습니다.")
+        return@post
+      }
+
+      call.respond(DataResponse(options))
+    }
+
+    post("passkey/register") {
+      val username = authRepository.usernameForToken(call.bearerToken())
+      if (username == null) {
+        call.respondError(HttpStatusCode.Unauthorized, "authentication required")
+        return@post
+      }
+
+      val request = call.receive<WebAuthnRegistrationCredential>()
+      if (!webAuthnRepository.finishRegistration(username, request)) {
+        call.respondError(HttpStatusCode.BadRequest, "Face ID 등록을 완료하지 못했습니다.")
+        return@post
+      }
+
+      call.respond(DataResponse(mapOf("registered" to true)))
+    }
+
+    post("passkey/login-options") {
+      val origin = call.webAuthnOrigin(config)
+      val options = webAuthnRepository.beginAuthentication(origin)
+      if (options == null) {
+        call.respondError(HttpStatusCode.BadRequest, "Face ID 로그인을 시작하지 못했습니다.")
+        return@post
+      }
+
+      call.respond(DataResponse(options))
+    }
+
+    post("passkey/login") {
+      val request = call.receive<WebAuthnAuthenticationCredential>()
+      val session = webAuthnRepository.finishAuthentication(request)
+      if (session == null) {
+        call.respondError(HttpStatusCode.Unauthorized, "Face ID 인증에 실패했습니다.")
         return@post
       }
 
@@ -64,4 +125,12 @@ fun Route.authRoutes(authRepository: AuthRepository) {
       call.respond(DataResponse(session))
     }
   }
+}
+
+private fun io.ktor.server.application.ApplicationCall.webAuthnOrigin(config: AppConfig): String {
+  val requestOrigin = request.headers[HttpHeaders.Origin]?.trim()?.trimEnd('/')
+  if (!requestOrigin.isNullOrBlank()) return requestOrigin
+
+  val configuredOrigin = config.publicBaseUrl.ifBlank { config.corsOrigin.toString() }
+  return configuredOrigin.trim().trimEnd('/')
 }

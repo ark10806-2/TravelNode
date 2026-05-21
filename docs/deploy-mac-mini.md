@@ -33,8 +33,8 @@ cp .env.production.example ~/.config/travel-node/.env.production
 
 ```dotenv
 APP_HTTP_PORT=8080
-APP_CORS_ORIGIN=http://mac-mini.local:8080
-APP_PUBLIC_BASE_URL=http://mac-mini.local:8080
+APP_CORS_ORIGIN=https://your-domain.example
+APP_PUBLIC_BASE_URL=https://your-domain.example
 
 POSTGRES_DB=travel_node
 POSTGRES_USER=travel_node
@@ -44,6 +44,8 @@ GOOGLE_MAPS_API_KEY=Google_API_키
 GOOGLE_API_MONTHLY_LIMITS=maps-js=10000,routes=10000,places-new=5000,places-photo=1000
 VITE_API_BASE_URL=
 ```
+
+Face ID/패스키 로그인은 HTTPS 또는 localhost에서만 동작합니다. 원격 접속에서 Face ID를 쓰려면 `APP_CORS_ORIGIN`, `APP_PUBLIC_BASE_URL`을 실제 HTTPS 주소로 맞추고, 앞단 프록시도 같은 도메인으로 서비스하세요.
 
 Google API 키의 웹사이트 제한에는 실제 접속 주소를 추가해야 합니다.
 

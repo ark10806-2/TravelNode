@@ -359,9 +359,12 @@ CREATE TABLE IF NOT EXISTS app_auth (
 CREATE TABLE IF NOT EXISTS app_users (
   username text PRIMARY KEY,
   password_hash text NOT NULL,
+  webauthn_user_handle text UNIQUE,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS webauthn_user_handle text UNIQUE;
 
 CREATE TABLE IF NOT EXISTS auth_sessions (
   token text PRIMARY KEY,
@@ -371,6 +374,25 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
 );
 
 ALTER TABLE auth_sessions ADD COLUMN IF NOT EXISTS username text REFERENCES app_users(username) ON DELETE CASCADE;
+
+CREATE TABLE IF NOT EXISTS webauthn_credentials (
+  credential_id text PRIMARY KEY,
+  username text NOT NULL REFERENCES app_users(username) ON DELETE CASCADE,
+  public_key_cose bytea NOT NULL,
+  sign_count bigint NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  last_used_at timestamptz
+);
+
+CREATE TABLE IF NOT EXISTS webauthn_challenges (
+  challenge text PRIMARY KEY,
+  username text REFERENCES app_users(username) ON DELETE CASCADE,
+  challenge_type text NOT NULL CHECK (challenge_type IN ('registration', 'authentication')),
+  rp_id text NOT NULL,
+  origin text NOT NULL,
+  expires_at timestamptz NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
 
 DO $$
 BEGIN
@@ -413,6 +435,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS restaurants_google_sync_key_idx
 CREATE INDEX IF NOT EXISTS restaurant_photos_restaurant_idx ON restaurant_photos (restaurant_id, sort_order);
 CREATE INDEX IF NOT EXISTS auth_sessions_expires_at_idx ON auth_sessions (expires_at);
 CREATE INDEX IF NOT EXISTS auth_sessions_username_idx ON auth_sessions (username);
+CREATE INDEX IF NOT EXISTS webauthn_credentials_username_idx ON webauthn_credentials (username);
+CREATE INDEX IF NOT EXISTS webauthn_challenges_expires_at_idx ON webauthn_challenges (expires_at);
 CREATE INDEX IF NOT EXISTS categories_sort_order_idx ON categories (sort_order, label);
 CREATE INDEX IF NOT EXISTS schedule_days_sort_order_idx ON schedule_days (sort_order);
 CREATE INDEX IF NOT EXISTS schedule_stops_day_sort_order_idx ON schedule_stops (day_id, sort_order);

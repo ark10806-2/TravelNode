@@ -31,7 +31,7 @@ function App() {
   }
 
   if (!auth.isAuthenticated) {
-    return <LoginPage onLogin={auth.login} />;
+    return <LoginPage onLogin={auth.login} onPasskeyLogin={auth.loginWithPasskey} />;
   }
 
   return <AuthenticatedApp auth={auth} />;

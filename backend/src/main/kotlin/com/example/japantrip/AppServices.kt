@@ -11,6 +11,7 @@ data class AppServices(
   val apiUsageRepository: ApiUsageRepository,
   val categoryRepository: CategoryRepository,
   val authRepository: AuthRepository,
+  val webAuthnRepository: WebAuthnRepository,
   val tripBookletPdfService: TripBookletPdfService,
   val googleMapsPreviewService: GoogleMapsPreviewService,
   val googleMapsListSyncService: GoogleMapsListSyncService,
@@ -33,6 +34,7 @@ data class AppServices(
       val apiUsageRepository = ApiUsageRepository(database.dataSource)
       val categoryRepository = CategoryRepository(database.dataSource)
       val authRepository = AuthRepository(database.dataSource)
+      val webAuthnRepository = WebAuthnRepository(database.dataSource)
 
       return AppServices(
         database = database,
@@ -45,6 +47,7 @@ data class AppServices(
         apiUsageRepository = apiUsageRepository,
         categoryRepository = categoryRepository,
         authRepository = authRepository,
+        webAuthnRepository = webAuthnRepository,
         tripBookletPdfService = TripBookletPdfService(
           categoryRepository = categoryRepository,
           restaurantRepository = restaurantRepository,

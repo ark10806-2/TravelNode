@@ -66,6 +66,21 @@ class AuthRepository(
       connection.prepareStatement("DELETE FROM auth_sessions WHERE username IS NULL").use { statement ->
         statement.executeUpdate()
       }
+      connection.prepareStatement(
+        """
+        UPDATE app_users
+        SET webauthn_user_handle = ?
+        WHERE username = ?
+          AND webauthn_user_handle IS NULL
+        """.trimIndent()
+      ).use { statement ->
+        initialUsers.forEach { user ->
+          statement.setString(1, generateToken())
+          statement.setString(2, user.username)
+          statement.addBatch()
+        }
+        statement.executeBatch()
+      }
     }
   }
 

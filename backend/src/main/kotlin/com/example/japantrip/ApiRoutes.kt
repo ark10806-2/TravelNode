@@ -10,7 +10,7 @@ fun Route.apiRoutes(services: AppServices, config: AppConfig, appLog: Logger) {
     call.respond(mapOf("ok" to true))
   }
 
-  authRoutes(services.authRepository)
+  authRoutes(services.authRepository, services.webAuthnRepository, config)
   apiUsageRoutes(services.apiUsageRepository, services.authRepository)
   categoryRoutes(services.categoryRepository, services.authRepository)
   scheduleRoutes(services.scheduleRepository, services.authRepository)

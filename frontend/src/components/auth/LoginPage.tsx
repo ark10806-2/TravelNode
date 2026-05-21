@@ -1,18 +1,25 @@
-import { FormEvent, useState } from 'react';
-import { KeyRound, Loader2 } from 'lucide-react';
+import { FormEvent, useEffect, useState } from 'react';
+import { Fingerprint, KeyRound, Loader2 } from 'lucide-react';
+import { canUsePlatformPasskey } from '@/api/auth';
 import { AppIcon } from '@/components/common/AppIcon';
 import { Button } from '@/components/ui/button';
 import { inputClass } from '@/constants/travel';
 
 type LoginPageProps = {
   onLogin: (username: string, password: string) => Promise<void>;
+  onPasskeyLogin: () => Promise<void>;
 };
 
-export function LoginPage({ onLogin }: LoginPageProps) {
+export function LoginPage({ onLogin, onPasskeyLogin }: LoginPageProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPasskeyAvailable, setIsPasskeyAvailable] = useState(false);
+
+  useEffect(() => {
+    void canUsePlatformPasskey().then(setIsPasskeyAvailable);
+  }, []);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -23,6 +30,19 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       await onLogin(username, password);
     } catch (loginError) {
       setError(loginError instanceof Error ? loginError.message : '로그인하지 못했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function submitPasskey() {
+    setError('');
+    setIsSubmitting(true);
+
+    try {
+      await onPasskeyLogin();
+    } catch (loginError) {
+      setError(loginError instanceof Error ? loginError.message : 'Face ID로 로그인하지 못했습니다.');
     } finally {
       setIsSubmitting(false);
     }
@@ -39,6 +59,13 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         </div>
 
         <form className="mt-6 grid gap-4" onSubmit={submit}>
+          {isPasskeyAvailable ? (
+            <Button className="h-11 rounded-full" type="button" disabled={isSubmitting} onClick={() => void submitPasskey()}>
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Fingerprint className="h-4 w-4" />}
+              Face ID로 로그인
+            </Button>
+          ) : null}
+
           <label className="grid gap-2 text-sm font-semibold">
             ID
             <input
