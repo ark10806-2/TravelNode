@@ -13,7 +13,7 @@ export function AppHeader({
   return (
     <header className="flex flex-col gap-3 pb-1 sm:gap-4 sm:pb-2 lg:flex-row lg:items-end lg:justify-between">
       <div className="max-w-2xl">
-        <p className="mb-2 inline-flex rounded-full bg-accent px-2.5 py-1 text-[11px] font-bold uppercase text-primary sm:mb-3 sm:px-3 sm:text-xs">
+        <p className="mb-2 inline-flex rounded-full bg-accent px-2.5 py-1 text-[11px] font-semibold uppercase text-primary sm:mb-3 sm:px-3 sm:text-xs">
           Places
         </p>
         <h1 className="text-2xl font-bold tracking-normal sm:text-5xl">일정 별 장소</h1>

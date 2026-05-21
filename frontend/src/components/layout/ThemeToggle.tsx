@@ -15,7 +15,7 @@ const themeOptions = [
 
 export function ThemeToggle({ theme, onThemeChange }: ThemeToggleProps) {
   return (
-    <div className="grid shrink-0 grid-cols-3 gap-1 rounded-full border bg-secondary p-1" aria-label="테마 설정">
+    <div className="toss-segmented grid shrink-0 grid-cols-3 gap-1" aria-label="테마 설정">
       {themeOptions.map((option) => {
         const Icon = option.icon;
         const isActive = theme === option.value;
@@ -26,7 +26,7 @@ export function ThemeToggle({ theme, onThemeChange }: ThemeToggleProps) {
             type="button"
             variant="ghost"
             size="icon"
-            className={`h-8 w-8 rounded-full sm:h-8 sm:w-8 ${isActive ? 'bg-background text-foreground shadow-sm hover:bg-background' : ''}`}
+            className={`h-8 w-8 rounded-full sm:h-8 sm:w-8 ${isActive ? 'toss-segment-active hover:bg-white dark:hover:bg-secondary' : 'text-muted-foreground'}`}
             title={option.label}
             aria-label={option.label}
             aria-pressed={isActive}

@@ -47,13 +47,13 @@ export function MobileScheduleDaySelector({ days, selectedDayId, onSelectDay }: 
                   className={cn(
                     'grid min-w-[5.4rem] shrink-0 gap-0.5 rounded-xl border px-3 py-2 text-left transition',
                     isSelected
-                      ? 'border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/20'
-                      : 'border-border bg-background text-foreground hover:border-primary/50'
+                      ? 'border-primary/20 bg-accent text-primary shadow-[0_1px_2px_rgba(0,27,55,0.04)]'
+                      : 'border-border bg-white text-foreground hover:border-primary/30 dark:bg-secondary/80'
                   )}
                   onClick={() => onSelectDay(day.id)}
                 >
                   <span className="text-sm font-extrabold">DAY-{index + 1}</span>
-                  <span className={cn('truncate text-[10px] font-semibold', isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground')}>
+                  <span className={cn('truncate text-[10px] font-semibold', isSelected ? 'text-primary/70' : 'text-muted-foreground')}>
                     {dateLabel}
                   </span>
                 </button>

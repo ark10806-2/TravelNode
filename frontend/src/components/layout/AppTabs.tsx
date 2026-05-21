@@ -99,10 +99,10 @@ export function AppTabs({
 
   return (
     <>
-      <div ref={introRef} className="relative z-50 border-b border-border/70 bg-background/95 backdrop-blur-xl">
+      <div ref={introRef} className="relative z-50 border-b border-border/70 bg-background/90 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-none items-center justify-between gap-3 px-3 py-2.5 sm:px-4 sm:py-3 lg:px-5">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm shadow-primary/20 sm:h-9 sm:w-9">
+            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-[0_6px_16px_rgba(49,130,246,0.22)] sm:h-9 sm:w-9">
               <Plane className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
             <div className="min-w-0">
@@ -123,11 +123,11 @@ export function AppTabs({
               {isMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </Button>
             {isMenuOpen ? (
-              <div className="absolute right-0 top-12 z-50 w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border bg-background shadow-2xl shadow-slate-950/15">
+              <div className="toss-card absolute right-0 top-12 z-50 w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-3xl">
                 <div className="max-h-[33dvh] overflow-y-auto p-3">
-                  <div className="flex items-center justify-between gap-3 rounded-xl bg-secondary/70 p-2.5">
+                  <div className="flex items-center justify-between gap-3 rounded-2xl bg-muted p-2.5">
                     <div>
-                      <div className="text-xs font-bold text-muted-foreground">테마</div>
+                      <div className="text-xs font-semibold text-muted-foreground">테마</div>
                       <div className="mt-0.5 text-sm font-semibold">화면 모드</div>
                     </div>
                     <ThemeToggle theme={theme} onThemeChange={onThemeChange} />
@@ -180,14 +180,14 @@ export function AppTabs({
         </div>
       </div>
 
-      <div className="sticky top-0 z-40 transform-gpu border-b border-border/70 bg-background/95 shadow-sm shadow-black/5 backdrop-blur-xl will-change-transform">
+      <div className="sticky top-0 z-40 transform-gpu border-b border-border/70 bg-background/90 shadow-[0_1px_2px_rgba(0,27,55,0.04)] backdrop-blur-xl will-change-transform">
         <div
           className={cn(
             'mx-auto flex w-full max-w-none justify-center px-2 transition-all duration-200 sm:px-4 sm:py-2 lg:px-5',
             isCompact ? 'py-1' : 'py-1.5 sm:py-2'
           )}
         >
-          <div className="grid w-full grid-cols-5 gap-1 rounded-full border bg-secondary p-1 shadow-sm shadow-black/5 sm:w-[42rem]" role="tablist" aria-label="페이지 전환">
+          <div className="toss-segmented grid w-full grid-cols-5 gap-1 sm:w-[42rem]" role="tablist" aria-label="페이지 전환">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = tab.id === activeTab;
@@ -202,8 +202,8 @@ export function AppTabs({
                     'inline-flex items-center justify-center rounded-full font-semibold transition-all sm:h-9 sm:gap-2 sm:text-sm',
                     isCompact ? 'h-8 gap-1 text-xs' : 'h-9 gap-2 text-sm',
                     isActive
-                      ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25'
-                      : 'text-muted-foreground hover:bg-background/70 hover:text-foreground'
+                      ? 'toss-segment-active'
+                      : 'text-muted-foreground hover:bg-white/70 hover:text-foreground dark:hover:bg-secondary/70'
                   )}
                   onClick={() => onTabChange(tab.id)}
                 >

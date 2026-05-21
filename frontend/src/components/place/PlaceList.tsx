@@ -215,11 +215,11 @@ function PlaceListHeader({
       {showActions ? (
         <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:flex-nowrap">
           {showViewModeToggle ? (
-            <div className="grid w-full min-w-0 grid-cols-2 overflow-hidden rounded-full border bg-secondary p-1 sm:w-56">
+            <div className="toss-segmented grid w-full min-w-0 grid-cols-2 overflow-hidden sm:w-56">
               <button
                 type="button"
                 className={`flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-full px-2 text-xs font-semibold transition-colors sm:h-9 sm:px-3 sm:text-sm ${
-                  viewMode === 'table' ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20' : 'text-foreground hover:bg-background/60'
+                  viewMode === 'table' ? 'toss-segment-active' : 'text-muted-foreground hover:bg-white/70 hover:text-foreground dark:hover:bg-secondary/70'
                 }`}
                 onClick={() => onViewModeChange('table')}
               >
@@ -229,7 +229,7 @@ function PlaceListHeader({
               <button
                 type="button"
                 className={`flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-full px-2 text-xs font-semibold transition-colors sm:h-9 sm:px-3 sm:text-sm ${
-                  viewMode === 'gallery' ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20' : 'text-foreground hover:bg-background/60'
+                  viewMode === 'gallery' ? 'toss-segment-active' : 'text-muted-foreground hover:bg-white/70 hover:text-foreground dark:hover:bg-secondary/70'
                 }`}
                 onClick={() => onViewModeChange('gallery')}
               >

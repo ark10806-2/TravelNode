@@ -136,7 +136,7 @@ export function SchedulePage({ categories, places, isEditing, isDarkMode, photoC
     <PageContainer className="gap-4 px-3 py-4 sm:gap-6 sm:px-4 sm:py-5">
       <header className="flex flex-col gap-3 border-b border-border/70 pb-4 sm:gap-4 sm:pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="mb-2 inline-flex rounded-full bg-accent px-2.5 py-1 text-[11px] font-bold uppercase text-primary sm:mb-3 sm:px-3 sm:text-xs">
+          <p className="mb-2 inline-flex rounded-full bg-accent px-2.5 py-1 text-[11px] font-semibold uppercase text-primary sm:mb-3 sm:px-3 sm:text-xs">
             Schedule
           </p>
           <h1 className="text-2xl font-bold tracking-normal sm:text-5xl">여행 일정</h1>
