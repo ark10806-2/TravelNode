@@ -4,6 +4,7 @@ import { downloadTripBookletPdf } from '@/api/booklet';
 import { LoginPage } from '@/components/auth/LoginPage';
 import { AuthDialog } from '@/components/dialogs/AuthDialog';
 import { AppTabs } from '@/components/layout/AppTabs';
+import { PullToRefresh } from '@/components/layout/PullToRefresh';
 import { PlacesPage } from '@/components/place/PlacesPage';
 import { ReservationPage } from '@/components/reservation/ReservationPage';
 import { SchedulePage } from '@/components/schedule/SchedulePage';
@@ -71,6 +72,7 @@ function AuthenticatedApp({ auth }: { auth: ReturnType<typeof useAuth> }) {
 
   return (
     <main className="app-background min-h-[100dvh] overflow-x-clip">
+      <PullToRefresh />
       <AppTabs
         activeTab={activeTab}
         isAuthenticated={auth.isAuthenticated}
