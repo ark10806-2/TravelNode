@@ -297,37 +297,27 @@ export function createDirectionalDottedRouteOptions(
   path: google.maps.LatLngLiteral[],
   isDarkMode: boolean
 ): google.maps.PolylineOptions {
-  const color = isDarkMode ? '#9ca3af' : '#9299a3';
+  const color = isDarkMode ? '#9ca3af' : '#8f96a0';
 
   return {
     path,
     geodesic: true,
-    strokeOpacity: 0,
-    strokeWeight: 1,
+    strokeColor: color,
+    strokeOpacity: isDarkMode ? 0.42 : 0.38,
+    strokeWeight: 1.5,
     icons: [
       {
         icon: {
-          path: 'M -1,0 1,0',
-          scale: 3.2,
-          strokeColor: color,
-          strokeOpacity: isDarkMode ? 0.52 : 0.58,
-          strokeWeight: 1.05
-        },
-        offset: '0',
-        repeat: '12px'
-      },
-      {
-        icon: {
           path: maps.SymbolPath.FORWARD_CLOSED_ARROW,
-          scale: 1.65,
+          scale: 1.45,
           fillColor: color,
-          fillOpacity: isDarkMode ? 0.48 : 0.44,
+          fillOpacity: isDarkMode ? 0.48 : 0.42,
           strokeColor: color,
-          strokeOpacity: isDarkMode ? 0.48 : 0.44,
-          strokeWeight: 0.9
+          strokeOpacity: isDarkMode ? 0.48 : 0.42,
+          strokeWeight: 0.75
         },
-        offset: '52px',
-        repeat: '132px'
+        offset: '72px',
+        repeat: '150px'
       }
     ]
   };
