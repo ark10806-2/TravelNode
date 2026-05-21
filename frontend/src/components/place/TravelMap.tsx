@@ -104,7 +104,7 @@ export function TravelMap({
         position: { lat: place.latitude, lng: place.longitude },
         map: mapInstanceRef.current,
         title: place.name,
-        icon: createScheduleDotMarkerIcon(maps, isDarkMode),
+        icon: createScheduleDotMarkerIcon(maps),
         zIndex: 80
       });
 
@@ -126,13 +126,22 @@ export function TravelMap({
       });
     }
 
-    const pinPlaces = isContextMap
-      ? selectedPlace
-        ? [selectedPlace]
-        : []
-      : places;
+    if (isContextMap && selectedPlace) {
+      const marker = new maps.Marker({
+        position: { lat: selectedPlace.latitude, lng: selectedPlace.longitude },
+        map: mapInstanceRef.current,
+        title: selectedPlace.name,
+        icon: createScheduleDotMarkerIcon(maps, { selected: true }),
+        zIndex: 1200
+      });
+
+      marker.addListener('click', () => onSelectPlace(selectedPlace));
+      markersRef.current.push(marker);
+    }
+
+    const pinPlaces = isContextMap ? [] : places;
     pinPlaces.forEach((place) => {
-      const isSelected = isContextMap || place.id === selectedPlace?.id;
+      const isSelected = place.id === selectedPlace?.id;
       const marker = new maps.Marker({
         position: { lat: place.latitude, lng: place.longitude },
         map: mapInstanceRef.current,

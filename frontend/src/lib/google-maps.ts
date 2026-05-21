@@ -271,16 +271,19 @@ export function createPlaceMarkerIcon(maps: typeof google.maps, category: Catego
   };
 }
 
-export function createScheduleDotMarkerIcon(maps: typeof google.maps, isDarkMode = false) {
-  const fill = isDarkMode ? '#f8fafc' : '#111827';
-  const stroke = isDarkMode ? '#020617' : '#ffffff';
+export function createScheduleDotMarkerIcon(
+  maps: typeof google.maps,
+  options: { selected?: boolean } = {}
+) {
+  const scale = options.selected ? 7.15 : 5.5;
+  const fill = options.selected ? '#ff385c' : '#111827';
 
   return {
     path: maps.SymbolPath.CIRCLE,
-    scale: 5.5,
+    scale,
     fillColor: fill,
-    fillOpacity: 0.96,
-    strokeColor: stroke,
+    fillOpacity: 0.98,
+    strokeColor: '#ffffff',
     strokeOpacity: 0.95,
     strokeWeight: 2
   };
