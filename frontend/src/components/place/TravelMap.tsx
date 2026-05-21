@@ -104,7 +104,7 @@ export function TravelMap({
         position: { lat: place.latitude, lng: place.longitude },
         map: mapInstanceRef.current,
         title: place.name,
-        icon: createScheduleDotMarkerIcon(maps, place.category),
+        icon: createScheduleDotMarkerIcon(maps, isDarkMode),
         zIndex: 80
       });
 

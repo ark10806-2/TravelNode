@@ -271,22 +271,16 @@ export function createPlaceMarkerIcon(maps: typeof google.maps, category: Catego
   };
 }
 
-export function createScheduleDotMarkerIcon(maps: typeof google.maps, category: CategoryId) {
-  const fill =
-    category === 'dessert'
-      ? '#c13584'
-      : category === 'sightseeing'
-        ? '#008489'
-        : category === 'shopping'
-          ? '#2563eb'
-          : '#ff385c';
+export function createScheduleDotMarkerIcon(maps: typeof google.maps, isDarkMode = false) {
+  const fill = isDarkMode ? '#f8fafc' : '#111827';
+  const stroke = isDarkMode ? '#020617' : '#ffffff';
 
   return {
     path: maps.SymbolPath.CIRCLE,
     scale: 5.5,
     fillColor: fill,
-    fillOpacity: 0.92,
-    strokeColor: '#ffffff',
+    fillOpacity: 0.96,
+    strokeColor: stroke,
     strokeOpacity: 0.95,
     strokeWeight: 2
   };
@@ -297,13 +291,13 @@ export function createDirectionalDottedRouteOptions(
   path: google.maps.LatLngLiteral[],
   isDarkMode: boolean
 ): google.maps.PolylineOptions {
-  const color = isDarkMode ? '#9ca3af' : '#8f96a0';
+  const color = isDarkMode ? '#ffffff' : '#4b5563';
 
   return {
     path,
     geodesic: true,
     strokeColor: color,
-    strokeOpacity: isDarkMode ? 0.42 : 0.38,
+    strokeOpacity: isDarkMode ? 0.68 : 0.64,
     strokeWeight: 1.5,
     icons: [
       {
@@ -311,9 +305,9 @@ export function createDirectionalDottedRouteOptions(
           path: maps.SymbolPath.FORWARD_CLOSED_ARROW,
           scale: 1.45,
           fillColor: color,
-          fillOpacity: isDarkMode ? 0.48 : 0.42,
+          fillOpacity: isDarkMode ? 0.7 : 0.66,
           strokeColor: color,
-          strokeOpacity: isDarkMode ? 0.48 : 0.42,
+          strokeOpacity: isDarkMode ? 0.7 : 0.66,
           strokeWeight: 0.75
         },
         offset: '72px',
