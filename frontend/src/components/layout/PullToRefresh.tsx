@@ -37,18 +37,14 @@ export function PullToRefresh({ onRefresh = () => window.location.reload() }: Pu
 
     function applyPullDistance(distance: number) {
       const progress = Math.min(1, distance / triggerDistance);
-      const drop = -42 + progress * 90;
-      const symbolScale = 0.74 + progress * 0.18;
+      const drop = -26 + progress * 72;
+      const symbolScale = 0.74 + progress * 0.2;
       const stageStyle = stageRef.current?.style;
 
       if (!stageStyle) return;
 
-      stageStyle.setProperty('--pull-symbol-opacity', (0.18 + progress * 0.74).toFixed(3));
-      stageStyle.setProperty('--pull-symbol-y', `${(progress * 0.34).toFixed(3)}rem`);
-      stageStyle.setProperty('--pull-wave-scale-x', (0.86 + progress * 0.2).toFixed(3));
-      stageStyle.setProperty('--pull-wave-scale-y', (0.78 + progress * 0.18).toFixed(3));
-      stageStyle.setProperty('--pull-wave-opacity', (0.3 + progress * 0.52).toFixed(3));
-      stageStyle.setProperty('--pull-wave-rim', (0.18 + progress * 0.3).toFixed(3));
+      stageStyle.setProperty('--pull-symbol-opacity', (0.1 + progress * 0.9).toFixed(3));
+      stageStyle.setProperty('--pull-progress', progress.toFixed(3));
       stageStyle.transform = `translate3d(0, ${drop.toFixed(1)}px, 0) scale(${symbolScale.toFixed(3)})`;
     }
 
@@ -164,11 +160,7 @@ export function PullToRefresh({ onRefresh = () => window.location.reload() }: Pu
 function PullRefreshSymbol() {
   return (
     <div className="pull-refresh-symbol" aria-hidden="true">
-      <span className="pull-refresh-wave-surface" />
-      <span className="pull-refresh-wave pull-refresh-wave-back" />
-      <span className="pull-refresh-wave pull-refresh-wave-mid" />
-      <span className="pull-refresh-wave pull-refresh-wave-front" />
-      <span className="pull-refresh-wave-sheen" />
+      <span className="pull-refresh-circle" />
     </div>
   );
 }

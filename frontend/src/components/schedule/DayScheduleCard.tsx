@@ -11,7 +11,7 @@ import {
   getVisibleGoogleMapsNote,
   getVisiblePlaceDescription
 } from '@/lib/place-utils';
-import { formatDepartureTime, formatTravelDate, getScheduleHotelPlace, maxStopsPerDay, routeLegKey } from '@/lib/schedule-utils';
+import { getScheduleHotelPlace, maxStopsPerDay, routeLegKey } from '@/lib/schedule-utils';
 import type { Reservation } from '@/types/reservation';
 import type { RouteLeg, RouteMode, ScheduleDay } from '@/types/schedule';
 import type { CategoryOption, PhotoState, Place } from '@/types/travel';
@@ -163,14 +163,8 @@ export function DayScheduleCard({
           </div>
           {isEditing ? (
             <div className="mt-3 grid max-w-2xl gap-2">
-              <details className="group rounded-2xl border border-border/80 bg-white p-2.5 dark:bg-secondary/80">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-xs font-bold text-foreground marker:hidden">
-                  <span>시간 설정</span>
-                  <span className="text-[11px] font-semibold text-muted-foreground group-open:hidden">
-                    {day.travelDate ? formatTravelDate(day.travelDate) : '날짜 미정'} · 숙소 출발 {formatDepartureTime(day.departureTimeMinutes)}
-                  </span>
-                </summary>
-                <div className="mt-3 grid gap-3 sm:grid-cols-[13rem_minmax(0,1fr)]">
+              <div className="rounded-2xl border border-border/80 bg-white p-2.5 dark:bg-secondary/80">
+                <div className="grid gap-3 sm:grid-cols-[13rem_minmax(0,1fr)]">
                   <label className="rounded-2xl border border-border/80 bg-white p-2.5 dark:bg-secondary/80">
                     <span className="flex items-center gap-1.5 text-xs font-bold text-foreground">
                       <CalendarDays className="h-3.5 w-3.5 text-primary" />
@@ -191,16 +185,16 @@ export function DayScheduleCard({
                     onChange={(value) => onSetDayDepartureTime(day.id, value)}
                   />
                 </div>
-              </details>
+              </div>
               {scheduledPlaces.length > 0 ? (
-                <details className="group rounded-2xl border border-border/80 bg-white p-2.5 dark:bg-secondary/80">
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-xs font-bold text-foreground marker:hidden">
-                    <span>경로 고급 설정</span>
+                <div className="rounded-2xl border border-border/80 bg-white p-2.5 dark:bg-secondary/80">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs font-bold text-foreground">경로 관리</span>
                     <span className="text-[11px] font-semibold text-muted-foreground">
-                      {hasRouteCalculationNeeded ? '경로 계산 필요' : '계산값 유지 중'}
+                      {hasRouteCalculationNeeded ? '계산 필요' : '계산값 유지 중'}
                     </span>
-                  </summary>
-                  <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                     <Button
                       className="min-w-0 rounded-full px-2 text-xs sm:px-3 sm:text-sm"
                       variant="outline"
@@ -234,7 +228,7 @@ export function DayScheduleCard({
                       {isCalculatingPreciseRoutes ? '정밀계산 중' : '정밀계산'}
                     </Button>
                   </div>
-                </details>
+                </div>
               ) : null}
             </div>
           ) : null}
@@ -365,20 +359,14 @@ export function DayScheduleCard({
                               </div>
                             ) : null}
                             {isEditing ? (
-                              <details className="group mt-3 rounded-2xl border border-border/80 bg-muted/50 p-2">
-                                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-xs font-bold text-foreground marker:hidden">
-                                  <span>출발 기준</span>
-                                </summary>
-                                <div className="mt-2">
-                                  <DepartureTimePicker
-                                    label="이 장소 출발 기준"
-                                    value={stop.departureTimeMinutes}
-                                    description="이 장소에서 다음 목적지로 이동할 때 반영합니다."
-                                    compact
-                                    onChange={(value) => onSetStopDepartureTime(day.id, stop.id, value)}
-                                  />
-                                </div>
-                              </details>
+                              <div className="mt-3 rounded-2xl border border-border/80 bg-muted/50 p-2">
+                                <DepartureTimePicker
+                                  label="이 장소 출발 기준"
+                                  value={stop.departureTimeMinutes}
+                                  compact
+                                  onChange={(value) => onSetStopDepartureTime(day.id, stop.id, value)}
+                                />
+                              </div>
                             ) : null}
                           </div>
                           <div className="flex flex-wrap items-center justify-start gap-1 md:justify-end">

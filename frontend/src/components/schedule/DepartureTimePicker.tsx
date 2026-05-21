@@ -1,5 +1,5 @@
+import { useEffect, useRef, useState } from 'react';
 import { Clock3 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import {
   defaultDayDepartureTimeMinutes,
   departureTimeStepMinutes,
@@ -27,7 +27,32 @@ const timeMarks = [
 
 export function DepartureTimePicker({ label, value, onChange, description, compact }: DepartureTimePickerProps) {
   const normalizedValue = normalizeDepartureTimeMinutes(value);
-  const sliderValue = normalizedValue ?? defaultDayDepartureTimeMinutes;
+  const committedValue = normalizedValue ?? defaultDayDepartureTimeMinutes;
+  const [draftValue, setDraftValue] = useState(committedValue);
+  const draftValueRef = useRef(committedValue);
+  const hasPendingCommitRef = useRef(false);
+
+  useEffect(() => {
+    draftValueRef.current = committedValue;
+    setDraftValue(committedValue);
+    hasPendingCommitRef.current = false;
+  }, [committedValue]);
+
+  function updateDraft(nextValue: number) {
+    draftValueRef.current = nextValue;
+    hasPendingCommitRef.current = true;
+    setDraftValue(nextValue);
+  }
+
+  function commitDraft() {
+    if (!hasPendingCommitRef.current) return;
+
+    hasPendingCommitRef.current = false;
+    const nextValue = normalizeDepartureTimeMinutes(draftValueRef.current) ?? defaultDayDepartureTimeMinutes;
+    if (nextValue !== committedValue) {
+      onChange(nextValue);
+    }
+  }
 
   return (
     <div className={cn('rounded-2xl border border-border/80 bg-white p-3 dark:bg-secondary/80', compact && 'p-2.5')}>
@@ -42,33 +67,32 @@ export function DepartureTimePicker({ label, value, onChange, description, compa
         <span
           className={cn(
             'shrink-0 rounded-full px-2 py-1 text-[11px] font-bold leading-none',
-            normalizedValue == null ? 'bg-secondary text-muted-foreground' : 'bg-primary/10 text-primary'
+            'bg-primary/10 text-primary'
           )}
         >
-          {formatDepartureTime(normalizedValue)}
+          {formatDepartureTime(draftValue)}
         </span>
       </div>
 
-      <div className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2">
-        <Button
-          type="button"
-          variant={normalizedValue == null ? 'default' : 'outline'}
-          size="sm"
-          className="h-8 rounded-full px-3 text-xs"
-          onClick={() => onChange(null)}
-        >
-          현재
-        </Button>
+      <div className="mt-3">
         <div className="min-w-0">
           <input
             type="range"
             min={0}
             max={maxDepartureTimeMinutes}
             step={departureTimeStepMinutes}
-            value={sliderValue}
-            className="h-2 w-full cursor-pointer accent-primary"
+            value={draftValue}
+            className="h-2 w-full cursor-pointer select-none accent-primary [touch-action:pan-x]"
+            data-pull-refresh-ignore
             aria-label={`${label} 시간 선택`}
-            onChange={(event) => onChange(Number(event.currentTarget.value))}
+            onBlur={commitDraft}
+            onChange={(event) => updateDraft(Number(event.currentTarget.value))}
+            onKeyUp={(event) => {
+              if (['ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'].includes(event.key)) {
+                commitDraft();
+              }
+            }}
+            onPointerUp={commitDraft}
           />
           <div className="mt-1 flex justify-between text-[10px] text-muted-foreground/70">
             {timeMarks.map((mark) => (

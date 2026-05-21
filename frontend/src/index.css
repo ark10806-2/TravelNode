@@ -157,187 +157,68 @@
   }
 
   .pull-refresh-stage {
-    --refresh-ink: rgb(36 41 56 / 0.3);
-    --refresh-deep: rgb(18 22 34 / 0.18);
-    --refresh-rim: rgb(116 124 145 / 0.22);
-    --refresh-light: rgb(255 255 255 / 0.5);
-    --refresh-shadow: rgb(15 23 42 / 0.12);
+    --refresh-circle-track: rgb(15 23 42 / 0.1);
+    --refresh-circle-ink: rgb(15 23 42 / 0.48);
+    --refresh-circle-bg: rgb(255 255 255 / 0.78);
+    --refresh-shadow: rgb(15 23 42 / 0.08);
+    --pull-progress: 0;
     --pull-symbol-opacity: 0;
-    --pull-symbol-y: 0rem;
-    --pull-wave-scale-x: 0.86;
-    --pull-wave-scale-y: 0.78;
-    --pull-wave-opacity: 0.3;
-    --pull-wave-rim: 0.18;
     position: relative;
     display: grid;
-    height: 4.6rem;
-    width: 8.4rem;
+    height: 3.75rem;
+    width: 3.75rem;
     place-items: center;
-    filter: drop-shadow(0 10px 18px var(--refresh-shadow));
+    filter: drop-shadow(0 8px 14px var(--refresh-shadow));
     transform-origin: top center;
     contain: layout paint style;
     will-change: transform, opacity;
   }
 
   .dark .pull-refresh-stage {
-    --refresh-ink: rgb(148 154 176 / 0.26);
-    --refresh-deep: rgb(8 10 16 / 0.26);
-    --refresh-rim: rgb(214 220 238 / 0.18);
-    --refresh-light: rgb(245 248 255 / 0.3);
-    --refresh-shadow: rgb(0 0 0 / 0.34);
+    --refresh-circle-track: rgb(255 255 255 / 0.16);
+    --refresh-circle-ink: rgb(255 255 255 / 0.62);
+    --refresh-circle-bg: rgb(15 23 42 / 0.72);
+    --refresh-shadow: rgb(0 0 0 / 0.22);
   }
 
   .pull-refresh-symbol {
     position: relative;
-    height: 3.9rem;
-    width: 8rem;
+    display: grid;
+    height: 2.5rem;
+    width: 2.5rem;
+    place-items: center;
     opacity: var(--pull-symbol-opacity);
-    transform: translateY(var(--pull-symbol-y));
     transform-origin: center;
     overflow: visible;
     will-change: opacity, transform;
   }
 
-  .pull-refresh-symbol::before {
-    content: "";
-    position: absolute;
-    left: 1.2rem;
-    right: 1.2rem;
-    top: 1rem;
-    height: 2.1rem;
+  .pull-refresh-circle {
+    height: 2rem;
+    width: 2rem;
     border-radius: 999px;
-    background: radial-gradient(ellipse at center, var(--refresh-rim), transparent 70%);
-    filter: blur(0.7rem);
-    opacity: var(--pull-wave-rim);
-    transform: scaleX(var(--pull-wave-scale-x));
-  }
-
-  .pull-refresh-wave-surface,
-  .pull-refresh-wave,
-  .pull-refresh-wave-sheen {
-    position: absolute;
-    pointer-events: none;
-    transform-origin: center;
-  }
-
-  .pull-refresh-wave-surface {
-    left: 50%;
-    top: 1.2rem;
-    height: 1.6rem;
-    width: 6.4rem;
-    border-radius: 999px;
-    background:
-      radial-gradient(ellipse at 32% 25%, var(--refresh-light), transparent 24%),
-      radial-gradient(ellipse at 50% 62%, var(--refresh-deep), var(--refresh-ink) 60%, transparent 100%),
-      radial-gradient(ellipse at center, transparent 58%, var(--refresh-rim) 80%, transparent 100%);
+    border: 2px solid var(--refresh-circle-track);
+    border-top-color: var(--refresh-circle-ink);
+    background: var(--refresh-circle-bg);
     box-shadow:
-      inset 0 0.12rem 0.48rem rgb(255 255 255 / 0.12),
-      inset 0 -0.38rem 0.7rem rgb(7 10 18 / 0.1);
-    opacity: var(--pull-wave-opacity);
-    transform: translateX(-50%) scale(var(--pull-wave-scale-x), var(--pull-wave-scale-y));
-    will-change: border-radius, opacity, transform;
+      inset 0 1px 0 rgb(255 255 255 / 0.42),
+      0 8px 18px var(--refresh-shadow);
+    transform: rotate(calc(var(--pull-progress) * 180deg));
+    will-change: transform;
   }
 
-  .pull-refresh-wave {
-    left: 50%;
-    height: 0.7rem;
-    width: 7rem;
-    border-radius: 50%;
-    border-top: 0.14rem solid var(--refresh-ink);
-    border-left: 0.08rem solid transparent;
-    border-right: 0.08rem solid transparent;
-    opacity: 0.5;
-    mix-blend-mode: multiply;
-    transform: translateX(-50%);
-    will-change: opacity, transform;
-  }
-
-  .dark .pull-refresh-wave {
-    mix-blend-mode: screen;
-  }
-
-  .pull-refresh-wave-back {
-    top: 1.42rem;
-    width: 6rem;
-    border-top-color: var(--refresh-rim);
-    opacity: 0.36;
-  }
-
-  .pull-refresh-wave-mid {
-    top: 1.72rem;
-    opacity: 0.54;
-  }
-
-  .pull-refresh-wave-front {
-    top: 2rem;
-    width: 6.6rem;
-    border-top-color: var(--refresh-deep);
-    opacity: 0.42;
-  }
-
-  .pull-refresh-wave-sheen {
-    left: 50%;
-    top: 1.24rem;
-    height: 0.44rem;
-    width: 4rem;
-    border-radius: 999px;
-    background: linear-gradient(90deg, transparent, var(--refresh-light), transparent);
-    opacity: 0.28;
-    transform: translateX(-50%) scaleX(0.8);
-    will-change: opacity, transform;
-  }
-
-  .pull-refresh-stage-pulling .pull-refresh-symbol,
-  .pull-refresh-stage-ready .pull-refresh-symbol,
-  .pull-refresh-stage-refreshing .pull-refresh-symbol {
-    animation: pull-refresh-symbol-breathe 1150ms cubic-bezier(0.45, 0, 0.25, 1) infinite;
-  }
-
-  .pull-refresh-stage-pulling .pull-refresh-wave-surface,
-  .pull-refresh-stage-ready .pull-refresh-wave-surface,
-  .pull-refresh-stage-refreshing .pull-refresh-wave-surface {
-    animation: pull-refresh-surface-swell 1280ms cubic-bezier(0.45, 0, 0.25, 1) infinite;
-  }
-
-  .pull-refresh-stage-pulling .pull-refresh-wave-back,
-  .pull-refresh-stage-ready .pull-refresh-wave-back,
-  .pull-refresh-stage-refreshing .pull-refresh-wave-back {
-    animation: pull-refresh-wave-back 1280ms cubic-bezier(0.45, 0, 0.25, 1) infinite;
-  }
-
-  .pull-refresh-stage-pulling .pull-refresh-wave-mid,
-  .pull-refresh-stage-ready .pull-refresh-wave-mid,
-  .pull-refresh-stage-refreshing .pull-refresh-wave-mid {
-    animation: pull-refresh-wave-mid 1280ms cubic-bezier(0.45, 0, 0.25, 1) infinite;
-  }
-
-  .pull-refresh-stage-pulling .pull-refresh-wave-front,
-  .pull-refresh-stage-ready .pull-refresh-wave-front,
-  .pull-refresh-stage-refreshing .pull-refresh-wave-front {
-    animation: pull-refresh-wave-front 1280ms cubic-bezier(0.45, 0, 0.25, 1) infinite;
-  }
-
-  .pull-refresh-stage-pulling .pull-refresh-wave-sheen,
-  .pull-refresh-stage-ready .pull-refresh-wave-sheen,
-  .pull-refresh-stage-refreshing .pull-refresh-wave-sheen {
-    animation: pull-refresh-wave-sheen 1280ms cubic-bezier(0.45, 0, 0.25, 1) infinite;
+  .pull-refresh-stage-pulling .pull-refresh-circle,
+  .pull-refresh-stage-ready .pull-refresh-circle,
+  .pull-refresh-stage-refreshing .pull-refresh-circle {
+    animation: pull-refresh-circle-spin 760ms linear infinite;
   }
 
   @media (prefers-reduced-motion: reduce) {
     .modal-overlay-enter,
     .modal-panel-enter,
-    .pull-refresh-stage-pulling .pull-refresh-symbol,
-    .pull-refresh-stage-ready .pull-refresh-symbol,
-    .pull-refresh-stage-refreshing .pull-refresh-symbol,
-    .pull-refresh-stage-pulling .pull-refresh-wave-surface,
-    .pull-refresh-stage-ready .pull-refresh-wave-surface,
-    .pull-refresh-stage-refreshing .pull-refresh-wave-surface,
-    .pull-refresh-stage-pulling .pull-refresh-wave,
-    .pull-refresh-stage-ready .pull-refresh-wave,
-    .pull-refresh-stage-refreshing .pull-refresh-wave,
-    .pull-refresh-stage-pulling .pull-refresh-wave-sheen,
-    .pull-refresh-stage-ready .pull-refresh-wave-sheen,
-    .pull-refresh-stage-refreshing .pull-refresh-wave-sheen {
+    .pull-refresh-stage-pulling .pull-refresh-circle,
+    .pull-refresh-stage-ready .pull-refresh-circle,
+    .pull-refresh-stage-refreshing .pull-refresh-circle {
       animation: none;
     }
   }
@@ -365,104 +246,12 @@
   }
 }
 
-@keyframes pull-refresh-symbol-breathe {
-  0% {
-    transform: translateY(var(--pull-symbol-y)) scale(1);
-  }
-
-  46% {
-    transform: translateY(calc(var(--pull-symbol-y) - 0.08rem)) scale(1.012);
-  }
-
-  76% {
-    transform: translateY(calc(var(--pull-symbol-y) + 0.04rem)) scale(0.996);
-  }
-
-  100% {
-    transform: translateY(var(--pull-symbol-y)) scale(1);
+@keyframes pull-refresh-circle-spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 
-@keyframes pull-refresh-surface-swell {
-  0% {
-    border-radius: 999px;
-    transform: translateX(-50%) scale(var(--pull-wave-scale-x), var(--pull-wave-scale-y));
-  }
-
-  44% {
-    border-radius: 46% 54% 52% 48% / 58% 46% 54% 42%;
-    transform: translateX(-50%) translateY(-0.04rem) scale(calc(var(--pull-wave-scale-x) * 1.04), calc(var(--pull-wave-scale-y) * 0.94));
-  }
-
-  72% {
-    border-radius: 54% 46% 48% 52% / 42% 56% 44% 58%;
-    transform: translateX(-50%) translateY(0.04rem) scale(calc(var(--pull-wave-scale-x) * 0.98), calc(var(--pull-wave-scale-y) * 1.04));
-  }
-
-  100% {
-    border-radius: 999px;
-    transform: translateX(-50%) scale(var(--pull-wave-scale-x), var(--pull-wave-scale-y));
-  }
-}
-
-@keyframes pull-refresh-wave-back {
-  0% {
-    transform: translateX(-50%) translateY(0) scaleX(0.9);
-  }
-
-  48% {
-    transform: translateX(calc(-50% - 0.42rem)) translateY(-0.12rem) scaleX(1.05);
-  }
-
-  100% {
-    transform: translateX(-50%) translateY(0) scaleX(0.9);
-  }
-}
-
-@keyframes pull-refresh-wave-mid {
-  0% {
-    transform: translateX(-50%) translateY(0) scaleX(1);
-  }
-
-  46% {
-    transform: translateX(calc(-50% + 0.36rem)) translateY(0.11rem) scaleX(0.92);
-  }
-
-  100% {
-    transform: translateX(-50%) translateY(0) scaleX(1);
-  }
-}
-
-@keyframes pull-refresh-wave-front {
-  0% {
-    transform: translateX(-50%) translateY(0) scaleX(0.96);
-  }
-
-  52% {
-    transform: translateX(calc(-50% - 0.28rem)) translateY(-0.08rem) scaleX(1.04);
-  }
-
-  100% {
-    transform: translateX(-50%) translateY(0) scaleX(0.96);
-  }
-}
-
-@keyframes pull-refresh-wave-sheen {
-  0% {
-    opacity: 0.18;
-    transform: translateX(calc(-50% - 0.7rem)) scaleX(0.78);
-  }
-
-  48% {
-    opacity: 0.34;
-    transform: translateX(calc(-50% + 0.62rem)) scaleX(1.04);
-  }
-
-  100% {
-    opacity: 0.18;
-    transform: translateX(calc(-50% - 0.7rem)) scaleX(0.78);
-  }
-}
 
 @keyframes gallery-slide-next {
   from {
