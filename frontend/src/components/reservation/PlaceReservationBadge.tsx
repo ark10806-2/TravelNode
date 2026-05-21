@@ -16,8 +16,8 @@ export function PlaceReservationBadge({ reservations, className, compact = false
     <button
       type="button"
       className={cn(
-        'inline-flex h-7 max-w-full items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-2.5 text-xs font-bold text-primary transition hover:border-primary/40 hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        compact && 'h-6 px-2 text-[11px]',
+        'inline-flex h-6 max-w-full items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-2.5 text-[11px] font-bold leading-none text-primary transition hover:border-primary/40 hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        compact && 'px-2',
         className
       )}
       onClick={(event) => {

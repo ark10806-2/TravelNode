@@ -1,6 +1,5 @@
 import { ExternalLink, Navigation, Pencil, Utensils } from 'lucide-react';
 import { MarkdownText } from '@/components/common/MarkdownText';
-import { PlaceReservationBadge } from '@/components/reservation/PlaceReservationBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,7 +15,7 @@ import type { Reservation } from '@/types/reservation';
 import type { CategoryId, CategoryOption, PhotoState, Place } from '@/types/travel';
 import { CategoryMoveSelect } from './CategoryMoveSelect';
 import { PhotoBundlePreview } from './PhotoBundlePreview';
-import { PlaceScheduleBadges } from './PlaceScheduleBadges';
+import { PlaceContextBadges } from './PlaceContextBadges';
 
 type SelectedPlacePanelProps = {
   place: Place | null;
@@ -67,17 +66,18 @@ export function SelectedPlacePanel({
       <div className="flex h-full flex-col gap-3.5 sm:gap-4">
         <div className="flex items-start justify-between gap-2 sm:gap-3">
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <Badge variant="outline" className={`rounded-full ${getCategoryBadgeClass(place.category)}`}>
-                {category.emoji} {category.label}
-              </Badge>
-              <PlaceReservationBadge
-                reservations={reservations}
-                compact
-                onOpen={() => onOpenReservations(place, reservations)}
-              />
-              <PlaceScheduleBadges labels={scheduleLabels} compact />
-            </div>
+            <PlaceContextBadges
+              reservations={reservations}
+              scheduleLabels={scheduleLabels}
+              needsReview={needsReview}
+              compact
+              leading={
+                <Badge variant="outline" className={getCategoryBadgeClass(place.category)}>
+                  {category.emoji} {category.label}
+                </Badge>
+              }
+              onOpenReservations={() => onOpenReservations(place, reservations)}
+            />
             <h2 className="mt-2 line-clamp-2 text-lg font-bold leading-snug tracking-tight sm:mt-3 sm:text-2xl">{place.name}</h2>
           </div>
           <div className="flex shrink-0 items-center gap-1">
@@ -125,11 +125,6 @@ export function SelectedPlacePanel({
             <div className="rounded-lg bg-secondary p-3">
               <div className="text-xs font-semibold text-muted-foreground">설명</div>
               {visibleDescription ? <MarkdownText className="mt-1 text-sm" text={visibleDescription} /> : null}
-              {needsReview ? (
-                <Badge variant="outline" className="mt-2 rounded-full bg-background text-muted-foreground">
-                  정보 보강 필요
-                </Badge>
-              ) : null}
             </div>
           ) : null}
           {visibleNote ? (

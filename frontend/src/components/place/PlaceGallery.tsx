@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type TouchEvent } from 'react';
 import { ChevronLeft, ChevronRight, Images, MapPin, Pencil } from 'lucide-react';
 import { MarkdownInline } from '@/components/common/MarkdownText';
-import { PlaceReservationBadge } from '@/components/reservation/PlaceReservationBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { travelLabel } from '@/constants/travel';
@@ -10,7 +9,7 @@ import { cn } from '@/lib/utils';
 import type { Reservation } from '@/types/reservation';
 import type { CategoryId, CategoryOption, NearbyPlace, PhotoState, Place } from '@/types/travel';
 import { CategoryMoveSelect } from './CategoryMoveSelect';
-import { PlaceScheduleBadges } from './PlaceScheduleBadges';
+import { PlaceContextBadges } from './PlaceContextBadges';
 
 type PlaceGalleryProps = {
   places: NearbyPlace[];
@@ -229,23 +228,24 @@ export function PlaceGallery({
           <div className="flex min-w-0 flex-col gap-2 border-t p-2.5 sm:gap-3 sm:p-4 lg:border-l lg:border-t-0">
             <div className="flex min-w-0 items-center justify-between gap-2">
               <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                <Badge variant="outline" className="rounded-full px-2 py-0.5 text-[10px] sm:text-xs">
-                  {activePosition}
-                </Badge>
-                {onOpenReservations ? (
-                  <PlaceReservationBadge
-                    reservations={activeReservations}
-                    compact
-                    onOpen={() => onOpenReservations(activePlace, activeReservations)}
-                  />
-                ) : null}
-                <PlaceScheduleBadges labels={activeScheduleLabels} compact />
-                {isDuplicateCandidate ? (
-                  <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/35 dark:text-amber-200">
-                    중복 후보
-                  </Badge>
-                ) : null}
+                <PlaceContextBadges
+                  reservations={activeReservations}
+                  scheduleLabels={activeScheduleLabels}
+                  isDuplicateCandidate={isDuplicateCandidate}
+                  needsReview={needsReview}
+                  compact
+                  leading={
+                    <Badge variant="outline" className="bg-background/80">
+                      {activePosition}
+                    </Badge>
+                  }
+                  onOpenReservations={onOpenReservations ? () => onOpenReservations(activePlace, activeReservations) : undefined}
+                />
               </div>
+              <span className="inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-secondary px-2 text-[11px] font-bold leading-none text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5" />
+                {activePlace.distanceFromSelectedKm.toFixed(1)}km
+              </span>
               <div className="flex shrink-0 gap-1">
                 <Button
                   variant="outline"
@@ -276,11 +276,6 @@ export function PlaceGallery({
                 <p className="line-clamp-2 text-xs leading-5 text-muted-foreground sm:mt-2 sm:text-sm sm:leading-6">
                   설명: <MarkdownInline text={visibleDescription} />
                 </p>
-              ) : null}
-              {needsReview ? (
-                <Badge variant="outline" className="mt-1 rounded-full bg-background text-[11px] text-muted-foreground">
-                  정보 보강 필요
-                </Badge>
               ) : null}
             </div>
 

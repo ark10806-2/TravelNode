@@ -1,19 +1,13 @@
 import { ChevronDown, MapPin } from 'lucide-react';
 import { MarkdownInline } from '@/components/common/MarkdownText';
-import { PlaceReservationBadge } from '@/components/reservation/PlaceReservationBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  getCategoryBadgeClass,
-  getVisibleGoogleMapsNote,
-  getVisiblePlaceDescription,
-  shouldShowPlaceInfoNeedsReview
-} from '@/lib/place-utils';
+import { getVisibleGoogleMapsNote, getVisiblePlaceDescription, shouldShowPlaceInfoNeedsReview } from '@/lib/place-utils';
 import { cn } from '@/lib/utils';
 import type { Reservation } from '@/types/reservation';
 import type { CategoryId, CategoryOption, NearbyPlace, PhotoState, Place } from '@/types/travel';
+import { PlaceContextBadges } from './PlaceContextBadges';
 import { PlaceExpandedDetails } from './PlaceExpandedDetails';
-import { PlaceScheduleBadges } from './PlaceScheduleBadges';
 import { PlaceThumbnailButton } from './PlaceThumbnailButton';
 
 type PlaceExpandableRowProps = {
@@ -92,38 +86,25 @@ export function PlaceExpandableRow({
         />
 
         <div className="col-start-2 min-w-0 pr-7 sm:col-auto sm:pr-0">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <Badge variant="outline" className={cn('rounded-full', getCategoryBadgeClass(place.category))}>
-              {category.emoji} {category.label}
-            </Badge>
-            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+          <div className="flex min-w-0 items-start justify-between gap-2">
+            <PlaceContextBadges
+              reservations={reservations}
+              scheduleLabels={scheduleLabels}
+              isDuplicateCandidate={isDuplicateCandidate}
+              needsReview={needsReview}
+              compact
+              onOpenReservations={onOpenReservations ? () => onOpenReservations(place, reservations) : undefined}
+            />
+            <span className="ml-auto inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-secondary px-2 text-[11px] font-bold leading-none text-muted-foreground">
               <MapPin className="h-3.5 w-3.5" />
               {place.distanceFromSelectedKm.toFixed(1)}km
             </span>
-            {onOpenReservations ? (
-              <PlaceReservationBadge
-                reservations={reservations}
-                compact
-                onOpen={() => onOpenReservations(place, reservations)}
-              />
-            ) : null}
-            <PlaceScheduleBadges labels={scheduleLabels} compact />
-            {isDuplicateCandidate ? (
-              <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 px-1.5 py-0 text-[10px] font-bold text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/35 dark:text-amber-200">
-                중복 후보
-              </Badge>
-            ) : null}
           </div>
           <h3 className="mt-1.5 line-clamp-2 text-base font-bold leading-snug sm:truncate">{place.name}</h3>
           {visibleDescription ? (
             <div className="mt-1 line-clamp-1 text-xs font-medium text-foreground/75">
               설명: <MarkdownInline text={visibleDescription} />
             </div>
-          ) : null}
-          {needsReview ? (
-            <Badge variant="outline" className="mt-1 rounded-full bg-background text-[11px] text-muted-foreground">
-              정보 보강 필요
-            </Badge>
           ) : null}
           {visibleNote ? (
             <div className="mt-1 line-clamp-1 text-xs font-medium text-muted-foreground">
@@ -133,7 +114,7 @@ export function PlaceExpandableRow({
         </div>
 
         <SummaryCell className="col-span-3 sm:col-auto" label="대표 항목" value={place.menu} />
-        <SummaryCell className="col-span-3 sm:col-auto" label="카테고리" value={place.cuisine} muted />
+        <SummaryCell className="col-span-3 sm:col-auto" label="분류" value={`${category.emoji} ${category.label}${place.cuisine ? ` · ${place.cuisine}` : ''}`} muted />
 
         {enableExpandedDetails ? (
           <Button

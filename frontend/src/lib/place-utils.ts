@@ -33,15 +33,15 @@ export function mergeCategoryOptions(current: CategoryOption[], category: Catego
 
 export function getCategoryBadgeClass(category: CategoryId) {
   if (category === 'meal') {
-    return 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200';
+    return 'border-orange-200 bg-orange-50 text-orange-900 dark:border-orange-900/60 dark:bg-orange-950/30 dark:text-orange-200';
   }
   if (category === 'dessert') {
-    return 'border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900/60 dark:bg-rose-950/35 dark:text-rose-200';
+    return 'border-pink-200 bg-pink-50 text-pink-900 dark:border-pink-900/60 dark:bg-pink-950/35 dark:text-pink-200';
   }
   if (category === 'sightseeing') {
     return 'border-teal-200 bg-teal-50 text-teal-900 dark:border-teal-900/60 dark:bg-teal-950/35 dark:text-teal-200';
   }
-  return 'border-neutral-200 bg-neutral-50 text-neutral-800 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200';
+  return 'border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/60 dark:bg-sky-950/35 dark:text-sky-200';
 }
 
 export function getPlaceInfoUrl(place: Pick<Place, 'name' | 'address'>) {

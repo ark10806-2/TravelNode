@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, Building2, CalendarDays, Gauge, MapPinPlus, MapPinned, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
 import { AccommodationSelectorDialog } from '@/components/dialogs/AccommodationSelectorDialog';
 import { MarkdownInline } from '@/components/common/MarkdownText';
-import { PlaceReservationBadge } from '@/components/reservation/PlaceReservationBadge';
+import { PlaceContextBadges } from '@/components/place/PlaceContextBadges';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -364,17 +364,18 @@ export function DayScheduleCard({
                       {place ? (
                         <div className="grid min-w-0 gap-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-3">
                           <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Badge variant="outline" className={getCategoryBadgeClass(place.category)}>
-                                {getCategoryOption(categories, place.category).emoji}{' '}
-                                {getCategoryOption(categories, place.category).label}
-                              </Badge>
-                              <PlaceReservationBadge
-                                reservations={placeReservations}
-                                compact
-                                onOpen={() => onOpenReservations(place, placeReservations)}
-                              />
-                            </div>
+                            <PlaceContextBadges
+                              reservations={placeReservations}
+                              needsReview={shouldShowPlaceInfoNeedsReview(place)}
+                              compact
+                              leading={
+                                <Badge variant="outline" className={getCategoryBadgeClass(place.category)}>
+                                  {getCategoryOption(categories, place.category).emoji}{' '}
+                                  {getCategoryOption(categories, place.category).label}
+                                </Badge>
+                              }
+                              onOpenReservations={() => onOpenReservations(place, placeReservations)}
+                            />
                             <button
                               type="button"
                               className="mt-1 block max-w-full text-left text-base font-semibold leading-snug underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:truncate"
@@ -387,11 +388,6 @@ export function DayScheduleCard({
                               <div className="mt-1 hidden line-clamp-2 text-sm leading-5 text-foreground/75 sm:block">
                                 설명: <MarkdownInline text={getVisiblePlaceDescription(place)} />
                               </div>
-                            ) : null}
-                            {shouldShowPlaceInfoNeedsReview(place) ? (
-                              <Badge variant="outline" className="mt-1 hidden rounded-full bg-background text-[11px] text-muted-foreground sm:inline-flex">
-                                정보 보강 필요
-                              </Badge>
                             ) : null}
                             {getVisibleGoogleMapsNote(place) ? (
                               <div className="mt-1 hidden line-clamp-2 text-sm leading-5 text-muted-foreground sm:block">
