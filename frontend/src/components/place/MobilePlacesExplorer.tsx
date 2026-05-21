@@ -250,13 +250,11 @@ function MobilePlaceCard({
         />
 
         {place.menu ? (
-          <p className="mt-1.5 truncate text-xs leading-5 text-foreground/75">
-            <span className="font-bold text-muted-foreground">대표</span> {place.menu}
-          </p>
+          <p className="mt-1.5 truncate text-xs leading-5 text-foreground/75">{place.menu}</p>
         ) : null}
         {note ? (
           <p className="truncate text-xs leading-5 text-muted-foreground">
-            <span className="font-bold">메모</span> <MarkdownInline text={note} />
+            <MarkdownInline text={note} />
           </p>
         ) : null}
 
