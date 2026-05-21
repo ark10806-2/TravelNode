@@ -94,7 +94,7 @@ function AuthenticatedApp({ auth }: { auth: ReturnType<typeof useAuth> }) {
   }
 
   return (
-    <main className="app-background min-h-[100dvh] overflow-x-hidden">
+    <main className="app-background min-h-[100dvh] overflow-x-clip">
       <AppTabs
         activeTab={activeTab}
         isAuthenticated={auth.isAuthenticated}

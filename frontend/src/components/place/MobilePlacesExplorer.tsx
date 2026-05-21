@@ -1,4 +1,4 @@
-import { useEffect, useRef, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { CalendarDays, Images, Pencil, Trash2 } from 'lucide-react';
 import { MarkdownInline } from '@/components/common/MarkdownText';
 import { PlaceContextBadges } from '@/components/place/PlaceContextBadges';
@@ -118,7 +118,10 @@ export function MobilePlacesExplorer({
   onOpenReservations
 }: MobilePlacesExplorerProps) {
   const mapSentinelRef = useRef<HTMLDivElement | null>(null);
+  const mapSlotRef = useRef<HTMLDivElement | null>(null);
   const mapShellRef = useRef<HTMLDivElement | null>(null);
+  const isMapPinnedRef = useRef(false);
+  const [isMapPinned, setIsMapPinned] = useState(false);
 
   useEffect(() => {
     places.forEach((place) => {
@@ -132,8 +135,9 @@ export function MobilePlacesExplorer({
 
     function updateMapHeight() {
       const sentinel = mapSentinelRef.current;
+      const slot = mapSlotRef.current;
       const shell = mapShellRef.current;
-      if (!sentinel || !shell) return;
+      if (!sentinel || !slot || !shell) return;
 
       const stickyTop = Number.parseFloat(window.getComputedStyle(shell).top) || 0;
       const sentinelTop = sentinel.getBoundingClientRect().top;
@@ -146,8 +150,15 @@ export function MobilePlacesExplorer({
       const shrinkDistance = Math.max(startTop - stickyTop, 1);
       const progress = Math.min(Math.max((startTop - sentinelTop) / shrinkDistance, 0), 1);
       const nextHeight = expandedRouteMapHeight - (expandedRouteMapHeight - compactRouteMapHeight) * progress;
+      const nextPinned = sentinelTop <= stickyTop;
 
       shell.style.setProperty('--mobile-route-map-height', `${nextHeight.toFixed(1)}px`);
+      slot.style.setProperty('--mobile-route-map-slot-height', `${shell.getBoundingClientRect().height.toFixed(1)}px`);
+
+      if (isMapPinnedRef.current !== nextPinned) {
+        isMapPinnedRef.current = nextPinned;
+        setIsMapPinned(nextPinned);
+      }
     }
 
     function requestUpdate() {
@@ -176,33 +187,43 @@ export function MobilePlacesExplorer({
 
   return (
     <div className="grid gap-3 md:hidden">
-      <div ref={mapSentinelRef} aria-hidden="true" className="h-0" />
+      <div ref={mapSentinelRef} data-mobile-route-map-sentinel aria-hidden="true" className="h-0" />
       <div
-        ref={mapShellRef}
-        className="sticky top-[3.25rem] z-30 -mx-1 rounded-b-2xl bg-background/95 px-1 pb-2 pt-1 shadow-sm shadow-black/5 backdrop-blur [--mobile-route-map-height:235px]"
+        ref={mapSlotRef}
+        data-mobile-route-map-slot
+        className={cn('relative [--mobile-route-map-slot-height:0px]', isMapPinned && 'min-h-[var(--mobile-route-map-slot-height)]')}
       >
-        <div className="mb-2 flex items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
-          <span className="font-semibold">선택 DAY 동선</span>
-          <span>{dayPlaces.length}곳 기준</span>
+        <div
+          ref={mapShellRef}
+          data-mobile-route-map-shell
+          className={cn(
+            'z-30 rounded-b-2xl bg-background/95 px-1 pb-2 pt-1 shadow-sm shadow-black/5 backdrop-blur [--mobile-route-map-height:235px]',
+            isMapPinned ? 'fixed left-3 right-3 top-[2.75rem]' : 'sticky top-[2.75rem] -mx-1 self-start'
+          )}
+        >
+          <div className="mb-2 flex items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
+            <span className="font-semibold">선택 DAY 동선</span>
+            <span>{dayPlaces.length}곳 기준</span>
+          </div>
+          <TravelMap
+            places={emptyMapPlaces}
+            selectedPlace={selectedPlace}
+            referencePlace={referencePlace}
+            contextPlaces={dayPlaces}
+            status={status}
+            isDarkMode={isDarkMode}
+            compact
+            minHeight="var(--mobile-route-map-height)"
+            className="rounded-2xl transition-[min-height] duration-100 ease-out"
+            onSelectPlace={onSelectPlace}
+          />
         </div>
-        <TravelMap
-          places={emptyMapPlaces}
-          selectedPlace={selectedPlace}
-          referencePlace={referencePlace}
-          contextPlaces={dayPlaces}
-          status={status}
-          isDarkMode={isDarkMode}
-          compact
-          minHeight="var(--mobile-route-map-height)"
-          className="rounded-2xl transition-[min-height] duration-100 ease-out"
-          onSelectPlace={onSelectPlace}
-        />
       </div>
 
       <div className="flex items-center justify-between gap-3 px-0.5">
         <div>
           <h2 className="text-base font-extrabold">{categoryLabel}</h2>
-          <p className="text-xs text-muted-foreground">일정 장소와 평균 거리가 가까운 순 · 선택 후 더블탭 추가</p>
+          <p className="text-xs text-muted-foreground">일정 장소와 평균 거리가 가까운 순 · 선택 후 길게 눌러 상세</p>
           {scheduleActionMessage ? (
             <p className="mt-1 text-xs font-semibold text-primary">{scheduleActionMessage}</p>
           ) : null}
