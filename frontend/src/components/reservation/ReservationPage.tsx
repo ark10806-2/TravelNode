@@ -35,7 +35,7 @@ import { mergeReservationAttachments, readReservationAttachment } from '@/lib/re
 import { defaultReservationPlatforms, parseGoogleBookingsCsv, parseGoogleBookingsCsvRows, parseGoogleReservationText } from '@/lib/reservation-import';
 import { sortReservationsBySchedule } from '@/lib/reservation-sort';
 import { downloadReservationAttachment, formatBytes, formatReservationDayLabel, normalizeLink } from '@/lib/reservation-utils';
-import { getVisibleGoogleMapsNote, getVisiblePlaceDescription } from '@/lib/place-utils';
+import { getCategoryBadgeClass, getCategoryOption, getVisibleGoogleMapsNote, getVisiblePlaceDescription } from '@/lib/place-utils';
 import { cn } from '@/lib/utils';
 import type { Reservation, ReservationAttachment, ReservationDraft, ReservationType } from '@/types/reservation';
 import type { ScheduleDay } from '@/types/schedule';
@@ -235,6 +235,7 @@ export function ReservationPage({
                   key={reservation.id}
                   reservation={reservation}
                   place={place}
+                  categories={categories}
                   dayCount={dayCount}
                   scheduleDays={scheduleDays}
                   places={places}
@@ -322,6 +323,7 @@ export function ReservationPage({
 function ReservationCard({
   reservation,
   place,
+  categories,
   dayCount,
   scheduleDays,
   places,
@@ -337,6 +339,7 @@ function ReservationCard({
 }: {
   reservation: Reservation;
   place: Place | null;
+  categories: CategoryOption[];
   dayCount: number;
   scheduleDays: ScheduleDay[];
   places: Place[];
@@ -378,6 +381,7 @@ function ReservationCard({
 
   const meta = reservationTypeMeta[reservation.reservationType];
   const Icon = meta.icon;
+  const placeCategory = place ? getCategoryOption(categories, place.category) : null;
   const normalizedLink = normalizeLink(reservation.linkUrl);
   const hasDetails = Boolean(reservation.notes || reservation.attachments.length);
 
@@ -392,6 +396,11 @@ function ReservationCard({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
+              {placeCategory ? (
+                <Badge variant="outline" className={cn('rounded-full', getCategoryBadgeClass(placeCategory.id))}>
+                  {placeCategory.emoji} {placeCategory.label}
+                </Badge>
+              ) : null}
               <Badge variant="outline" className={cn('rounded-full', meta.className)}>
                 <Icon className="mr-1 h-3.5 w-3.5" />
                 {meta.label}
