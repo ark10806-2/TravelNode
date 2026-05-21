@@ -97,14 +97,22 @@ export function useTravelPlaces() {
     return nextPlaces;
   }, []);
 
-  useEffect(() => {
-    Promise.all([refreshCategories(), refreshPlaces()])
-      .then(() => setStatus('ready'))
-      .catch((requestError: Error) => {
-        setError(requestError.message);
-        setStatus('error');
-      });
+  const refreshAll = useCallback(async () => {
+    setStatus('loading');
+    setError('');
+
+    try {
+      await Promise.all([refreshCategories(), refreshPlaces()]);
+      setStatus('ready');
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : '서버에서 장소 데이터를 불러오지 못했습니다.');
+      setStatus('error');
+    }
   }, [refreshCategories, refreshPlaces]);
+
+  useEffect(() => {
+    void refreshAll();
+  }, [refreshAll]);
 
   const addCategory = useCallback((category: CategoryOption) => {
     setCategories((current) => mergeCategoryOptions(current, category));
@@ -252,7 +260,8 @@ export function useTravelPlaces() {
     deletePlace,
     deleteCategory,
     loadPhotos,
-    refreshPlaces
+    refreshPlaces,
+    refreshAll
   };
 }
 

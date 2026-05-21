@@ -22,6 +22,7 @@ type PlaceListProps = {
   photoCache: Record<string, PhotoState>;
   reservationsByPlaceId?: Record<string, Reservation[]>;
   scheduleLabelsByPlaceId?: Record<string, string[]>;
+  duplicatePlaceIds?: Set<string>;
   onLoadPhotos: (place: Place) => Promise<void>;
   onAdd: () => void;
   onDelete: (place: Place) => void;
@@ -53,6 +54,7 @@ export function PlaceList({
   photoCache,
   reservationsByPlaceId = {},
   scheduleLabelsByPlaceId = {},
+  duplicatePlaceIds = new Set<string>(),
   onLoadPhotos,
   onAdd,
   onDelete,
@@ -104,6 +106,7 @@ export function PlaceList({
           photoCache={photoCache}
           reservationsByPlaceId={reservationsByPlaceId}
           scheduleLabelsByPlaceId={scheduleLabelsByPlaceId}
+          duplicatePlaceIds={duplicatePlaceIds}
           onLoadPhotos={onLoadPhotos}
           onOpenPhotos={onOpenPhotos}
           onOpenReservations={onOpenReservations}
@@ -133,6 +136,7 @@ export function PlaceList({
                   photoState={photoCache[place.id] ?? emptyPhotoState}
                   reservations={reservationsByPlaceId[place.id] ?? []}
                   scheduleLabels={scheduleLabelsByPlaceId[place.id] ?? []}
+                  isDuplicateCandidate={duplicatePlaceIds.has(place.id)}
                   isExpanded={enableExpandedDetails && expandedPlaceId === place.id}
                   isSelected={selectedPlaceId === place.id}
                   enableExpandedDetails={enableExpandedDetails}

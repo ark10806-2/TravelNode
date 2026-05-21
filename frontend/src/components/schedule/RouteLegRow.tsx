@@ -69,11 +69,13 @@ export function RouteLegRow({
         <div
           className="relative w-full max-w-[22rem] rounded-2xl bg-background/95 px-2.5 py-2 text-xs text-muted-foreground/80 shadow-sm shadow-black/5 sm:mr-auto sm:max-w-[34rem] sm:px-2 sm:py-1.5 sm:text-[11px]"
         >
-          <div className="mb-1.5 flex flex-wrap items-center gap-1 sm:absolute sm:left-2 sm:top-[-0.8rem] sm:mb-0">
-            <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[11px] font-semibold leading-none text-muted-foreground/75 sm:text-[10px]">
-              {departureTimeMinutes == null ? '현재 기준' : `기준 ${formatDepartureTime(departureTimeMinutes)}`}
-            </span>
-          </div>
+          {departureTimeMinutes != null ? (
+            <div className="mb-1.5 flex flex-wrap items-center gap-1 sm:absolute sm:left-2 sm:top-[-0.8rem] sm:mb-0">
+              <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[11px] font-semibold leading-none text-muted-foreground/75 sm:text-[10px]">
+                기준 {formatDepartureTime(departureTimeMinutes)}
+              </span>
+            </div>
+          ) : null}
           <div
             className="grid items-stretch gap-1 sm:items-center sm:gap-2"
             style={{ gridTemplateColumns: `repeat(${modes.length}, minmax(0, 1fr))` }}

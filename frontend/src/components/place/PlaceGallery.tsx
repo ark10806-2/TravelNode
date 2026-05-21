@@ -17,6 +17,7 @@ type PlaceGalleryProps = {
   photoCache: Record<string, PhotoState>;
   reservationsByPlaceId?: Record<string, Reservation[]>;
   scheduleLabelsByPlaceId?: Record<string, string[]>;
+  duplicatePlaceIds?: Set<string>;
   onLoadPhotos: (place: Place) => Promise<void>;
   onOpenPhotos: (place: Place) => void;
   onOpenReservations?: (place: Place, reservations: Reservation[]) => void;
@@ -32,6 +33,7 @@ export function PlaceGallery({
   photoCache,
   reservationsByPlaceId = {},
   scheduleLabelsByPlaceId = {},
+  duplicatePlaceIds = new Set<string>(),
   onLoadPhotos,
   onOpenPhotos,
   onOpenReservations,
@@ -54,6 +56,7 @@ export function PlaceGallery({
   const activePhoto = activePhotos[activePhotoIndex] ?? activePhotos[0] ?? null;
   const activeReservations = activePlace ? reservationsByPlaceId[activePlace.id] ?? [] : [];
   const activeScheduleLabels = activePlace ? scheduleLabelsByPlaceId[activePlace.id] ?? [] : [];
+  const isDuplicateCandidate = activePlace ? duplicatePlaceIds.has(activePlace.id) : false;
   const isActivePhotoVisible = Boolean(activePhoto && !failedPhotoUrls.has(activePhoto.url));
   const visibleDescription = activePlace ? getVisiblePlaceDescription(activePlace) : '';
   const visibleNote = activePlace ? getVisibleGoogleMapsNote(activePlace) : '';
@@ -237,6 +240,11 @@ export function PlaceGallery({
                   />
                 ) : null}
                 <PlaceScheduleBadges labels={activeScheduleLabels} compact />
+                {isDuplicateCandidate ? (
+                  <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/35 dark:text-amber-200">
+                    중복 후보
+                  </Badge>
+                ) : null}
               </div>
               <div className="flex shrink-0 gap-1">
                 <Button

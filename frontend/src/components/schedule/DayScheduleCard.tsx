@@ -274,15 +274,23 @@ export function DayScheduleCard({
               </Button>
             ) : null}
             {!isEditing && scheduledPlaces.length > 0 ? (
-              <Button
-                className="min-w-0 flex-1 rounded-full px-2 text-xs sm:flex-none sm:px-3 sm:text-sm"
-                variant="outline"
-                onClick={onRefreshRoutes}
-                disabled={isRefreshingRoutes || isCalculatingPreciseRoutes || routeRefreshRemainingSeconds > 0}
-              >
-                <RefreshCw className={`h-4 w-4 ${isRefreshingRoutes ? 'animate-spin' : ''}`} />
-                {routeRefreshRemainingSeconds > 0 ? `${routeRefreshRemainingSeconds}초 후` : '경로 새로고침'}
-              </Button>
+              <details className="col-span-2 sm:col-span-1 sm:min-w-40">
+                <summary className="flex h-10 cursor-pointer list-none items-center justify-center gap-2 rounded-full border bg-background px-3 text-xs font-semibold text-muted-foreground marker:hidden transition hover:bg-secondary sm:text-sm">
+                  <RefreshCw className={`h-4 w-4 ${isRefreshingRoutes ? 'animate-spin' : ''}`} />
+                  경로 관리
+                </summary>
+                <div className="mt-2 rounded-xl border bg-background p-2 shadow-sm">
+                  <Button
+                    className="w-full rounded-full px-2 text-xs sm:px-3 sm:text-sm"
+                    variant="ghost"
+                    onClick={onRefreshRoutes}
+                    disabled={isRefreshingRoutes || isCalculatingPreciseRoutes || routeRefreshRemainingSeconds > 0}
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isRefreshingRoutes ? 'animate-spin' : ''}`} />
+                    {routeRefreshRemainingSeconds > 0 ? `${routeRefreshRemainingSeconds}초 후` : '경로 새로고침'}
+                  </Button>
+                </div>
+              </details>
             ) : null}
             {isEditing ? (
               <>
@@ -376,17 +384,17 @@ export function DayScheduleCard({
                             </button>
                             <div className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground sm:line-clamp-1">{place.menu}</div>
                             {getVisiblePlaceDescription(place) ? (
-                              <div className="mt-1 line-clamp-2 text-sm leading-5 text-foreground/75">
+                              <div className="mt-1 hidden line-clamp-2 text-sm leading-5 text-foreground/75 sm:block">
                                 설명: <MarkdownInline text={getVisiblePlaceDescription(place)} />
                               </div>
                             ) : null}
                             {shouldShowPlaceInfoNeedsReview(place) ? (
-                              <Badge variant="outline" className="mt-1 rounded-full bg-background text-[11px] text-muted-foreground">
+                              <Badge variant="outline" className="mt-1 hidden rounded-full bg-background text-[11px] text-muted-foreground sm:inline-flex">
                                 정보 보강 필요
                               </Badge>
                             ) : null}
                             {getVisibleGoogleMapsNote(place) ? (
-                              <div className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
+                              <div className="mt-1 hidden line-clamp-2 text-sm leading-5 text-muted-foreground sm:block">
                                 메모: <MarkdownInline text={getVisibleGoogleMapsNote(place)} />
                               </div>
                             ) : null}

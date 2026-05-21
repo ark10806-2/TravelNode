@@ -244,51 +244,46 @@ export function PlacePickerDialog({
           </div>
 
           <aside className="order-first shrink-0 border-b bg-muted/25 p-3 sm:p-4 lg:order-none lg:border-b-0 lg:border-l">
-            <div className="sticky top-4 grid gap-3">
-              <div className="grid grid-cols-2 gap-2 rounded-full border bg-background p-1">
-                <Button
-                  type="button"
-                  className="rounded-full"
-                  variant={sideView === 'route' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setSideView('route')}
-                >
-                  동선
-                </Button>
-                <Button
-                  type="button"
-                  className="rounded-full"
-                  variant={sideView === 'details' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setSideView('details')}
-                >
-                  세부사항
-                </Button>
-              </div>
-
-              {sideView === 'route' ? (
-                <PlacePickerRoutePreview
+            <details className="lg:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl border bg-background px-3 py-2.5 text-sm font-bold marker:hidden">
+                <span>동선 미리보기와 세부사항</span>
+                <Badge variant="outline" className="rounded-full bg-secondary">
+                  {selectedPlaces.length}개 선택
+                </Badge>
+              </summary>
+              <div className="mt-3">
+                <PlacePickerSideContent
+                  sideView={sideView}
+                  onSideViewChange={setSideView}
                   dayLabel={dayLabel}
                   anchorPlace={anchorPlace}
                   scheduledPlaces={scheduledPlaces}
                   selectedPlaces={selectedPlaces}
+                  focusedPlace={focusedPlace}
                   focusedPlaceId={focusedPlaceId}
+                  focusedPhotoState={focusedPhotoState}
+                  categories={categories}
                   isDarkMode={isDarkMode}
+                  compactMap
                   onFocusPlace={setFocusedPlaceId}
                 />
-              ) : (
-                focusedPlace ? (
-                  <PlacePickerDetails
-                    place={focusedPlace}
-                    category={getCategoryOption(categories, focusedPlace.category)}
-                    photoState={focusedPhotoState}
-                  />
-                ) : (
-                  <div className="grid min-h-64 place-items-center rounded-md border bg-background p-6 text-center text-sm text-muted-foreground">
-                    세부사항을 볼 장소가 없습니다.
-                  </div>
-                )
-              )}
+              </div>
+            </details>
+            <div className="sticky top-4 hidden gap-3 lg:grid">
+              <PlacePickerSideContent
+                sideView={sideView}
+                onSideViewChange={setSideView}
+                dayLabel={dayLabel}
+                anchorPlace={anchorPlace}
+                scheduledPlaces={scheduledPlaces}
+                selectedPlaces={selectedPlaces}
+                focusedPlace={focusedPlace}
+                focusedPlaceId={focusedPlaceId}
+                focusedPhotoState={focusedPhotoState}
+                categories={categories}
+                isDarkMode={isDarkMode}
+                onFocusPlace={setFocusedPlaceId}
+              />
             </div>
           </aside>
         </div>
@@ -319,6 +314,7 @@ function PlacePickerRoutePreview({
   selectedPlaces,
   focusedPlaceId,
   isDarkMode,
+  compactMap = false,
   onFocusPlace
 }: {
   dayLabel: string;
@@ -327,6 +323,7 @@ function PlacePickerRoutePreview({
   selectedPlaces: Place[];
   focusedPlaceId: string | null;
   isDarkMode: boolean;
+  compactMap?: boolean;
   onFocusPlace: (placeId: string) => void;
 }) {
   const mapRef = useRef<HTMLDivElement | null>(null);
@@ -444,7 +441,7 @@ function PlacePickerRoutePreview({
             {routePlaces.length}곳
           </span>
         </div>
-        <div className="relative h-60 bg-muted sm:h-72 lg:h-72">
+        <div className={cn('relative bg-muted', compactMap ? 'h-40 sm:h-56' : 'h-60 sm:h-72 lg:h-72')}>
           {status !== 'error' ? <div ref={mapRef} className="h-full w-full" /> : null}
           {status === 'ready' ? (
             <div className="pointer-events-none absolute left-3 top-3 max-w-[calc(100%-1.5rem)] rounded-full border bg-background/90 px-3 py-2 shadow-sm backdrop-blur">
@@ -491,6 +488,84 @@ function PlacePickerRoutePreview({
         tone="added"
         onFocusPlace={onFocusPlace}
       />
+    </div>
+  );
+}
+
+function PlacePickerSideContent({
+  sideView,
+  onSideViewChange,
+  dayLabel,
+  anchorPlace,
+  scheduledPlaces,
+  selectedPlaces,
+  focusedPlace,
+  focusedPlaceId,
+  focusedPhotoState,
+  categories,
+  isDarkMode,
+  compactMap = false,
+  onFocusPlace
+}: {
+  sideView: 'route' | 'details';
+  onSideViewChange: (view: 'route' | 'details') => void;
+  dayLabel: string;
+  anchorPlace: Place;
+  scheduledPlaces: Place[];
+  selectedPlaces: Place[];
+  focusedPlace: Place | null;
+  focusedPlaceId: string | null;
+  focusedPhotoState: PhotoState;
+  categories: CategoryOption[];
+  isDarkMode: boolean;
+  compactMap?: boolean;
+  onFocusPlace: (placeId: string) => void;
+}) {
+  const focusedCategory = focusedPlace ? getCategoryOption(categories, focusedPlace.category) : null;
+
+  return (
+    <div className="grid gap-3">
+      <div className="grid grid-cols-2 gap-2 rounded-full bg-secondary p-1">
+        <button
+          type="button"
+          className={cn(
+            'rounded-full px-3 py-2 text-sm font-bold transition',
+            sideView === 'route' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
+          )}
+          onClick={() => onSideViewChange('route')}
+        >
+          동선
+        </button>
+        <button
+          type="button"
+          className={cn(
+            'rounded-full px-3 py-2 text-sm font-bold transition',
+            sideView === 'details' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
+          )}
+          onClick={() => onSideViewChange('details')}
+        >
+          세부사항
+        </button>
+      </div>
+
+      {sideView === 'route' ? (
+        <PlacePickerRoutePreview
+          dayLabel={dayLabel}
+          anchorPlace={anchorPlace}
+          scheduledPlaces={scheduledPlaces}
+          selectedPlaces={selectedPlaces}
+          focusedPlaceId={focusedPlaceId}
+          isDarkMode={isDarkMode}
+          compactMap={compactMap}
+          onFocusPlace={onFocusPlace}
+        />
+      ) : focusedPlace && focusedCategory ? (
+        <PlacePickerDetails place={focusedPlace} category={focusedCategory} photoState={focusedPhotoState} />
+      ) : (
+        <div className="grid min-h-40 place-items-center rounded-md border bg-background p-5 text-center text-sm text-muted-foreground">
+          장소를 선택하면 세부정보가 표시됩니다.
+        </div>
+      )}
     </div>
   );
 }

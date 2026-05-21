@@ -12,7 +12,7 @@ import { ReservationDetailDialog } from '@/components/reservation/ReservationDet
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { useReservations } from '@/hooks/useReservations';
 import type { TravelPlacesState } from '@/hooks/useTravelPlaces';
-import { toHotelDistancePlaces } from '@/lib/place-utils';
+import { getDuplicatePlaceIds, toHotelDistancePlaces } from '@/lib/place-utils';
 import { hotelSchedulePlace } from '@/lib/schedule-utils';
 import type { Reservation } from '@/types/reservation';
 import type { ScheduleDay } from '@/types/schedule';
@@ -82,6 +82,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
   const canModify = isEditing && canEdit;
   const reservationsByPlaceId = useMemo(() => groupReservationsByPlaceId(reservations), [reservations]);
   const scheduleLabelsByPlaceId = useMemo(() => groupScheduleLabelsByPlaceId(scheduleDays), [scheduleDays]);
+  const duplicatePlaceIds = useMemo(() => getDuplicatePlaceIds(places), [places]);
   const referencePlace = useMemo(
     () => (referencePlaceId ? places.find((place) => place.id === referencePlaceId) ?? hotelSchedulePlace : hotelSchedulePlace),
     [places, referencePlaceId]
@@ -215,6 +216,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
               photoCache={photoCache}
               reservationsByPlaceId={reservationsByPlaceId}
               scheduleLabelsByPlaceId={scheduleLabelsByPlaceId}
+              duplicatePlaceIds={duplicatePlaceIds}
               onLoadPhotos={loadPhotos}
               onAdd={() => (canEdit ? setAddPlaceCategory(selectedCategoryId) : onRequireAuth())}
               onDelete={(place) => (canEdit ? void deletePlace(place) : onRequireAuth())}
@@ -240,6 +242,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
               photoCache={photoCache}
               reservationsByPlaceId={reservationsByPlaceId}
               scheduleLabelsByPlaceId={scheduleLabelsByPlaceId}
+              duplicatePlaceIds={duplicatePlaceIds}
               onLoadPhotos={loadPhotos}
               onAdd={() => (canEdit ? setAddPlaceCategory(selectedCategoryId) : onRequireAuth())}
               onDelete={(place) => (canEdit ? void deletePlace(place) : onRequireAuth())}

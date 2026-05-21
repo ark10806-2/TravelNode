@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 import { fetchReservations } from '@/api/reservations';
 import { fetchSchedule } from '@/api/schedule';
 import { fetchTodos } from '@/api/todos';
@@ -12,6 +12,7 @@ import { PlacesPage } from '@/components/place/PlacesPage';
 import { ReservationPage } from '@/components/reservation/ReservationPage';
 import { SchedulePage } from '@/components/schedule/SchedulePage';
 import { TodoPage } from '@/components/todo/TodoPage';
+import { Button } from '@/components/ui/button';
 import { UsagePage } from '@/components/usage/UsagePage';
 import { useAuth } from '@/hooks/useAuth';
 import { usePersistedState } from '@/hooks/usePersistedState';
@@ -107,6 +108,9 @@ function AuthenticatedApp({ auth }: { auth: ReturnType<typeof useAuth> }) {
         onChangePasswordClick={() => setAuthDialogMode('change')}
         isBookletLoading={isBookletLoading}
       />
+      {travelPlaces.status === 'error' ? (
+        <ServerConnectionBanner message={travelPlaces.error} onRetry={() => void travelPlaces.refreshAll()} />
+      ) : null}
       {activeTab === 'places' ? (
         <PlacesPage
           travelPlaces={travelPlaces}
@@ -158,6 +162,29 @@ function AuthenticatedApp({ auth }: { auth: ReturnType<typeof useAuth> }) {
         />
       ) : null}
     </main>
+  );
+}
+
+function ServerConnectionBanner({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="mx-auto mt-3 w-full max-w-none px-3 sm:px-4 lg:px-5">
+      <div className="flex flex-col gap-3 rounded-xl border border-amber-300/70 bg-amber-50/95 px-4 py-3 text-amber-950 shadow-sm dark:border-amber-900/70 dark:bg-amber-950/40 dark:text-amber-100 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 gap-3">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+          <div className="min-w-0">
+            <div className="text-sm font-bold">서버 연결이 불안정합니다</div>
+            <p className="mt-1 text-xs leading-5 opacity-85">
+              일부 화면은 마지막으로 불러온 정보만 표시될 수 있습니다. 서버 상태를 확인한 뒤 다시 시도해주세요.
+            </p>
+            {message ? <p className="mt-1 truncate text-xs opacity-70">{message}</p> : null}
+          </div>
+        </div>
+        <Button size="sm" variant="outline" className="shrink-0 bg-background/70" onClick={onRetry}>
+          <RefreshCw className="h-4 w-4" />
+          다시 시도
+        </Button>
+      </div>
+    </div>
   );
 }
 

@@ -23,6 +23,7 @@ type PlaceExpandableRowProps = {
   photoState: PhotoState;
   reservations: Reservation[];
   scheduleLabels: string[];
+  isDuplicateCandidate: boolean;
   isExpanded: boolean;
   isSelected: boolean;
   enableExpandedDetails: boolean;
@@ -47,6 +48,7 @@ export function PlaceExpandableRow({
   photoState,
   reservations,
   scheduleLabels,
+  isDuplicateCandidate,
   isExpanded,
   isSelected,
   enableExpandedDetails,
@@ -106,6 +108,11 @@ export function PlaceExpandableRow({
               />
             ) : null}
             <PlaceScheduleBadges labels={scheduleLabels} compact />
+            {isDuplicateCandidate ? (
+              <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 px-1.5 py-0 text-[10px] font-bold text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/35 dark:text-amber-200">
+                중복 후보
+              </Badge>
+            ) : null}
           </div>
           <h3 className="mt-1.5 line-clamp-2 text-base font-bold leading-snug sm:truncate">{place.name}</h3>
           {visibleDescription ? (
@@ -159,6 +166,8 @@ export function PlaceExpandableRow({
           isDeleting={isDeleting}
           isMovingCategory={isMovingCategory}
           categories={categories}
+          reservations={reservations}
+          onOpenReservations={onOpenReservations}
           onOpenPhotos={onOpenPhotos}
           onEditPlace={onEditPlace}
           onDelete={onDelete}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, BarChart3, Car, ExternalLink, Footprints, RefreshCw, Save, Train } from 'lucide-react';
+import { AlertTriangle, BarChart3, Car, ChevronDown, ExternalLink, Footprints, RefreshCw, Save, Train } from 'lucide-react';
 import { fetchApiUsage, updateApiUsage, type ApiUsageChart, type ApiUsageItem, type ApiUsageSummary } from '@/api/usage';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Badge } from '@/components/ui/badge';
@@ -157,7 +157,7 @@ export function UsagePage({ isEditing }: UsagePageProps) {
             <span className="font-semibold">{formatPercent(summary?.totalPercentage ?? 0)}</span>
           </div>
           <div className="mt-2 text-xs text-muted-foreground">
-            기간 {summary ? `${summary.periodStart} ~ ${summary.periodEnd}` : '-'} · 한도는 `GOOGLE_API_MONTHLY_LIMITS` 값입니다.
+            기간 {summary ? `${summary.periodStart} ~ ${summary.periodEnd}` : '-'} · 월간 한도는 관리 설정값 기준입니다.
           </div>
         </div>
 
@@ -311,8 +311,8 @@ function UsageChartCard({ chart }: { chart: ApiUsageChart }) {
   const hasHitRate = chart.hitRate != null;
 
   return (
-    <div className="rounded-lg border bg-muted/10 p-3">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <details className="group rounded-lg border bg-muted/10 p-3">
+      <summary className="flex cursor-pointer list-none flex-wrap items-start justify-between gap-3 marker:hidden">
         <div className="min-w-0">
           <div className="truncate text-sm font-bold">{chart.name}</div>
           <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
@@ -324,7 +324,8 @@ function UsageChartCard({ chart }: { chart: ApiUsageChart }) {
         <Badge className={cn('shrink-0', hasHitRate ? 'bg-primary/10 text-primary hover:bg-primary/10' : 'bg-muted text-muted-foreground hover:bg-muted')}>
           {hasHitRate ? `Hit-rate ${formatPercent(chart.hitRate ?? 0)}` : '캐시 없음'}
         </Badge>
-      </div>
+        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+      </summary>
 
       <div className="mt-3 overflow-hidden rounded-md border bg-background/80">
         <svg className="h-auto w-full" viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label={`${chart.name} 요청 및 캐시 적중률 그래프`}>
@@ -409,7 +410,7 @@ function UsageChartCard({ chart }: { chart: ApiUsageChart }) {
           Hit-rate
         </span>
       </div>
-    </div>
+    </details>
   );
 }
 

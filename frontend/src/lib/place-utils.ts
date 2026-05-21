@@ -71,6 +71,30 @@ export function getVisibleGoogleMapsNote(place: Pick<Place, 'googleMapsNote'>) {
   return place.googleMapsNote?.trim() ?? '';
 }
 
+export function getDuplicatePlaceIds(places: Place[]) {
+  const groups = new Map<string, Place[]>();
+
+  places.forEach((place) => {
+    const key = normalizeDuplicatePlaceName(place.name);
+    if (!key) return;
+    groups.set(key, [...(groups.get(key) ?? []), place]);
+  });
+
+  return new Set(
+    Array.from(groups.values())
+      .filter((group) => group.length > 1)
+      .flatMap((group) => group.map((place) => place.id))
+  );
+}
+
+function normalizeDuplicatePlaceName(name: string) {
+  return name
+    .toLowerCase()
+    .normalize('NFKC')
+    .replace(/[#[\]().,·・'"\s_-]+/g, '')
+    .trim();
+}
+
 function isGeneratedPlaceDescription(description: string) {
   if (!description) return false;
 

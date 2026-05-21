@@ -13,6 +13,7 @@ import {
   Plus,
   ReceiptText,
   RotateCcw,
+  Search,
   Sparkles,
   TicketCheck,
   TrainFront,
@@ -104,6 +105,7 @@ export function ReservationPage({
 }: ReservationPageProps) {
   const [scheduleDays, setScheduleDays] = useState<ScheduleDay[]>([]);
   const [editingReservationId, setEditingReservationId] = useState<string | null>(null);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isGoogleImportOpen, setIsGoogleImportOpen] = useState(false);
   const [detailTarget, setDetailTarget] = useState<Place | null>(null);
   const [photoTarget, setPhotoTarget] = useState<Place | null>(null);
@@ -185,10 +187,16 @@ export function ReservationPage({
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
           {isEditing ? (
-            <Button variant="outline" className="rounded-full" onClick={() => setIsGoogleImportOpen(true)}>
-              <DownloadCloud className="h-4 w-4" />
-              Google 예약 가져오기
-            </Button>
+            <>
+              <Button variant="outline" className="rounded-full" onClick={() => setIsGoogleImportOpen(true)}>
+                <DownloadCloud className="h-4 w-4" />
+                Google 예약 가져오기
+              </Button>
+              <Button className="rounded-full" onClick={() => setIsAddDialogOpen(true)}>
+                <Plus className="h-4 w-4" />
+                예약 추가
+              </Button>
+            </>
           ) : null}
           <div className="soft-panel flex items-center gap-3 rounded-xl px-4 py-3">
             <div className="grid h-10 w-10 place-items-center rounded-md bg-primary/10 text-primary">
@@ -206,26 +214,6 @@ export function ReservationPage({
         <div className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
-      ) : null}
-
-      {isEditing ? (
-        <section className="soft-panel overflow-hidden rounded-xl">
-          <div className="border-b bg-secondary/80 px-4 py-4">
-            <div className="flex items-center gap-2">
-              <Plus className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-bold">예약/티켓 추가</h2>
-            </div>
-          </div>
-          <div className="p-3 sm:p-4">
-            <ReservationForm
-              places={places}
-              dayCount={dayCount}
-              scheduleDays={scheduleDays}
-              disabled={isSaving}
-              onSubmit={addReservation}
-            />
-          </div>
-        </section>
       ) : null}
 
       <section className="grid gap-3">
@@ -285,6 +273,24 @@ export function ReservationPage({
             setIsGoogleImportOpen(false);
           }}
         />
+      ) : null}
+
+      {isAddDialogOpen ? (
+        <ModalFrame title="예약/티켓 추가" maxWidth="max-w-3xl" scroll onClose={() => setIsAddDialogOpen(false)}>
+          <div className="p-3 sm:p-5">
+            <ReservationForm
+              places={places}
+              dayCount={dayCount}
+              scheduleDays={scheduleDays}
+              disabled={isSaving}
+              onSubmit={(draft) => {
+                addReservation(draft);
+                setIsAddDialogOpen(false);
+              }}
+              onCancel={() => setIsAddDialogOpen(false)}
+            />
+          </div>
+        </ModalFrame>
       ) : null}
 
       {currentDetailTarget ? (
@@ -891,19 +897,12 @@ function ReservationForm({
           />
         </Field>
         <Field label="연결 장소">
-          <select
-            className="h-10 rounded-md border bg-background px-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
-            value={draft.placeId ?? ''}
+          <ReservationPlaceSearch
+            places={places}
+            value={draft.placeId}
             disabled={disabled}
-            onChange={(event) => updateDraft('placeId', event.target.value || null)}
-          >
-            <option value="">장소 연결 안 함</option>
-            {places.map((place) => (
-              <option key={place.id} value={place.id}>
-                {place.name}
-              </option>
-            ))}
-          </select>
+            onChange={(placeId) => updateDraft('placeId', placeId)}
+          />
         </Field>
         <Field label="예약번호">
           <input
@@ -979,6 +978,91 @@ function ReservationForm({
   );
 }
 
+function ReservationPlaceSearch({
+  places,
+  value,
+  disabled,
+  onChange
+}: {
+  places: Place[];
+  value: string | null;
+  disabled: boolean;
+  onChange: (placeId: string | null) => void;
+}) {
+  const [query, setQuery] = useState('');
+  const selectedPlace = value ? places.find((place) => place.id === value) ?? null : null;
+  const candidates = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    const source = normalizedQuery
+      ? places.filter((place) =>
+          [place.name, place.menu, place.address, place.description, place.googleMapsNote]
+            .join(' ')
+            .toLowerCase()
+            .includes(normalizedQuery)
+        )
+      : places;
+
+    return source
+      .filter((place) => place.id !== value)
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .slice(0, 8);
+  }, [places, query, value]);
+
+  return (
+    <div className="grid gap-2">
+      {selectedPlace ? (
+        <div className="flex items-center justify-between gap-2 rounded-md border bg-primary/5 px-3 py-2">
+          <div className="min-w-0">
+            <div className="truncate text-sm font-semibold">{selectedPlace.name}</div>
+            <div className="truncate text-xs text-muted-foreground">{selectedPlace.menu}</div>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="shrink-0 text-muted-foreground"
+            disabled={disabled}
+            onClick={() => onChange(null)}
+          >
+            해제
+          </Button>
+        </div>
+      ) : null}
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          className="h-10 w-full rounded-md border bg-background pl-9 pr-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
+          value={query}
+          disabled={disabled}
+          placeholder={selectedPlace ? '다른 장소 검색' : '장소명으로 검색'}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      </div>
+      {candidates.length ? (
+        <div className="grid max-h-52 gap-1 overflow-y-auto rounded-md border bg-background p-1">
+          {candidates.map((place) => (
+            <button
+              key={place.id}
+              type="button"
+              className="rounded px-2.5 py-2 text-left transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              disabled={disabled}
+              onClick={() => {
+                onChange(place.id);
+                setQuery('');
+              }}
+            >
+              <span className="block truncate text-sm font-semibold">{place.name}</span>
+              <span className="block truncate text-xs text-muted-foreground">{place.menu || place.address}</span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">검색 결과가 없습니다.</div>
+      )}
+    </div>
+  );
+}
+
 function ReservationAttachmentGrid({
   attachments,
   isEditing = false,
@@ -1040,9 +1124,9 @@ function ReservationAttachmentGrid({
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <label className="grid min-w-0 gap-1">
+    <div className="grid min-w-0 gap-1">
       <span className="text-xs font-semibold text-muted-foreground">{label}</span>
       {children}
-    </label>
+    </div>
   );
 }

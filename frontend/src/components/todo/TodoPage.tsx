@@ -126,7 +126,7 @@ export function TodoPage({ isEditing }: TodoPageProps) {
           <TodoSectionCard
             key="before"
             title="여행전 체크리스트"
-            description="출발 전에 빠뜨리면 곤란한 준비물을 정리합니다."
+            description="출발 전 준비"
             icon={PlaneTakeoff}
             items={todos.before}
             isCollapsed={collapsedBoxIds.has('before')}
@@ -165,7 +165,7 @@ export function TodoPage({ isEditing }: TodoPageProps) {
           <TodoSectionCard
             key="after"
             title="여행후 체크리스트"
-            description="귀국 후 정산, 백업, 후기 정리를 잊지 않게 남깁니다."
+            description="귀국 후 정리"
             icon={Home}
             items={todos.after}
             isCollapsed={collapsedBoxIds.has('after')}
@@ -193,7 +193,7 @@ export function TodoPage({ isEditing }: TodoPageProps) {
           <Badge variant="outline">Checklist</Badge>
           <h1 className="mt-2 text-3xl font-bold tracking-normal sm:text-5xl">할일</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            여행 전 준비, DAY별 현장 할 일, 여행 후 정리 항목을 한 화면에서 관리합니다.
+            준비, 현장 할 일, 귀국 후 정리를 관리합니다.
           </p>
           {status === 'loading' || isSaving ? (
             <p className="mt-2 text-xs text-muted-foreground">
@@ -384,7 +384,7 @@ function CustomChecklistCard({
   return (
     <TodoSectionCard
       title={checklist.title}
-      description="사용자가 추가한 체크리스트입니다."
+      description="커스텀 목록"
       icon={ClipboardList}
       items={checklist.items}
       isCollapsed={isCollapsed}
