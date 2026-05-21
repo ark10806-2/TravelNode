@@ -54,8 +54,8 @@ export function PlaceDetailDialog({
       title={place.name}
       maxWidth="max-w-3xl"
       scroll
-      overlayClassName="p-2 sm:p-4"
-      panelClassName="max-h-[calc(100dvh-1rem)] rounded-2xl sm:max-h-[92dvh] sm:rounded-md"
+      overlayClassName="p-3 sm:p-4"
+      panelClassName="max-h-[calc(100dvh-1.5rem)] rounded-2xl sm:max-h-[92dvh] sm:rounded-md"
       onClose={onClose}
       eyebrow={
         <div className="flex flex-wrap items-center gap-1.5">

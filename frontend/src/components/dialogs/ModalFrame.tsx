@@ -84,7 +84,7 @@ export function ModalFrame({
   return (
     <div
       className={cn(
-        'fixed inset-x-0 top-0 z-50 flex h-[100dvh] max-h-[100dvh] items-end justify-center overscroll-contain bg-foreground/35 p-2 sm:items-center sm:p-4',
+        'modal-overlay-enter fixed inset-x-0 top-0 z-50 flex h-[100dvh] max-h-[100dvh] items-end justify-center overscroll-contain bg-foreground/35 p-2 sm:items-center sm:p-4',
         overlayClassName
       )}
       onMouseDown={(event) => {
@@ -93,7 +93,7 @@ export function ModalFrame({
     >
       <div
         className={cn(
-          'w-full overflow-hidden rounded-md border bg-background shadow-xl',
+          'modal-panel-enter w-full overflow-hidden rounded-md border bg-background shadow-xl',
           maxWidth,
           scroll && 'max-h-[calc(100dvh-1rem)] overflow-y-auto overscroll-contain sm:max-h-[92dvh]',
           panelClassName
