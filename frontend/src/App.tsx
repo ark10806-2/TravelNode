@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useState } from 'react';
 import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 import { downloadTripBookletPdf } from '@/api/booklet';
 import { LoginPage } from '@/components/auth/LoginPage';
@@ -44,7 +44,6 @@ function AuthenticatedApp({ auth }: { auth: ReturnType<typeof useAuth> }) {
   const [authDialogMode, setAuthDialogMode] = useState<'change' | null>(null);
   const [isBookletLoading, setIsBookletLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [pullRefreshOffset, setPullRefreshOffset] = useState(0);
 
   function toggleEditMode() {
     setIsEditing((current) => !current);
@@ -73,11 +72,8 @@ function AuthenticatedApp({ auth }: { auth: ReturnType<typeof useAuth> }) {
 
   return (
     <main className="app-background min-h-[100dvh] overflow-x-clip">
-      <PullToRefresh onPullOffsetChange={setPullRefreshOffset} />
-      <div
-        className="pull-refresh-content"
-        style={{ '--pull-refresh-offset': `${pullRefreshOffset}px` } as CSSProperties}
-      >
+      <PullToRefresh />
+      <div className="pull-refresh-content">
         <AppTabs
           activeTab={activeTab}
           isAuthenticated={auth.isAuthenticated}

@@ -1,25 +1,27 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 type PullStatus = 'idle' | 'pulling' | 'ready' | 'refreshing';
 
 type PullToRefreshProps = {
   onRefresh?: () => void;
-  onPullOffsetChange?: (offset: number) => void;
 };
 
 const triggerDistance = 96;
 const maxPullDistance = 158;
+const maxContentOffset = 148;
 
-export function PullToRefresh({ onRefresh = () => window.location.reload(), onPullOffsetChange }: PullToRefreshProps) {
+export function PullToRefresh({ onRefresh = () => window.location.reload() }: PullToRefreshProps) {
   const startYRef = useRef(0);
   const startXRef = useRef(0);
   const pullDistanceRef = useRef(0);
+  const pendingDistanceRef = useRef(0);
+  const frameRef = useRef(0);
+  const stageRef = useRef<HTMLDivElement | null>(null);
   const onRefreshRef = useRef(onRefresh);
-  const onPullOffsetChangeRef = useRef(onPullOffsetChange);
   const isTrackingRef = useRef(false);
   const isRefreshingRef = useRef(false);
-  const [pullDistance, setPullDistance] = useState(0);
+  const statusRef = useRef<PullStatus>('idle');
   const [status, setStatus] = useState<PullStatus>('idle');
 
   useEffect(() => {
@@ -27,21 +29,60 @@ export function PullToRefresh({ onRefresh = () => window.location.reload(), onPu
   }, [onRefresh]);
 
   useEffect(() => {
-    onPullOffsetChangeRef.current = onPullOffsetChange;
-  }, [onPullOffsetChange]);
+    function setPullStatus(nextStatus: PullStatus) {
+      if (statusRef.current === nextStatus) return;
 
-  useEffect(() => {
+      statusRef.current = nextStatus;
+      setStatus(nextStatus);
+    }
+
+    function setContentTransition(enabled: boolean) {
+      document.documentElement.style.setProperty(
+        '--pull-refresh-content-transition',
+        enabled ? '180ms cubic-bezier(0.2, 0.8, 0.2, 1)' : '0ms linear'
+      );
+    }
+
+    function applyPullDistance(distance: number) {
+      const progress = Math.min(1, distance / triggerDistance);
+      const lift = Math.max(0, distance - 52) * 0.2;
+      const symbolScale = 0.74 + progress * 0.18;
+      const stageStyle = stageRef.current?.style;
+
+      document.documentElement.style.setProperty(
+        '--pull-refresh-offset',
+        `${Math.min(maxContentOffset, distance * 1.02).toFixed(1)}px`
+      );
+
+      if (!stageStyle) return;
+
+      stageStyle.setProperty('--pull-symbol-opacity', (0.18 + progress * 0.74).toFixed(3));
+      stageStyle.setProperty('--pull-symbol-y', `${(progress * 0.34).toFixed(3)}rem`);
+      stageStyle.setProperty('--pull-wave-scale-x', (0.86 + progress * 0.2).toFixed(3));
+      stageStyle.setProperty('--pull-wave-scale-y', (0.78 + progress * 0.18).toFixed(3));
+      stageStyle.setProperty('--pull-wave-opacity', (0.3 + progress * 0.52).toFixed(3));
+      stageStyle.setProperty('--pull-wave-rim', (0.18 + progress * 0.3).toFixed(3));
+      stageStyle.transform = `translate3d(0, ${lift.toFixed(1)}px, 0) scale(${symbolScale.toFixed(3)})`;
+    }
+
     function updatePullDistance(distance: number) {
       pullDistanceRef.current = distance;
-      onPullOffsetChangeRef.current?.(Math.min(148, distance * 1.02));
-      setPullDistance(distance);
+      pendingDistanceRef.current = distance;
+
+      if (frameRef.current) return;
+
+      frameRef.current = window.requestAnimationFrame(() => {
+        frameRef.current = 0;
+        applyPullDistance(pendingDistanceRef.current);
+      });
     }
 
     function resetPull() {
       if (isRefreshingRef.current) return;
       isTrackingRef.current = false;
+      setContentTransition(true);
       updatePullDistance(0);
-      setStatus('idle');
+      setPullStatus('idle');
     }
 
     function handleTouchStart(event: TouchEvent) {
@@ -54,6 +95,7 @@ export function PullToRefresh({ onRefresh = () => window.location.reload(), onPu
       startYRef.current = touch.clientY;
       startXRef.current = touch.clientX;
       isTrackingRef.current = true;
+      setContentTransition(false);
     }
 
     function handleTouchMove(event: TouchEvent) {
@@ -76,7 +118,7 @@ export function PullToRefresh({ onRefresh = () => window.location.reload(), onPu
       event.preventDefault();
       const nextDistance = Math.min(maxPullDistance, deltaY * 0.62);
       updatePullDistance(nextDistance);
-      setStatus(nextDistance >= triggerDistance ? 'ready' : 'pulling');
+      setPullStatus(nextDistance >= triggerDistance ? 'ready' : 'pulling');
     }
 
     function handleTouchEnd() {
@@ -85,14 +127,16 @@ export function PullToRefresh({ onRefresh = () => window.location.reload(), onPu
       isTrackingRef.current = false;
       if (pullDistanceRef.current >= triggerDistance) {
         isRefreshingRef.current = true;
+        setContentTransition(true);
         updatePullDistance(triggerDistance);
-        setStatus('refreshing');
+        setPullStatus('refreshing');
         window.setTimeout(() => onRefreshRef.current(), 160);
         return;
       }
 
+      setContentTransition(true);
       updatePullDistance(0);
-      setStatus('idle');
+      setPullStatus('idle');
     }
 
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
@@ -101,7 +145,9 @@ export function PullToRefresh({ onRefresh = () => window.location.reload(), onPu
     window.addEventListener('touchcancel', resetPull);
 
     return () => {
-      onPullOffsetChangeRef.current?.(0);
+      if (frameRef.current) window.cancelAnimationFrame(frameRef.current);
+      document.documentElement.style.removeProperty('--pull-refresh-offset');
+      document.documentElement.style.removeProperty('--pull-refresh-content-transition');
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
@@ -110,18 +156,6 @@ export function PullToRefresh({ onRefresh = () => window.location.reload(), onPu
   }, []);
 
   const isVisible = status !== 'idle';
-  const progress = Math.min(1, pullDistance / triggerDistance);
-  const lift = Math.max(0, pullDistance - 52) * 0.2;
-  const symbolScale = 0.74 + progress * 0.18;
-  const symbolStyle = {
-    '--pull-symbol-opacity': (0.18 + progress * 0.74).toFixed(3),
-    '--pull-symbol-y': `${(progress * 0.34).toFixed(3)}rem`,
-    '--pull-wave-scale-x': (0.86 + progress * 0.2).toFixed(3),
-    '--pull-wave-scale-y': (0.78 + progress * 0.18).toFixed(3),
-    '--pull-wave-opacity': (0.3 + progress * 0.52).toFixed(3),
-    '--pull-wave-rim': (0.18 + progress * 0.3).toFixed(3),
-    transform: `translateY(${lift}px) scale(${symbolScale})`
-  } as CSSProperties;
 
   return (
     <div
@@ -132,13 +166,13 @@ export function PullToRefresh({ onRefresh = () => window.location.reload(), onPu
       aria-hidden={!isVisible}
     >
       <div
+        ref={stageRef}
         className={cn(
           'pull-refresh-stage mt-1.5',
           status === 'pulling' && 'pull-refresh-stage-pulling',
           status === 'ready' && 'pull-refresh-stage-ready',
           status === 'refreshing' && 'pull-refresh-stage-refreshing'
         )}
-        style={symbolStyle}
       >
         <PullRefreshSymbol />
       </div>
