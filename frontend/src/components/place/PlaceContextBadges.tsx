@@ -12,6 +12,7 @@ type PlaceContextBadgesProps = {
   compact?: boolean;
   className?: string;
   leading?: ReactNode;
+  leadingPosition?: 'start' | 'end';
   onOpenReservations?: () => void;
 };
 
@@ -22,6 +23,7 @@ export function PlaceContextBadges({
   compact = false,
   className,
   leading,
+  leadingPosition = 'end',
   onOpenReservations
 }: PlaceContextBadgesProps) {
   const canShowReservations = Boolean(onOpenReservations) && reservations.length > 0;
@@ -31,10 +33,22 @@ export function PlaceContextBadges({
 
   return (
     <div className={cn('flex min-w-0 flex-wrap items-center gap-1.5', className)}>
-      <PlaceScheduleBadges labels={scheduleLabels} compact={compact} />
-      {canShowReservations && onOpenReservations ? (
-        <PlaceReservationBadge reservations={reservations} compact={compact} onOpen={onOpenReservations} />
-      ) : null}
+      {leadingPosition === 'start' ? (
+        <>
+          {leading}
+          {canShowReservations && onOpenReservations ? (
+            <PlaceReservationBadge reservations={reservations} compact={compact} onOpen={onOpenReservations} />
+          ) : null}
+          <PlaceScheduleBadges labels={scheduleLabels} compact={compact} />
+        </>
+      ) : (
+        <>
+          <PlaceScheduleBadges labels={scheduleLabels} compact={compact} />
+          {canShowReservations && onOpenReservations ? (
+            <PlaceReservationBadge reservations={reservations} compact={compact} onOpen={onOpenReservations} />
+          ) : null}
+        </>
+      )}
       {isDuplicateCandidate ? (
         <Badge
           variant="outline"
@@ -46,7 +60,7 @@ export function PlaceContextBadges({
           중복 후보
         </Badge>
       ) : null}
-      {leading}
+      {leadingPosition === 'end' ? leading : null}
     </div>
   );
 }

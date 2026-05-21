@@ -343,6 +343,7 @@ export function DayScheduleCard({
                                   {getCategoryOption(categories, place.category).label}
                                 </Badge>
                               }
+                              leadingPosition="start"
                               onOpenReservations={() => onOpenReservations(place, placeReservations)}
                             />
                             <button
