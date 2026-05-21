@@ -143,22 +143,18 @@ export function DayScheduleCard({
   return (
     <section className="soft-panel overflow-hidden rounded-xl sm:rounded-lg">
       <div className="flex flex-col gap-3 border-b bg-secondary/90 px-3 py-3 sm:gap-4 sm:px-4 sm:py-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge className="rounded-full bg-primary text-primary-foreground">{dayLabel}</Badge>
+        <div className="min-w-0 flex-1">
+          <div className="relative min-w-0 pr-16">
+            <h2 className="text-lg font-bold tracking-tight sm:text-2xl">{dayLabel}</h2>
+            <span className="absolute right-0 top-1 text-xs font-semibold text-muted-foreground sm:top-1.5">
+              {day.stops.length}/{maxStopsPerDay}
+            </span>
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <Badge variant="outline" className="max-w-full rounded-full bg-background">
               <Building2 className="mr-1 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               <span className="truncate">{hotelPlace.name}</span>
             </Badge>
-            <Badge variant="outline" className="rounded-full bg-background">
-              {day.stops.length}/{maxStopsPerDay}
-            </Badge>
-          </div>
-          <h2 className="mt-2 text-lg font-bold tracking-tight sm:text-2xl">{dayLabel}</h2>
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            <span className="text-xs font-medium text-muted-foreground">
-              {formatDepartureTime(day.departureTimeMinutes)}
-            </span>
             {hasRouteCalculationNeeded ? (
               <Badge variant="outline" className="rounded-full bg-background text-[11px] text-muted-foreground">
                 경로 계산 필요
