@@ -73,7 +73,7 @@ function AuthenticatedApp({ auth }: { auth: ReturnType<typeof useAuth> }) {
   return (
     <main className="app-background min-h-[100dvh] overflow-x-clip">
       <PullToRefresh />
-      <div className="pull-refresh-content">
+      <div>
         <AppTabs
           activeTab={activeTab}
           isAuthenticated={auth.isAuthenticated}

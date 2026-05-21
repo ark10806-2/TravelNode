@@ -152,10 +152,8 @@
     animation: modal-panel-enter 160ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
 
-  .pull-refresh-content {
-    transform: translate3d(0, var(--pull-refresh-offset, 0px), 0);
-    transition: transform var(--pull-refresh-content-transition, 0ms linear);
-    will-change: transform;
+  .pull-refresh-overlay {
+    top: calc(env(safe-area-inset-top, 0px) + 0.2rem);
   }
 
   .pull-refresh-stage {
@@ -172,10 +170,10 @@
     --pull-wave-rim: 0.18;
     position: relative;
     display: grid;
-    height: 5rem;
-    width: 9rem;
+    height: 4.6rem;
+    width: 8.4rem;
     place-items: center;
-    filter: drop-shadow(0 12px 22px var(--refresh-shadow));
+    filter: drop-shadow(0 10px 18px var(--refresh-shadow));
     transform-origin: top center;
     contain: layout paint style;
     will-change: transform, opacity;
@@ -191,8 +189,8 @@
 
   .pull-refresh-symbol {
     position: relative;
-    height: 4.1rem;
-    width: 8.4rem;
+    height: 3.9rem;
+    width: 8rem;
     opacity: var(--pull-symbol-opacity);
     transform: translateY(var(--pull-symbol-y));
     transform-origin: center;
@@ -224,9 +222,9 @@
 
   .pull-refresh-wave-surface {
     left: 50%;
-    top: 1.18rem;
-    height: 1.95rem;
-    width: 6.8rem;
+    top: 1.2rem;
+    height: 1.6rem;
+    width: 6.4rem;
     border-radius: 999px;
     background:
       radial-gradient(ellipse at 32% 25%, var(--refresh-light), transparent 24%),
@@ -242,10 +240,10 @@
 
   .pull-refresh-wave {
     left: 50%;
-    height: 0.8rem;
-    width: 7.4rem;
+    height: 0.7rem;
+    width: 7rem;
     border-radius: 50%;
-    border-top: 0.18rem solid var(--refresh-ink);
+    border-top: 0.14rem solid var(--refresh-ink);
     border-left: 0.08rem solid transparent;
     border-right: 0.08rem solid transparent;
     opacity: 0.5;
@@ -259,29 +257,29 @@
   }
 
   .pull-refresh-wave-back {
-    top: 1.44rem;
-    width: 6.3rem;
+    top: 1.42rem;
+    width: 6rem;
     border-top-color: var(--refresh-rim);
     opacity: 0.36;
   }
 
   .pull-refresh-wave-mid {
-    top: 1.78rem;
+    top: 1.72rem;
     opacity: 0.54;
   }
 
   .pull-refresh-wave-front {
-    top: 2.13rem;
-    width: 7rem;
+    top: 2rem;
+    width: 6.6rem;
     border-top-color: var(--refresh-deep);
     opacity: 0.42;
   }
 
   .pull-refresh-wave-sheen {
     left: 50%;
-    top: 1.22rem;
-    height: 0.52rem;
-    width: 4.4rem;
+    top: 1.24rem;
+    height: 0.44rem;
+    width: 4rem;
     border-radius: 999px;
     background: linear-gradient(90deg, transparent, var(--refresh-light), transparent);
     opacity: 0.28;

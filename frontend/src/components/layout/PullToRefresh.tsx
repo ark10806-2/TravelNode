@@ -9,7 +9,6 @@ type PullToRefreshProps = {
 
 const triggerDistance = 96;
 const maxPullDistance = 158;
-const maxContentOffset = 148;
 
 export function PullToRefresh({ onRefresh = () => window.location.reload() }: PullToRefreshProps) {
   const startYRef = useRef(0);
@@ -36,23 +35,11 @@ export function PullToRefresh({ onRefresh = () => window.location.reload() }: Pu
       setStatus(nextStatus);
     }
 
-    function setContentTransition(enabled: boolean) {
-      document.documentElement.style.setProperty(
-        '--pull-refresh-content-transition',
-        enabled ? '180ms cubic-bezier(0.2, 0.8, 0.2, 1)' : '0ms linear'
-      );
-    }
-
     function applyPullDistance(distance: number) {
       const progress = Math.min(1, distance / triggerDistance);
-      const lift = Math.max(0, distance - 52) * 0.2;
+      const drop = -42 + progress * 90;
       const symbolScale = 0.74 + progress * 0.18;
       const stageStyle = stageRef.current?.style;
-
-      document.documentElement.style.setProperty(
-        '--pull-refresh-offset',
-        `${Math.min(maxContentOffset, distance * 1.02).toFixed(1)}px`
-      );
 
       if (!stageStyle) return;
 
@@ -62,7 +49,7 @@ export function PullToRefresh({ onRefresh = () => window.location.reload() }: Pu
       stageStyle.setProperty('--pull-wave-scale-y', (0.78 + progress * 0.18).toFixed(3));
       stageStyle.setProperty('--pull-wave-opacity', (0.3 + progress * 0.52).toFixed(3));
       stageStyle.setProperty('--pull-wave-rim', (0.18 + progress * 0.3).toFixed(3));
-      stageStyle.transform = `translate3d(0, ${lift.toFixed(1)}px, 0) scale(${symbolScale.toFixed(3)})`;
+      stageStyle.transform = `translate3d(0, ${drop.toFixed(1)}px, 0) scale(${symbolScale.toFixed(3)})`;
     }
 
     function updatePullDistance(distance: number) {
@@ -80,7 +67,6 @@ export function PullToRefresh({ onRefresh = () => window.location.reload() }: Pu
     function resetPull() {
       if (isRefreshingRef.current) return;
       isTrackingRef.current = false;
-      setContentTransition(true);
       updatePullDistance(0);
       setPullStatus('idle');
     }
@@ -95,7 +81,6 @@ export function PullToRefresh({ onRefresh = () => window.location.reload() }: Pu
       startYRef.current = touch.clientY;
       startXRef.current = touch.clientX;
       isTrackingRef.current = true;
-      setContentTransition(false);
     }
 
     function handleTouchMove(event: TouchEvent) {
@@ -127,14 +112,12 @@ export function PullToRefresh({ onRefresh = () => window.location.reload() }: Pu
       isTrackingRef.current = false;
       if (pullDistanceRef.current >= triggerDistance) {
         isRefreshingRef.current = true;
-        setContentTransition(true);
         updatePullDistance(triggerDistance);
         setPullStatus('refreshing');
         window.setTimeout(() => onRefreshRef.current(), 160);
         return;
       }
 
-      setContentTransition(true);
       updatePullDistance(0);
       setPullStatus('idle');
     }
@@ -146,8 +129,6 @@ export function PullToRefresh({ onRefresh = () => window.location.reload() }: Pu
 
     return () => {
       if (frameRef.current) window.cancelAnimationFrame(frameRef.current);
-      document.documentElement.style.removeProperty('--pull-refresh-offset');
-      document.documentElement.style.removeProperty('--pull-refresh-content-transition');
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
@@ -160,7 +141,7 @@ export function PullToRefresh({ onRefresh = () => window.location.reload() }: Pu
   return (
     <div
       className={cn(
-        'pointer-events-none fixed inset-x-0 top-0 z-[60] flex justify-center transition-opacity duration-150',
+        'pull-refresh-overlay pointer-events-none fixed inset-x-0 z-[60] flex justify-center transition-opacity duration-150',
         isVisible ? 'opacity-100' : 'opacity-0'
       )}
       aria-hidden={!isVisible}
