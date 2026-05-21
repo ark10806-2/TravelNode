@@ -87,7 +87,7 @@ type MobilePlacesExplorerProps = {
   scheduleActionMessage?: string;
   onLoadPhotos: (place: Place) => Promise<void>;
   onSelectPlace: (place: Place) => void;
-  onAddToSchedule: (place: Place) => void;
+  onOpenPlaceDetails: (place: Place) => void;
   onEditPlace: (place: Place) => void;
   onDelete: (place: Place) => void;
   onOpenReservations?: (place: Place, reservations: Reservation[]) => void;
@@ -112,7 +112,7 @@ export function MobilePlacesExplorer({
   scheduleActionMessage,
   onLoadPhotos,
   onSelectPlace,
-  onAddToSchedule,
+  onOpenPlaceDetails,
   onEditPlace,
   onDelete,
   onOpenReservations
@@ -228,7 +228,7 @@ export function MobilePlacesExplorer({
               isAddingToSchedule={addingSchedulePlaceId === place.id}
               selectedDayLabel={selectedDayLabel}
               onSelect={onSelectPlace}
-              onAddToSchedule={onAddToSchedule}
+              onOpenDetails={onOpenPlaceDetails}
               onEdit={onEditPlace}
               onDelete={onDelete}
               onOpenReservations={onOpenReservations}
@@ -256,7 +256,7 @@ type MobilePlaceCardProps = {
   isAddingToSchedule: boolean;
   selectedDayLabel: string;
   onSelect: (place: Place) => void;
-  onAddToSchedule: (place: Place) => void;
+  onOpenDetails: (place: Place) => void;
   onEdit: (place: Place) => void;
   onDelete: (place: Place) => void;
   onOpenReservations?: (place: Place, reservations: Reservation[]) => void;
@@ -274,23 +274,59 @@ function MobilePlaceCard({
   isAddingToSchedule,
   selectedDayLabel,
   onSelect,
-  onAddToSchedule,
+  onOpenDetails,
   onEdit,
   onDelete,
   onOpenReservations
 }: MobilePlaceCardProps) {
   const primaryPhoto = photoState.photos[0] ?? null;
   const note = place.googleMapsNote?.trim() ?? '';
-  const lastTapAtRef = useRef(0);
+  const longPressTimerRef = useRef<number | null>(null);
+  const longPressTriggeredRef = useRef(false);
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  function clearLongPressTimer() {
+    if (!longPressTimerRef.current) return;
+    window.clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = null;
+  }
 
   function handlePlaceTap() {
-    const now = Date.now();
-    const isDoubleTap = isSelected && now - lastTapAtRef.current <= 360;
-    lastTapAtRef.current = now;
+    if (longPressTriggeredRef.current) {
+      longPressTriggeredRef.current = false;
+      return;
+    }
 
-    if (isDoubleTap) {
-      onAddToSchedule(place);
-      lastTapAtRef.current = 0;
+    onSelect(place);
+  }
+
+  function handlePointerDown(event: React.PointerEvent<HTMLElement>) {
+    if (!isSelected) return;
+
+    longPressTriggeredRef.current = false;
+    pointerStartRef.current = { x: event.clientX, y: event.clientY };
+    clearLongPressTimer();
+    longPressTimerRef.current = window.setTimeout(() => {
+      longPressTriggeredRef.current = true;
+      longPressTimerRef.current = null;
+      onOpenDetails(place);
+    }, 560);
+  }
+
+  function handlePointerMove(event: React.PointerEvent<HTMLElement>) {
+    if (!longPressTimerRef.current || !pointerStartRef.current) return;
+
+    const movedX = Math.abs(event.clientX - pointerStartRef.current.x);
+    const movedY = Math.abs(event.clientY - pointerStartRef.current.y);
+    if (movedX > 10 || movedY > 10) clearLongPressTimer();
+  }
+
+  function handleDoubleClick(event: React.MouseEvent<HTMLElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (isSelected) {
+      onOpenDetails(place);
       return;
     }
 
@@ -313,9 +349,19 @@ function MobilePlaceCard({
         isSelected ? 'border-primary/45 bg-primary/5 shadow-sm shadow-primary/10 ring-1 ring-primary/20' : 'hover:border-primary/25 hover:bg-muted/20'
       )}
       onClick={handlePlaceTap}
+      onDoubleClick={handleDoubleClick}
       onKeyDown={handleKeyDown}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={clearLongPressTimer}
+      onPointerCancel={clearLongPressTimer}
+      onPointerLeave={clearLongPressTimer}
+      onContextMenu={(event) => {
+        if (!isSelected) return;
+        event.preventDefault();
+      }}
       aria-current={isSelected ? 'true' : undefined}
-      aria-label={`${place.name} 선택. 선택된 상태에서 더블탭하면 ${selectedDayLabel} 마지막에 추가됩니다.`}
+      aria-label={`${place.name} 선택. 선택된 상태에서 길게 누르거나 더블클릭하면 상세 정보를 열고 ${selectedDayLabel}에 추가할 수 있습니다.`}
     >
       <div className="relative h-[4.5rem] w-[4.5rem] overflow-hidden rounded-xl border bg-muted">
         {primaryPhoto ? (

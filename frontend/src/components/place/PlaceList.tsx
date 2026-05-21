@@ -31,6 +31,7 @@ type PlaceListProps = {
   movingCategoryPlaceId: string | null;
   onOpenPhotos: (place: Place) => void;
   onOpenReservations?: (place: Place, reservations: Reservation[]) => void;
+  onOpenDetails?: (place: Place) => void;
   onEditPlace: (place: Place) => void;
   selectedPlaceId?: string | null;
   enableExpandedDetails?: boolean;
@@ -63,6 +64,7 @@ export function PlaceList({
   movingCategoryPlaceId,
   onOpenPhotos,
   onOpenReservations,
+  onOpenDetails,
   onEditPlace,
   selectedPlaceId = null,
   enableExpandedDetails = true,
@@ -160,6 +162,7 @@ export function PlaceList({
                   hasDivider={index > 0}
                   onToggle={togglePlace}
                   onSelect={onSelectPlace}
+                  onOpenDetails={onOpenDetails}
                   onOpenPhotos={onOpenPhotos}
                   onOpenReservations={onOpenReservations}
                   onEditPlace={onEditPlace}

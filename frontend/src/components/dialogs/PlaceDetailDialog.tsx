@@ -1,4 +1,4 @@
-import { ExternalLink, MapPin, Navigation } from 'lucide-react';
+import { CalendarPlus, ExternalLink, Loader2, MapPin, Navigation } from 'lucide-react';
 import { MarkdownText } from '@/components/common/MarkdownText';
 import { PlaceReservationBadge } from '@/components/reservation/PlaceReservationBadge';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +24,10 @@ type PlaceDetailDialogProps = {
   onClose: () => void;
   onOpenPhotos: (place: Place) => void;
   onOpenReservations?: (place: Place, reservations: Reservation[]) => void;
+  scheduleActionLabel?: string;
+  scheduleActionDisabled?: boolean;
+  isScheduleActionLoading?: boolean;
+  onScheduleAction?: (place: Place) => void;
 };
 
 export function PlaceDetailDialog({
@@ -33,7 +37,11 @@ export function PlaceDetailDialog({
   reservations = [],
   onClose,
   onOpenPhotos,
-  onOpenReservations
+  onOpenReservations,
+  scheduleActionLabel,
+  scheduleActionDisabled = false,
+  isScheduleActionLoading = false,
+  onScheduleAction
 }: PlaceDetailDialogProps) {
   const category = getCategoryOption(categories, place.category);
   const visibleDescription = getVisiblePlaceDescription(place);
@@ -102,12 +110,24 @@ export function PlaceDetailDialog({
           ) : null}
         </div>
 
-        <Button asChild className="w-full sm:w-fit sm:justify-self-end">
-          <a href={getPlaceInfoUrl(place)} target="_blank" rel="noreferrer">
-            구글 맵에서 열기
-            <ExternalLink className="h-4 w-4" />
-          </a>
-        </Button>
+        <div className="grid gap-2 sm:flex sm:justify-end">
+          {onScheduleAction && scheduleActionLabel ? (
+            <Button
+              className="w-full sm:w-fit"
+              disabled={scheduleActionDisabled || isScheduleActionLoading}
+              onClick={() => onScheduleAction(place)}
+            >
+              {isScheduleActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarPlus className="h-4 w-4" />}
+              {scheduleActionLabel}
+            </Button>
+          ) : null}
+          <Button asChild className="w-full sm:w-fit" variant={onScheduleAction ? 'outline' : 'default'}>
+            <a href={getPlaceInfoUrl(place)} target="_blank" rel="noreferrer">
+              구글 맵에서 열기
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          </Button>
+        </div>
       </div>
     </ModalFrame>
   );

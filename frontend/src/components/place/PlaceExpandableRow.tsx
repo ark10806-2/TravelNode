@@ -28,6 +28,7 @@ type PlaceExpandableRowProps = {
   hasDivider: boolean;
   onToggle: (place: NearbyPlace) => void;
   onSelect?: (place: Place) => void;
+  onOpenDetails?: (place: Place) => void;
   onOpenPhotos: (place: Place) => void;
   onOpenReservations?: (place: Place, reservations: Reservation[]) => void;
   onEditPlace: (place: Place) => void;
@@ -53,6 +54,7 @@ export function PlaceExpandableRow({
   hasDivider,
   onToggle,
   onSelect,
+  onOpenDetails,
   onOpenPhotos,
   onOpenReservations,
   onEditPlace,
@@ -74,6 +76,15 @@ export function PlaceExpandableRow({
         )}
         onClick={() => {
           if (!enableExpandedDetails) onSelect?.(place);
+        }}
+        onDoubleClick={(event) => {
+          if (enableExpandedDetails) return;
+          event.preventDefault();
+          if (isSelected) {
+            onOpenDetails?.(place);
+            return;
+          }
+          onSelect?.(place);
         }}
       >
         <PlaceThumbnailButton

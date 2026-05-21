@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchSchedule, saveSchedule } from '@/api/schedule';
 import { AccommodationSelectorDialog } from '@/components/dialogs/AccommodationSelectorDialog';
+import { PlaceDetailDialog } from '@/components/dialogs/PlaceDetailDialog';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { AppHeader } from '@/components/place/AppHeader';
 import { CategoryFilterBar } from '@/components/place/CategoryFilterBar';
@@ -68,6 +69,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
   const [addPlaceCategory, setAddPlaceCategory] = useState<CategoryId | null>(null);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Place | null>(null);
+  const [detailTarget, setDetailTarget] = useState<Place | null>(null);
   const [photoTarget, setPhotoTarget] = useState<Place | null>(null);
   const [isGoogleSyncDialogOpen, setIsGoogleSyncDialogOpen] = useState(false);
   const [placeListViewMode, setPlaceListViewMode] = useState<PlaceListViewMode>('table');
@@ -109,6 +111,10 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
     () => (selectedScheduleDay ? getScheduleHotelPlace(selectedScheduleDay, placesById) : referencePlace),
     [placesById, referencePlace, selectedScheduleDay]
   );
+  const isDetailTargetInSelectedDay = useMemo(
+    () => Boolean(detailTarget && selectedScheduleDay?.stops.some((stop) => stop.placeId === detailTarget.id)),
+    [detailTarget, selectedScheduleDay]
+  );
   const selectedNearbyPlaces = useMemo<NearbyPlace[]>(
     () => {
       const sortedPlaces = toHotelDistancePlaces(visiblePlaces, listReferencePlace);
@@ -138,6 +144,14 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
   const openPhotoDialog = useCallback(
     (place: Place) => {
       setPhotoTarget(place);
+      void loadPhotos(place);
+    },
+    [loadPhotos]
+  );
+
+  const openDetails = useCallback(
+    (place: Place) => {
+      setDetailTarget(place);
       void loadPhotos(place);
     },
     [loadPhotos]
@@ -241,6 +255,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
     setAddPlaceCategory(null);
     setIsCategoryDialogOpen(false);
     setEditTarget(null);
+    setDetailTarget(null);
     setIsGoogleSyncDialogOpen(false);
   }, [canModify]);
 
@@ -337,7 +352,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
             scheduleActionMessage={scheduleActionMessage}
             onLoadPhotos={loadPhotos}
             onSelectPlace={selectPlace}
-            onAddToSchedule={addSelectedPlaceToSchedule}
+            onOpenPlaceDetails={openDetails}
             onEditPlace={(place) => (canEdit ? setEditTarget(place) : onRequireAuth())}
             onDelete={(place) => (canEdit ? void deletePlace(place) : onRequireAuth())}
             onOpenReservations={openReservations}
@@ -364,6 +379,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
               movingCategoryPlaceId={movingCategoryPlaceId}
               onOpenPhotos={openPhotoDialog}
               onOpenReservations={openReservations}
+              onOpenDetails={openDetails}
               onEditPlace={(place) => (canEdit ? setEditTarget(place) : onRequireAuth())}
               selectedPlaceId={selectedPlace?.id ?? null}
               enableExpandedDetails={false}
@@ -395,6 +411,21 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
         onClosePhotos={() => setPhotoTarget(null)}
         onRetryPhotos={(place) => void loadPhotos(place, true)}
       />
+      {detailTarget ? (
+        <PlaceDetailDialog
+          place={detailTarget}
+          categories={categories}
+          photoState={photoCache[detailTarget.id] ?? emptyPhotoState}
+          reservations={reservationsByPlaceId[detailTarget.id] ?? []}
+          onClose={() => setDetailTarget(null)}
+          onOpenPhotos={openPhotoDialog}
+          onOpenReservations={openReservations}
+          scheduleActionLabel={isDetailTargetInSelectedDay ? `${selectedScheduleDayLabel} 포함됨` : `${selectedScheduleDayLabel} 일정에 추가`}
+          scheduleActionDisabled={isDetailTargetInSelectedDay}
+          isScheduleActionLoading={addingSchedulePlaceId === detailTarget.id}
+          onScheduleAction={(place) => void addSelectedPlaceToSchedule(place)}
+        />
+      ) : null}
       {isReferenceDialogOpen ? (
         <AccommodationSelectorDialog
           title="장소 기준점 변경"
