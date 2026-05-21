@@ -216,7 +216,7 @@ export function TravelMap({
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
           />
-          <div className="absolute left-3 right-3 top-3 rounded-md border bg-background/95 px-3 py-2 text-sm shadow-sm sm:left-4 sm:right-4 sm:top-4 sm:px-4 sm:py-3">
+          <div className="absolute left-3 right-3 top-3 rounded-2xl border border-border/80 bg-white/95 px-3 py-2 text-sm shadow-[0_1px_2px_rgba(0,27,55,0.08)] backdrop-blur dark:bg-secondary/95 sm:left-4 sm:right-4 sm:top-4 sm:px-4 sm:py-3">
             <p className="font-semibold">기본 지도 보기로 표시 중입니다.</p>
             <p className="mt-1 text-muted-foreground">{mapError || '일부 지도 기능이 제한될 수 있습니다.'}</p>
           </div>

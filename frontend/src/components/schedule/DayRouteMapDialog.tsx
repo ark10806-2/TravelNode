@@ -189,8 +189,8 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
       maxWidth="max-w-6xl"
       onClose={onClose}
       overlayClassName="bg-foreground/45 backdrop-blur-[2px]"
-      panelClassName="rounded-2xl border-border/70 shadow-[0_24px_70px_rgba(0,0,0,0.18)] dark:shadow-[0_28px_80px_rgba(0,0,0,0.5)]"
-      headerClassName="border-b bg-background/95 px-4 py-4 backdrop-blur sm:px-6"
+      panelClassName="rounded-3xl"
+      headerClassName="border-b bg-white/95 px-4 py-4 backdrop-blur dark:bg-secondary/95 sm:px-6"
       eyebrow={
         <div className="flex max-w-full flex-wrap items-center gap-2">
           <Badge className="gap-1.5 rounded-full border-transparent bg-primary/10 px-2.5 py-1 text-primary dark:bg-primary/15 dark:text-primary">
@@ -198,7 +198,7 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
             {orderedPlaces.length}곳
           </Badge>
           {anchorPlace ? (
-            <Badge variant="outline" className="max-w-full gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-muted-foreground">
+            <Badge variant="outline" className="max-w-full gap-1.5 rounded-full bg-white px-2.5 py-1 text-muted-foreground dark:bg-secondary/80">
               <Home className="h-3.5 w-3.5 shrink-0" />
               <span className="truncate">{anchorPlace.name}</span>
             </Badge>
@@ -206,14 +206,14 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
         </div>
       }
     >
-      <div className="grid h-[calc(94dvh-86px)] min-h-0 gap-0 overflow-hidden bg-secondary/45 lg:h-[592px] lg:grid-cols-[minmax(0,1fr)_390px]">
+      <div className="grid h-[calc(94dvh-86px)] min-h-0 gap-0 overflow-hidden bg-muted/70 lg:h-[592px] lg:grid-cols-[minmax(0,1fr)_390px]">
         <section className="min-h-0 p-2 sm:p-3 lg:h-full lg:p-4 lg:pr-2">
           <div className="relative h-[36dvh] min-h-[260px] overflow-hidden rounded-xl border bg-muted shadow-inner sm:min-h-[340px] lg:h-full lg:min-h-0">
             {status !== 'error' ? (
               <div ref={mapRef} className="h-full min-h-[260px] w-full sm:min-h-[340px] lg:min-h-0" />
             ) : null}
             {status === 'ready' && selectedPlace ? (
-              <div className="pointer-events-none absolute left-3 top-3 max-w-[calc(100%-1.5rem)] rounded-full border bg-background/90 px-3 py-2 shadow-sm backdrop-blur">
+              <div className="pointer-events-none absolute left-3 top-3 max-w-[calc(100%-1.5rem)] rounded-full border border-border/80 bg-white/90 px-3 py-2 shadow-[0_1px_2px_rgba(0,27,55,0.08)] backdrop-blur dark:bg-secondary/90">
                 <div className="flex min-w-0 items-center gap-2 text-sm">
                   <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-foreground text-xs font-bold text-background">
                     {selectedOrderIndex >= 0 ? selectedOrderIndex + 1 : 'H'}
@@ -224,14 +224,14 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
             ) : null}
             {status === 'loading' ? (
               <div className="absolute inset-0 grid place-items-center bg-background/80 backdrop-blur-sm">
-                <div className="rounded-full border bg-background px-4 py-3 shadow-sm">
+                <div className="rounded-full border border-border/80 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,27,55,0.08)] dark:bg-secondary/90">
                   <Loader2 className="h-7 w-7 animate-spin text-primary" />
                 </div>
               </div>
             ) : null}
             {status === 'error' ? (
               <div className="grid h-full min-h-[260px] place-items-center p-6 text-center sm:min-h-[340px] lg:min-h-0">
-                <div className="max-w-sm rounded-xl border bg-background/85 p-5 shadow-sm backdrop-blur">
+                <div className="max-w-sm rounded-2xl border border-border/80 bg-white/85 p-5 shadow-[0_1px_2px_rgba(0,27,55,0.08)] backdrop-blur dark:bg-secondary/85">
                   <MapPinned className="mx-auto h-10 w-10 text-primary" />
                   <p className="mt-3 font-semibold">동선 지도를 표시할 수 없습니다.</p>
                   <p className="mt-1 text-sm text-muted-foreground">{error}</p>
@@ -243,9 +243,9 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
 
         <aside
           ref={listScrollRef}
-          className="min-h-0 overflow-y-auto overscroll-contain scroll-smooth border-t bg-background/95 p-3 sm:p-4 lg:border-l lg:border-t-0"
+          className="min-h-0 overflow-y-auto overscroll-contain scroll-smooth border-t bg-white/95 p-3 dark:bg-secondary/95 sm:p-4 lg:border-l lg:border-t-0"
         >
-          <div className="-mx-3 -mt-3 border-b bg-background/95 px-3 pb-3 pt-3 backdrop-blur sm:-mx-4 sm:-mt-4 sm:px-4 sm:pt-4 lg:sticky lg:top-0 lg:z-10">
+          <div className="-mx-3 -mt-3 border-b bg-white/95 px-3 pb-3 pt-3 backdrop-blur dark:bg-secondary/95 sm:-mx-4 sm:-mt-4 sm:px-4 sm:pt-4 lg:sticky lg:top-0 lg:z-10">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-base font-bold text-foreground">방문 순서</div>
@@ -257,7 +257,7 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
                       : '장소 없음'}
                 </p>
               </div>
-              <Badge variant="outline" className="shrink-0 rounded-full bg-secondary px-2.5 py-1 text-xs text-muted-foreground">
+              <Badge variant="outline" className="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs text-muted-foreground dark:bg-secondary/80">
                 {orderedPlaces.length}곳
               </Badge>
             </div>

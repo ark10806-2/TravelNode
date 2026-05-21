@@ -357,7 +357,7 @@ function ReservationCard({
   if (isEditingThis) {
     return (
       <article className="soft-panel overflow-hidden rounded-xl">
-        <div className="border-b bg-secondary/80 px-4 py-3">
+        <div className="border-b bg-muted px-4 py-3">
           <h3 className="font-bold">예약/티켓 수정</h3>
         </div>
         <div className="p-3 sm:p-4">
@@ -388,7 +388,7 @@ function ReservationCard({
         reservation.completed && 'border-border/80 bg-muted/25 opacity-80'
       )}
     >
-      <div className="border-b bg-secondary/80 px-4 py-4">
+      <div className="border-b bg-muted px-4 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
@@ -660,7 +660,7 @@ function GoogleReservationImportDialog({
   return (
     <ModalFrame title="Google 예약 가져오기" maxWidth="max-w-4xl" scroll onClose={onClose}>
       <div className="grid gap-5 p-5">
-        <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm leading-6 text-muted-foreground">
+        <div className="rounded-2xl bg-muted px-3 py-2 text-sm leading-6 text-muted-foreground">
           Google 예약 내보내기 CSV를 업로드하거나, Google Maps 또는 Reserve with Google 예약 상세 화면과 예약 확인 메일의 내용을
           복사해 붙여넣으면 예약 후보로 변환합니다.
           Google 개인 예약 목록을 직접 읽는 공개 API는 없어, 계정 화면의 내용을 사용자가 가져오는 방식으로 동작합니다.
@@ -670,7 +670,7 @@ function GoogleReservationImportDialog({
           <div className="grid gap-2">
             <label
               className={cn(
-                'flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed bg-muted/20 px-3 py-4 text-center text-sm text-muted-foreground transition hover:border-primary hover:bg-primary/5',
+                'flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border/80 bg-muted/20 px-3 py-4 text-center text-sm text-muted-foreground transition hover:border-primary/50 hover:bg-primary/5',
                 isCsvDragging && 'border-primary bg-primary/10 text-foreground ring-2 ring-primary/20',
                 disabled && 'cursor-not-allowed opacity-60'
               )}
@@ -695,7 +695,7 @@ function GoogleReservationImportDialog({
               />
             </label>
             {csvFileName ? (
-              <div className="flex flex-wrap items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm">
+              <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border/80 bg-white px-3 py-2 text-sm dark:bg-secondary/80">
                 <FileText className="h-4 w-4 text-muted-foreground" />
                 <span className="font-semibold">{csvFileName}</span>
                 <Badge variant="outline" className="rounded-full">
@@ -713,7 +713,7 @@ function GoogleReservationImportDialog({
 
         <Field label="예약 내용 직접 붙여넣기">
           <textarea
-            className="min-h-56 rounded-md border bg-background px-3 py-2 text-sm leading-6 outline-none ring-offset-background focus:ring-2 focus:ring-ring"
+            className="min-h-56 rounded-xl border border-input bg-white px-3 py-2 text-sm leading-6 outline-none ring-offset-background transition focus:border-ring focus:ring-2 focus:ring-ring/20 dark:bg-secondary/80"
             value={rawText}
             disabled={disabled}
             placeholder={googleReservationImportSample}
@@ -732,7 +732,7 @@ function GoogleReservationImportDialog({
           {parsedDrafts.length ? (
             <div className="grid gap-3 md:grid-cols-2">
               {parsedDrafts.map((draft, index) => (
-                <div key={`${draft.title}-${index}`} className="rounded-lg border bg-background p-3 text-sm">
+                <div key={`${draft.title}-${index}`} className="rounded-2xl border border-border/80 bg-white p-3 text-sm dark:bg-secondary/80">
                   <Badge variant="outline" className={cn('rounded-full', reservationTypeMeta[draft.reservationType].className)}>
                     {reservationTypeMeta[draft.reservationType].label}
                   </Badge>
@@ -753,7 +753,7 @@ function GoogleReservationImportDialog({
               ))}
             </div>
           ) : (
-            <div className="grid min-h-28 place-items-center rounded-lg border border-dashed bg-muted/20 p-4 text-center text-sm text-muted-foreground">
+            <div className="grid min-h-28 place-items-center rounded-2xl border border-dashed border-border/80 bg-muted/20 p-4 text-center text-sm text-muted-foreground">
               CSV 또는 붙여넣은 내용에서 예약 후보를 찾으면 여기에 표시됩니다.
             </div>
           )}
@@ -832,7 +832,7 @@ function ReservationForm({
       <div className="grid gap-3 md:grid-cols-2">
         <Field label="제목">
           <input
-            className="h-10 rounded-md border bg-background px-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
+            className="h-10 rounded-xl border border-input bg-white px-3 text-sm outline-none ring-offset-background transition focus:border-ring focus:ring-2 focus:ring-ring/20 dark:bg-secondary/80"
             value={draft.title}
             maxLength={120}
             disabled={disabled}
@@ -842,7 +842,7 @@ function ReservationForm({
         </Field>
         <Field label="종류">
           <select
-            className="h-10 rounded-md border bg-background px-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
+            className="h-10 rounded-xl border border-input bg-white px-3 text-sm outline-none ring-offset-background transition focus:border-ring focus:ring-2 focus:ring-ring/20 dark:bg-secondary/80"
             value={draft.reservationType}
             disabled={disabled}
             onChange={(event) => updateDraft('reservationType', event.target.value as ReservationType)}
@@ -856,7 +856,7 @@ function ReservationForm({
         </Field>
         <Field label="DAY">
           <select
-            className="h-10 rounded-md border bg-background px-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
+            className="h-10 rounded-xl border border-input bg-white px-3 text-sm outline-none ring-offset-background transition focus:border-ring focus:ring-2 focus:ring-ring/20 dark:bg-secondary/80"
             value={draft.dayIndex == null ? '' : String(draft.dayIndex)}
             disabled={disabled}
             onChange={(event) => updateDraft('dayIndex', event.target.value === '' ? null : Number(event.target.value))}
@@ -871,7 +871,7 @@ function ReservationForm({
         </Field>
         <Field label="시간">
           <input
-            className="h-10 rounded-md border bg-background px-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
+            className="h-10 rounded-xl border border-input bg-white px-3 text-sm outline-none ring-offset-background transition focus:border-ring focus:ring-2 focus:ring-ring/20 dark:bg-secondary/80"
             value={draft.timeLabel}
             maxLength={80}
             disabled={disabled}
@@ -881,7 +881,7 @@ function ReservationForm({
         </Field>
         <Field label="예약 플랫폼">
           <input
-            className="h-10 rounded-md border bg-background px-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
+            className="h-10 rounded-xl border border-input bg-white px-3 text-sm outline-none ring-offset-background transition focus:border-ring focus:ring-2 focus:ring-ring/20 dark:bg-secondary/80"
             value={draft.bookingPlatform}
             maxLength={120}
             disabled={disabled}
@@ -900,7 +900,7 @@ function ReservationForm({
         </Field>
         <Field label="예약번호">
           <input
-            className="h-10 rounded-md border bg-background px-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
+            className="h-10 rounded-xl border border-input bg-white px-3 text-sm outline-none ring-offset-background transition focus:border-ring focus:ring-2 focus:ring-ring/20 dark:bg-secondary/80"
             value={draft.referenceNumber}
             maxLength={120}
             disabled={disabled}
@@ -911,7 +911,7 @@ function ReservationForm({
       </div>
       <Field label="링크">
         <input
-          className="h-10 rounded-md border bg-background px-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
+          className="h-10 rounded-xl border border-input bg-white px-3 text-sm outline-none ring-offset-background transition focus:border-ring focus:ring-2 focus:ring-ring/20 dark:bg-secondary/80"
           value={draft.linkUrl}
           maxLength={500}
           disabled={disabled}
@@ -921,7 +921,7 @@ function ReservationForm({
       </Field>
       <Field label="첨부파일">
         <div className="grid gap-2">
-          <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed bg-muted/20 px-3 py-4 text-center text-sm text-muted-foreground transition hover:border-primary hover:bg-primary/5">
+          <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border/80 bg-muted/20 px-3 py-4 text-center text-sm text-muted-foreground transition hover:border-primary/50 hover:bg-primary/5">
             <UploadCloud className="h-5 w-5" />
             <span>이미지 또는 PDF 추가</span>
             <span className="text-xs">파일당 최대 5MB</span>
@@ -949,7 +949,7 @@ function ReservationForm({
       </Field>
       <Field label="메모">
         <textarea
-          className="min-h-24 rounded-md border bg-background px-3 py-2 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
+          className="min-h-24 rounded-xl border border-input bg-white px-3 py-2 text-sm outline-none ring-offset-background transition focus:border-ring focus:ring-2 focus:ring-ring/20 dark:bg-secondary/80"
           value={draft.notes}
           maxLength={1000}
           disabled={disabled}
@@ -1025,7 +1025,7 @@ function ReservationPlaceSearch({
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
-          className="h-10 w-full rounded-md border bg-background pl-9 pr-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
+          className="h-10 w-full rounded-xl border border-input bg-white pl-9 pr-3 text-sm outline-none ring-offset-background transition focus:border-ring focus:ring-2 focus:ring-ring/20 dark:bg-secondary/80"
           value={query}
           disabled={disabled}
           placeholder={selectedPlace ? '다른 장소 검색' : '장소명으로 검색'}
@@ -1033,7 +1033,7 @@ function ReservationPlaceSearch({
         />
       </div>
       {candidates.length ? (
-        <div className="grid max-h-52 gap-1 overflow-y-auto rounded-md border bg-background p-1">
+        <div className="grid max-h-52 gap-1 overflow-y-auto rounded-2xl border border-border/80 bg-white p-1 dark:bg-secondary/80">
           {candidates.map((place) => (
             <button
               key={place.id}

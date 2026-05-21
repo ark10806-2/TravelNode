@@ -97,7 +97,7 @@ export function GoogleMapsSyncDialog({ onClose, onSynced }: GoogleMapsSyncDialog
           </div>
         </label>
 
-        <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm leading-6 text-muted-foreground">
+        <div className="rounded-2xl bg-muted px-3 py-2 text-sm leading-6 text-muted-foreground">
           조회된 장소는 기본으로 모두 선택됩니다. 앱에서 삭제한 장소는 숨김 처리되어 다음 동기화 때 다시 생기지 않습니다. 기존 장소의 메모,
           설명, 대표 항목은 비어 있거나 기본값일 때만 보강합니다.
         </div>
@@ -110,7 +110,7 @@ export function GoogleMapsSyncDialog({ onClose, onSynced }: GoogleMapsSyncDialog
 
         {preview ? (
           <div className="grid gap-3">
-            <div className="flex flex-col gap-3 rounded-md border bg-background p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 rounded-2xl border border-border/80 bg-white p-4 dark:bg-secondary/80 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="font-bold">{preview.listTitle ?? 'Google Maps 목록'}</div>
                 <div className="mt-1 text-sm text-muted-foreground">
@@ -128,7 +128,7 @@ export function GoogleMapsSyncDialog({ onClose, onSynced }: GoogleMapsSyncDialog
             </div>
 
             {preview.warnings.length ? (
-              <div className="rounded-md border bg-muted px-3 py-2 text-xs leading-5 text-muted-foreground">
+              <div className="rounded-2xl bg-muted px-3 py-2 text-xs leading-5 text-muted-foreground">
                 {preview.warnings.map((warning) => (
                   <p key={warning}>{warning}</p>
                 ))}
@@ -149,7 +149,7 @@ export function GoogleMapsSyncDialog({ onClose, onSynced }: GoogleMapsSyncDialog
         ) : null}
 
         {result ? (
-          <div className="grid gap-3 rounded-md border bg-background p-4 text-sm">
+          <div className="grid gap-3 rounded-2xl border border-border/80 bg-white p-4 text-sm dark:bg-secondary/80">
             <div className="flex items-center justify-between gap-3">
               <div className="font-bold">{result.listTitle ?? 'Google Maps 목록'}</div>
               <div className="text-muted-foreground">총 {result.requestedCount}개</div>
@@ -165,7 +165,7 @@ export function GoogleMapsSyncDialog({ onClose, onSynced }: GoogleMapsSyncDialog
             {result.details.length ? (
               <div className="grid max-h-72 gap-2 overflow-y-auto pr-1">
                 {result.details.map((detail, index) => (
-                  <div key={`${detail.name}-${detail.status}-${index}`} className="rounded-md border bg-muted/20 px-3 py-2">
+                  <div key={`${detail.name}-${detail.status}-${index}`} className="rounded-2xl border border-border/80 bg-muted/20 px-3 py-2">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="min-w-0 truncate font-semibold">{detail.name}</div>
                       <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${syncDetailBadgeClass(detail.status)}`}>
@@ -225,7 +225,7 @@ function PreviewPlaceCard({
 }) {
   return (
     <label
-      className={`grid cursor-pointer grid-cols-[5.5rem_minmax(0,1fr)] gap-3 rounded-md border bg-background p-3 transition ${
+      className={`grid cursor-pointer grid-cols-[5.5rem_minmax(0,1fr)] gap-3 rounded-2xl border border-border/80 bg-white p-3 transition dark:bg-secondary/80 ${
         checked ? 'border-primary/70 bg-primary/5 ring-1 ring-primary/20' : 'hover:border-primary/50 hover:bg-muted/25'
       }`}
     >

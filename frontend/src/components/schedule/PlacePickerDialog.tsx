@@ -103,7 +103,7 @@ export function PlacePickerDialog({
       }}
     >
       <div
-        className="flex h-[calc(100dvh-1rem)] min-h-0 w-full max-w-6xl flex-col overflow-hidden rounded-md border bg-background shadow-xl sm:h-[90vh]"
+        className="toss-card flex h-[calc(100dvh-1rem)] min-h-0 w-full max-w-6xl flex-col overflow-hidden rounded-3xl sm:h-[90vh]"
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="shrink-0 flex items-start justify-between gap-3 border-b px-4 py-3 sm:gap-4 sm:px-5 sm:py-4">
@@ -164,7 +164,7 @@ export function PlacePickerDialog({
                     <button
                       key={place.id}
                       type="button"
-                      className={`rounded-xl border bg-background p-3.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:rounded-md sm:p-4 ${
+                      className={`rounded-2xl border border-border/80 bg-white p-3.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:bg-secondary/80 sm:p-4 ${
                         isSelected
                           ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
                           : isFocused
@@ -238,7 +238,7 @@ export function PlacePickerDialog({
 
           <aside className="order-first shrink-0 border-b bg-muted/25 p-3 sm:p-4 lg:order-none lg:border-b-0 lg:border-l">
             <details className="lg:hidden">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl border bg-background px-3 py-2.5 text-sm font-bold marker:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl border border-border/80 bg-white px-3 py-2.5 text-sm font-bold marker:hidden dark:bg-secondary/80">
                 <span>동선 미리보기와 세부사항</span>
                 <Badge variant="outline" className="rounded-full bg-secondary">
                   {selectedPlaces.length}개 선택
@@ -407,7 +407,7 @@ function PlacePickerRoutePreview({
 
   return (
     <div className="grid gap-3">
-      <section className="overflow-hidden rounded-md border bg-background">
+      <section className="overflow-hidden rounded-2xl border border-border/80 bg-white dark:bg-secondary/80">
         <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 text-sm font-bold">
@@ -541,7 +541,7 @@ function PlacePickerSideContent({
       ) : focusedPlace && focusedCategory ? (
         <PlacePickerDetails place={focusedPlace} category={focusedCategory} photoState={focusedPhotoState} />
       ) : (
-        <div className="grid min-h-40 place-items-center rounded-md border bg-background p-5 text-center text-sm text-muted-foreground">
+        <div className="grid min-h-40 place-items-center rounded-2xl border border-border/80 bg-white p-5 text-center text-sm text-muted-foreground dark:bg-secondary/80">
           장소를 선택하면 세부정보가 표시됩니다.
         </div>
       )}
@@ -567,7 +567,7 @@ function RoutePreviewList({
   onFocusPlace: (placeId: string) => void;
 }) {
   return (
-    <section className="rounded-md border bg-background p-3">
+    <section className="rounded-2xl border border-border/80 bg-white p-3 dark:bg-secondary/80">
       <div className="flex items-center justify-between gap-2">
         <div className="text-sm font-bold">{title}</div>
         <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-semibold text-muted-foreground">{places.length}</span>
@@ -624,7 +624,7 @@ function PlacePickerDetails({
   const visibleNote = getVisibleGoogleMapsNote(place);
 
   return (
-    <div className="overflow-hidden rounded-md border bg-background">
+    <div className="overflow-hidden rounded-2xl border border-border/80 bg-white dark:bg-secondary/80">
       <div className="relative h-48 bg-muted sm:h-60 lg:h-72">
         {primaryPhoto ? (
           <img

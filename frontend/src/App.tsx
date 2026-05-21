@@ -150,7 +150,7 @@ function ServerConnectionBanner({ message, onRetry }: { message: string; onRetry
             {message ? <p className="mt-1 truncate text-xs opacity-70">{message}</p> : null}
           </div>
         </div>
-        <Button size="sm" variant="outline" className="shrink-0 bg-background/70" onClick={onRetry}>
+        <Button size="sm" variant="outline" className="shrink-0" onClick={onRetry}>
           <RefreshCw className="h-4 w-4" />
           다시 시도
         </Button>
@@ -162,7 +162,7 @@ function ServerConnectionBanner({ message, onRetry }: { message: string; onRetry
 function AuthLoadingPage() {
   return (
     <main className="app-background grid min-h-[100dvh] place-items-center">
-      <div className="grid justify-items-center gap-3 rounded-2xl border bg-background/90 px-6 py-5 text-sm font-semibold text-muted-foreground shadow-xl shadow-black/10 backdrop-blur">
+      <div className="toss-card grid justify-items-center gap-3 rounded-3xl px-6 py-5 text-sm font-semibold text-muted-foreground backdrop-blur">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
         세션 확인 중
       </div>

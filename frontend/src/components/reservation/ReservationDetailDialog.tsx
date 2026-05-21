@@ -67,8 +67,8 @@ function ReservationDetailCard({
   const normalizedLink = normalizeLink(reservation.linkUrl);
 
   return (
-    <article className="overflow-hidden rounded-xl border bg-background shadow-sm">
-      <div className="border-b bg-secondary/70 px-4 py-3">
+    <article className="overflow-hidden rounded-2xl border border-border/80 bg-white dark:bg-secondary/80">
+      <div className="border-b bg-muted px-4 py-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
             <Badge variant="outline" className={cn('rounded-full', meta.className)}>
@@ -96,21 +96,21 @@ function ReservationDetailCard({
         </div>
 
         {reservation.referenceNumber ? (
-          <section className="rounded-lg bg-muted/25 p-3">
+          <section className="rounded-2xl bg-muted/40 p-3">
             <div className="text-xs font-semibold text-muted-foreground">예약번호</div>
             <div className="mt-1 break-all font-semibold">{reservation.referenceNumber}</div>
           </section>
         ) : null}
 
         {reservation.bookingPlatform ? (
-          <section className="rounded-lg bg-muted/25 p-3">
+          <section className="rounded-2xl bg-muted/40 p-3">
             <div className="text-xs font-semibold text-muted-foreground">예약 플랫폼</div>
             <div className="mt-1 font-semibold">{reservation.bookingPlatform}</div>
           </section>
         ) : null}
 
         {reservation.notes ? (
-          <section className="rounded-lg bg-muted/25 p-3">
+          <section className="rounded-2xl bg-muted/40 p-3">
             <div className="text-xs font-semibold text-muted-foreground">메모</div>
             <MarkdownText className="mt-1" text={reservation.notes} />
           </section>
@@ -137,10 +137,10 @@ function ReservationAttachmentGrid({ attachments }: { attachments: ReservationAt
           <button
             key={attachment.id}
             type="button"
-            className="grid gap-2 overflow-hidden rounded-lg border bg-muted/20 p-2 text-left transition hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="grid gap-2 overflow-hidden rounded-2xl border border-border/80 bg-muted/20 p-2 text-left transition hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             onClick={() => downloadReservationAttachment(attachment)}
           >
-            <div className="grid h-28 place-items-center overflow-hidden rounded-md bg-background">
+            <div className="grid h-28 place-items-center overflow-hidden rounded-xl bg-white dark:bg-secondary">
               {isImage ? (
                 <img src={attachment.dataUrl} alt={attachment.fileName} className="h-full w-full object-cover" loading="lazy" />
               ) : (

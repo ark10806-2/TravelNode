@@ -103,7 +103,7 @@ export function PlaceEditorDialog({
         ) : null}
 
         {warnings.length ? (
-          <div className="rounded-md border bg-muted px-3 py-2 text-sm text-muted-foreground">
+          <div className="rounded-2xl bg-muted px-3 py-2 text-sm text-muted-foreground">
             {warnings.map((warning) => (
               <p className="mb-1 last:mb-0" key={warning}>
                 {warning}

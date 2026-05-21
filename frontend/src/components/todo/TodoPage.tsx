@@ -290,7 +290,7 @@ function TodoSectionCard({
 
   return (
     <section className="soft-panel overflow-hidden rounded-xl">
-      <div className="border-b bg-secondary/80 px-4 py-4">
+      <div className="border-b bg-muted px-4 py-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
             <span className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-md', accentClassName)}>
@@ -306,7 +306,7 @@ function TodoSectionCard({
             </div>
           </div>
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
-            <Badge variant="outline" className="rounded-full bg-background">
+            <Badge variant="outline" className="rounded-full bg-white dark:bg-secondary/80">
               {doneCount}/{items.length}
             </Badge>
             {headerActions}
@@ -468,7 +468,7 @@ function EditableChecklistTitle({
   return (
     <form className="flex min-w-0 max-w-full items-center gap-1" onSubmit={submit}>
       <input
-        className="h-8 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm font-semibold outline-none ring-offset-background focus:ring-2 focus:ring-ring"
+        className="h-8 min-w-0 flex-1 rounded-xl border border-input bg-white px-2 text-sm font-semibold outline-none ring-offset-background transition focus:border-ring focus:ring-2 focus:ring-ring/20 dark:bg-secondary/80"
         value={draftTitle}
         autoFocus
         maxLength={80}
@@ -588,7 +588,7 @@ function CreateChecklistForm({
       <label className="grid gap-1">
         <span className="text-xs font-semibold text-muted-foreground">커스텀 체크리스트</span>
         <input
-          className="h-10 min-w-0 rounded-md border bg-background px-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
+          className="h-10 min-w-0 rounded-xl border border-input bg-white px-3 text-sm outline-none ring-offset-background transition focus:border-ring focus:ring-2 focus:ring-ring/20 dark:bg-secondary/80"
           value={title}
           maxLength={80}
           disabled={disabled}
@@ -636,7 +636,7 @@ function TodoDaySectionCard({
 
   return (
     <section className="soft-panel overflow-hidden rounded-xl">
-      <div className="border-b bg-secondary/80 px-4 py-4">
+      <div className="border-b bg-muted px-4 py-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-start gap-3">
@@ -652,10 +652,10 @@ function TodoDaySectionCard({
             </div>
           </div>
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
-            <Badge variant="outline" className="rounded-full bg-background">
+            <Badge variant="outline" className="rounded-full bg-white dark:bg-secondary/80">
               {days.length}일
             </Badge>
-            <Badge variant="outline" className="rounded-full bg-background">
+            <Badge variant="outline" className="rounded-full bg-white dark:bg-secondary/80">
               {doneCount}/{totalCount}
             </Badge>
             {headerActions}
@@ -716,7 +716,7 @@ function TodoDayCard({
   const doneCount = items.filter((item) => item.done).length;
 
   return (
-    <article className="rounded-lg border bg-background p-3">
+    <article className="rounded-2xl border border-border/80 bg-white p-3 dark:bg-secondary/80">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Badge className="rounded-full bg-primary text-primary-foreground">DAY {dayIndex + 1}</Badge>
@@ -877,7 +877,7 @@ function EditableTodoItemText({
   return (
     <form className="flex min-w-0 flex-1 items-center gap-1" onSubmit={submit}>
       <input
-        className="h-9 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
+        className="h-9 min-w-0 flex-1 rounded-xl border border-input bg-white px-2 text-sm outline-none ring-offset-background transition focus:border-ring focus:ring-2 focus:ring-ring/20 dark:bg-secondary/80"
         value={draftText}
         autoFocus
         maxLength={200}
@@ -933,7 +933,7 @@ function AddTodoForm({
   return (
     <form className={cn('flex gap-2', className)} onSubmit={submit}>
       <input
-        className="h-10 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
+        className="h-10 min-w-0 flex-1 rounded-xl border border-input bg-white px-3 text-sm outline-none ring-offset-background transition focus:border-ring focus:ring-2 focus:ring-ring/20 dark:bg-secondary/80"
         value={text}
         maxLength={200}
         disabled={disabled}

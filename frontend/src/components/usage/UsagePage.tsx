@@ -141,13 +141,13 @@ export function UsagePage({ isEditing }: UsagePageProps) {
       ) : null}
 
       <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-        <div className="rounded-md border bg-background p-4 shadow-sm">
+        <div className="toss-card rounded-2xl p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="text-sm text-muted-foreground">이번 달 전체</div>
               <div className="mt-1 text-3xl font-bold">{summary ? `${summary.totalUsed}/${summary.totalLimit}` : '-'}</div>
             </div>
-            <div className="grid h-11 w-11 place-items-center rounded-md bg-primary/10 text-primary">
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary">
               <BarChart3 className="h-5 w-5" />
             </div>
           </div>
@@ -161,7 +161,7 @@ export function UsagePage({ isEditing }: UsagePageProps) {
           </div>
         </div>
 
-        <div className="rounded-md border bg-background p-4 shadow-sm">
+        <div className="toss-card rounded-2xl p-4">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-lg font-bold">서비스별 사용량</h2>
             {summary && summary.totalPercentage >= 70 ? (
@@ -198,7 +198,7 @@ export function UsagePage({ isEditing }: UsagePageProps) {
         </div>
       </div>
 
-      <div className="rounded-md border bg-background p-4 shadow-sm">
+      <div className="toss-card rounded-2xl p-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-lg font-bold">일별 요청 / 캐시 적중률</h2>
@@ -213,14 +213,14 @@ export function UsagePage({ isEditing }: UsagePageProps) {
             <UsageChartCard key={chart.serviceId} chart={chart} />
           ))}
           {!summary ? (
-            <div className="grid min-h-56 place-items-center rounded-md border border-dashed text-sm text-muted-foreground xl:col-span-2">
+            <div className="grid min-h-56 place-items-center rounded-2xl border border-dashed border-border/80 text-sm text-muted-foreground xl:col-span-2">
               차트 데이터를 불러오는 중입니다.
             </div>
           ) : null}
         </div>
       </div>
 
-      <div className="rounded-md border bg-background p-4 shadow-sm">
+      <div className="toss-card rounded-2xl p-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-lg font-bold">이동 수단 표시 및 계산</h2>
@@ -311,7 +311,7 @@ function UsageChartCard({ chart }: { chart: ApiUsageChart }) {
   const hasHitRate = chart.hitRate != null;
 
   return (
-    <details className="group rounded-lg border bg-muted/10 p-3">
+    <details className="group rounded-2xl border border-border/80 bg-muted/20 p-3">
       <summary className="flex cursor-pointer list-none flex-wrap items-start justify-between gap-3 marker:hidden">
         <div className="min-w-0">
           <div className="truncate text-sm font-bold">{chart.name}</div>
@@ -327,7 +327,7 @@ function UsageChartCard({ chart }: { chart: ApiUsageChart }) {
         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
       </summary>
 
-      <div className="mt-3 overflow-hidden rounded-md border bg-background/80">
+      <div className="mt-3 overflow-hidden rounded-2xl border border-border/80 bg-white/80 dark:bg-secondary/70">
         <svg className="h-auto w-full" viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label={`${chart.name} 요청 및 캐시 적중률 그래프`}>
           <rect x="0" y="0" width={chartWidth} height={chartHeight} fill="transparent" />
           {[0, 0.5, 1].map((ratio) => {
@@ -483,7 +483,7 @@ function NumberField({
     <label className="grid gap-1">
       <span className="text-[11px] font-medium text-muted-foreground">{label}</span>
       <input
-        className="h-9 min-w-0 rounded-md border bg-background px-2 text-right text-sm font-semibold read-only:border-transparent read-only:bg-transparent read-only:px-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="h-9 min-w-0 rounded-xl border border-input bg-white px-2 text-right text-sm font-semibold transition read-only:border-transparent read-only:bg-transparent read-only:px-0 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 dark:bg-secondary/80"
         inputMode="numeric"
         min={label.includes('한도') ? 1 : 0}
         readOnly={readOnly}

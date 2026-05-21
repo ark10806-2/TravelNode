@@ -76,12 +76,12 @@ export function PlaceDetailDialog({
         <PhotoBundlePreview place={place} photoState={photoState} onOpen={onOpenPhotos} />
 
         <div className="grid gap-4 text-sm sm:grid-cols-2">
-          <section className="rounded-md border bg-muted/20 p-3">
+          <section className="rounded-2xl border border-border/80 bg-muted/20 p-3">
             <div className="font-semibold">대표 항목</div>
             <div className="mt-1 text-muted-foreground">{place.menu}</div>
           </section>
 
-          <section className="rounded-md border bg-muted/20 p-3">
+          <section className="rounded-2xl border border-border/80 bg-muted/20 p-3">
             <div className="font-semibold">숙소 기준 이동</div>
             <div className="mt-1 flex items-center gap-2 text-muted-foreground">
               <Navigation className="h-4 w-4 shrink-0" />
@@ -91,7 +91,7 @@ export function PlaceDetailDialog({
             </div>
           </section>
 
-          <section className="rounded-md border bg-muted/20 p-3 sm:col-span-2">
+          <section className="rounded-2xl border border-border/80 bg-muted/20 p-3 sm:col-span-2">
             <div className="font-semibold">주소</div>
             <div className="mt-1 flex gap-2 text-muted-foreground">
               <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
@@ -100,14 +100,14 @@ export function PlaceDetailDialog({
           </section>
 
           {visibleDescription ? (
-            <section className="rounded-md border bg-muted/20 p-3 sm:col-span-2">
+            <section className="rounded-2xl border border-border/80 bg-muted/20 p-3 sm:col-span-2">
               <div className="font-semibold">설명</div>
               <MarkdownText className="mt-1" text={visibleDescription} />
             </section>
           ) : null}
 
           {visibleNote ? (
-            <section className="rounded-md border bg-muted/20 p-3 sm:col-span-2">
+            <section className="rounded-2xl border border-border/80 bg-muted/20 p-3 sm:col-span-2">
               <div className="font-semibold">Google Maps 메모</div>
               <MarkdownText className="mt-1" text={visibleNote} />
             </section>

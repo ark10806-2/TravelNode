@@ -93,7 +93,7 @@ export function ModalFrame({
     >
       <div
         className={cn(
-          'modal-panel-enter w-full overflow-hidden rounded-md border bg-background shadow-xl',
+          'modal-panel-enter toss-card w-full overflow-hidden rounded-3xl',
           maxWidth,
           scroll && 'max-h-[calc(100dvh-1rem)] overflow-y-auto overscroll-contain sm:max-h-[92dvh]',
           panelClassName
@@ -102,7 +102,7 @@ export function ModalFrame({
       >
         <div
           className={cn(
-            'sticky top-0 z-10 flex items-start justify-between gap-3 border-b bg-background px-4 py-3 sm:px-5 sm:py-4',
+            'sticky top-0 z-10 flex items-start justify-between gap-3 border-b bg-white/95 px-4 py-3 backdrop-blur dark:bg-secondary/95 sm:px-5 sm:py-4',
             headerClassName
           )}
         >

@@ -56,7 +56,7 @@ export function PlaceExpandedDetails({
 
   return (
     <div className="border-t bg-background px-3 py-3 sm:px-4 sm:py-4">
-      <div className="grid grid-cols-4 gap-1 rounded-full border bg-secondary p-1">
+      <div className="toss-segmented grid grid-cols-4 gap-1 rounded-full">
         {placeDetailSections.map((section) => {
           const Icon = section.icon;
           return (
@@ -76,7 +76,7 @@ export function PlaceExpandedDetails({
       </div>
 
       {isEditing ? (
-        <div className="mt-3 grid gap-2 rounded-xl border bg-secondary/50 p-2 sm:flex sm:items-center">
+        <div className="mt-3 grid gap-2 rounded-2xl bg-muted p-2 sm:flex sm:items-center">
           <Button variant="outline" className="rounded-full sm:w-auto" onClick={() => onEditPlace(place)} disabled={isBusy}>
             <Pencil className="h-4 w-4" />
             세부항목 수정

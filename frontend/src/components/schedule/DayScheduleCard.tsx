@@ -142,7 +142,7 @@ export function DayScheduleCard({
 
   return (
     <section className="soft-panel overflow-hidden rounded-xl sm:rounded-lg">
-      <div className="flex flex-col gap-3 border-b bg-secondary/90 px-3 py-3 sm:gap-4 sm:px-4 sm:py-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 border-b bg-muted px-3 py-3 sm:gap-4 sm:px-4 sm:py-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0 flex-1">
           <div className="relative min-w-0 pr-16">
             <h2 className="text-lg font-bold tracking-tight sm:text-2xl">{dayLabel}</h2>
@@ -151,19 +151,19 @@ export function DayScheduleCard({
             </span>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <Badge variant="outline" className="max-w-full rounded-full bg-background">
+            <Badge variant="outline" className="max-w-full rounded-full bg-white dark:bg-secondary/80">
               <Building2 className="mr-1 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               <span className="truncate">{hotelPlace.name}</span>
             </Badge>
             {hasRouteCalculationNeeded ? (
-              <Badge variant="outline" className="rounded-full bg-background text-[11px] text-muted-foreground">
+              <Badge variant="outline" className="rounded-full bg-white text-[11px] text-muted-foreground dark:bg-secondary/80">
                 경로 계산 필요
               </Badge>
             ) : null}
           </div>
           {isEditing ? (
             <div className="mt-3 grid max-w-2xl gap-2">
-              <details className="group rounded-xl border bg-background p-2.5 shadow-sm shadow-black/0">
+              <details className="group rounded-2xl border border-border/80 bg-white p-2.5 dark:bg-secondary/80">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-xs font-bold text-foreground marker:hidden">
                   <span>시간 설정</span>
                   <span className="text-[11px] font-semibold text-muted-foreground group-open:hidden">
@@ -171,14 +171,14 @@ export function DayScheduleCard({
                   </span>
                 </summary>
                 <div className="mt-3 grid gap-3 sm:grid-cols-[13rem_minmax(0,1fr)]">
-                  <label className="rounded-xl border bg-background p-2.5 shadow-sm shadow-black/0">
+                  <label className="rounded-2xl border border-border/80 bg-white p-2.5 dark:bg-secondary/80">
                     <span className="flex items-center gap-1.5 text-xs font-bold text-foreground">
                       <CalendarDays className="h-3.5 w-3.5 text-primary" />
                       DAY 날짜
                     </span>
                     <input
                       type="date"
-                      className="mt-2 h-9 w-full rounded-md border bg-background px-2 text-sm font-semibold text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      className="mt-2 h-9 w-full rounded-xl border border-input bg-white px-2 text-sm font-semibold text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20 dark:bg-secondary/80"
                       value={day.travelDate ?? ''}
                       onChange={(event) => onSetDayTravelDate(day.id, event.currentTarget.value || null)}
                     />
@@ -193,7 +193,7 @@ export function DayScheduleCard({
                 </div>
               </details>
               {scheduledPlaces.length > 0 ? (
-                <details className="group rounded-xl border bg-background p-2.5 shadow-sm shadow-black/0">
+                <details className="group rounded-2xl border border-border/80 bg-white p-2.5 dark:bg-secondary/80">
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-xs font-bold text-foreground marker:hidden">
                     <span>경로 고급 설정</span>
                     <span className="text-[11px] font-semibold text-muted-foreground">
@@ -364,7 +364,7 @@ export function DayScheduleCard({
                               </div>
                             ) : null}
                             {isEditing ? (
-                              <details className="group mt-3 rounded-lg border bg-secondary/40 p-2">
+                              <details className="group mt-3 rounded-2xl border border-border/80 bg-muted/50 p-2">
                                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-xs font-bold text-foreground marker:hidden">
                                   <span>출발 기준</span>
                                 </summary>

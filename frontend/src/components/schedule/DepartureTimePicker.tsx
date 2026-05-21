@@ -30,7 +30,7 @@ export function DepartureTimePicker({ label, value, onChange, description, compa
   const sliderValue = normalizedValue ?? defaultDayDepartureTimeMinutes;
 
   return (
-    <div className={cn('rounded-xl border bg-background p-3 shadow-sm shadow-black/0', compact && 'p-2.5')}>
+    <div className={cn('rounded-2xl border border-border/80 bg-white p-3 dark:bg-secondary/80', compact && 'p-2.5')}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
