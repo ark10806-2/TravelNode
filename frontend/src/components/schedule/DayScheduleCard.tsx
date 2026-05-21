@@ -146,17 +146,15 @@ export function DayScheduleCard({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <Badge className="rounded-full bg-primary text-primary-foreground">{dayLabel}</Badge>
+            <Badge variant="outline" className="max-w-full rounded-full bg-background">
+              <Building2 className="mr-1 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <span className="truncate">{hotelPlace.name}</span>
+            </Badge>
             <Badge variant="outline" className="rounded-full bg-background">
               {day.stops.length}/{maxStopsPerDay}
             </Badge>
           </div>
           <h2 className="mt-2 text-lg font-bold tracking-tight sm:text-2xl">{dayLabel}</h2>
-          <p className="mt-1 text-sm leading-5 text-muted-foreground">방문 순서를 정하고 장소 간 이동 시간을 비교합니다.</p>
-          <div className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full bg-background px-2.5 py-1 text-xs text-muted-foreground">
-            <Building2 className="h-3.5 w-3.5 shrink-0" />
-            <span className="shrink-0">숙소</span>
-            <span className="truncate font-semibold text-foreground">{hotelPlace.name}</span>
-          </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             <span className="text-xs font-medium text-muted-foreground">
               {formatDepartureTime(day.departureTimeMinutes)}
@@ -243,17 +241,6 @@ export function DayScheduleCard({
                 </details>
               ) : null}
             </div>
-          ) : day.travelDate || day.departureTimeMinutes != null ? (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {day.travelDate ? (
-                <span className="inline-flex rounded-full bg-background px-2.5 py-1 text-xs font-semibold text-muted-foreground">
-                  여행일 {formatTravelDate(day.travelDate)}
-                </span>
-              ) : null}
-              <span className="inline-flex rounded-full bg-background px-2.5 py-1 text-xs font-semibold text-muted-foreground">
-                숙소 출발 {formatDepartureTime(day.departureTimeMinutes)}
-              </span>
-            </div>
           ) : null}
         </div>
         {scheduledPlaces.length > 0 || isEditing ? (
@@ -269,23 +256,15 @@ export function DayScheduleCard({
               </Button>
             ) : null}
             {!isEditing && scheduledPlaces.length > 0 ? (
-              <details className="col-span-2 sm:col-span-1 sm:min-w-40">
-                <summary className="flex h-10 cursor-pointer list-none items-center justify-center gap-2 rounded-full border bg-background px-3 text-xs font-semibold text-muted-foreground marker:hidden transition hover:bg-secondary sm:text-sm">
-                  <RefreshCw className={`h-4 w-4 ${isRefreshingRoutes ? 'animate-spin' : ''}`} />
-                  경로 관리
-                </summary>
-                <div className="mt-2 rounded-xl border bg-background p-2 shadow-sm">
-                  <Button
-                    className="w-full rounded-full px-2 text-xs sm:px-3 sm:text-sm"
-                    variant="ghost"
-                    onClick={onRefreshRoutes}
-                    disabled={isRefreshingRoutes || isCalculatingPreciseRoutes || routeRefreshRemainingSeconds > 0}
-                  >
-                    <RefreshCw className={`h-4 w-4 ${isRefreshingRoutes ? 'animate-spin' : ''}`} />
-                    {routeRefreshRemainingSeconds > 0 ? `${routeRefreshRemainingSeconds}초 후` : '경로 새로고침'}
-                  </Button>
-                </div>
-              </details>
+              <Button
+                className="min-w-0 flex-1 rounded-full px-2 text-xs sm:flex-none sm:px-3 sm:text-sm"
+                variant="outline"
+                onClick={onRefreshRoutes}
+                disabled={isRefreshingRoutes || isCalculatingPreciseRoutes || routeRefreshRemainingSeconds > 0}
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshingRoutes ? 'animate-spin' : ''}`} />
+                {routeRefreshRemainingSeconds > 0 ? `${routeRefreshRemainingSeconds}초 후` : '경로 새로고침'}
+              </Button>
             ) : null}
             {isEditing ? (
               <>
@@ -392,9 +371,6 @@ export function DayScheduleCard({
                               <details className="group mt-3 rounded-lg border bg-secondary/40 p-2">
                                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-xs font-bold text-foreground marker:hidden">
                                   <span>출발 기준</span>
-                                  <span className="rounded-full bg-background px-2 py-1 text-[11px] font-semibold text-muted-foreground group-open:hidden">
-                                    {formatDepartureTime(stop.departureTimeMinutes)}
-                                  </span>
                                 </summary>
                                 <div className="mt-2">
                                   <DepartureTimePicker
@@ -406,10 +382,6 @@ export function DayScheduleCard({
                                   />
                                 </div>
                               </details>
-                            ) : stop.departureTimeMinutes != null ? (
-                              <div className="mt-2 inline-flex rounded-full bg-secondary px-2 py-1 text-xs font-semibold text-muted-foreground">
-                                출발 기준 {formatDepartureTime(stop.departureTimeMinutes)}
-                              </div>
                             ) : null}
                           </div>
                           <div className="flex flex-wrap items-center justify-start gap-1 md:justify-end">
