@@ -17,7 +17,9 @@ type ModalFrameProps = {
 
 let activeModalCount = 0;
 let lockedScrollY = 0;
-let previousBodyStyle: Pick<CSSStyleDeclaration, 'overflow' | 'position' | 'top' | 'width'> | null = null;
+let previousBodyStyle: Pick<CSSStyleDeclaration, 'overflow' | 'position' | 'top' | 'width' | 'touchAction'> | null = null;
+let previousDocumentStyle: Pick<CSSStyleDeclaration, 'overflow' | 'overscrollBehavior'> | null = null;
+let usesPositionScrollLock = true;
 
 export function ModalFrame({
   title,
@@ -33,16 +35,28 @@ export function ModalFrame({
   useEffect(() => {
     if (activeModalCount === 0) {
       lockedScrollY = window.scrollY;
+      usesPositionScrollLock = !shouldPreserveMobileVisualViewport();
       previousBodyStyle = {
         overflow: document.body.style.overflow,
         position: document.body.style.position,
         top: document.body.style.top,
-        width: document.body.style.width
+        width: document.body.style.width,
+        touchAction: document.body.style.touchAction
+      };
+      previousDocumentStyle = {
+        overflow: document.documentElement.style.overflow,
+        overscrollBehavior: document.documentElement.style.overscrollBehavior
       };
       document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${lockedScrollY}px`;
       document.body.style.width = '100%';
+
+      if (usesPositionScrollLock) {
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${lockedScrollY}px`;
+      } else {
+        document.documentElement.style.overflow = 'hidden';
+        document.documentElement.style.overscrollBehavior = 'none';
+      }
     }
 
     activeModalCount += 1;
@@ -51,19 +65,26 @@ export function ModalFrame({
       activeModalCount = Math.max(0, activeModalCount - 1);
       if (activeModalCount > 0 || !previousBodyStyle) return;
 
+      const shouldRestoreScroll = usesPositionScrollLock;
       document.body.style.overflow = previousBodyStyle.overflow;
       document.body.style.position = previousBodyStyle.position;
       document.body.style.top = previousBodyStyle.top;
       document.body.style.width = previousBodyStyle.width;
+      document.body.style.touchAction = previousBodyStyle.touchAction;
+      if (previousDocumentStyle) {
+        document.documentElement.style.overflow = previousDocumentStyle.overflow;
+        document.documentElement.style.overscrollBehavior = previousDocumentStyle.overscrollBehavior;
+      }
       previousBodyStyle = null;
-      window.scrollTo(0, lockedScrollY);
+      previousDocumentStyle = null;
+      if (shouldRestoreScroll) window.scrollTo(0, lockedScrollY);
     };
   }, []);
 
   return (
     <div
       className={cn(
-        'fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-foreground/35 p-2 sm:items-center sm:p-4',
+        'fixed inset-x-0 top-0 z-50 flex h-[100dvh] max-h-[100dvh] items-end justify-center overscroll-contain bg-foreground/35 p-2 sm:items-center sm:p-4',
         overlayClassName
       )}
       onMouseDown={(event) => {
@@ -74,7 +95,7 @@ export function ModalFrame({
         className={cn(
           'w-full overflow-hidden rounded-md border bg-background shadow-xl',
           maxWidth,
-          scroll && 'max-h-[94vh] overflow-y-auto overscroll-contain sm:max-h-[92vh]',
+          scroll && 'max-h-[calc(100dvh-1rem)] overflow-y-auto overscroll-contain sm:max-h-[92dvh]',
           panelClassName
         )}
         onMouseDown={(event) => event.stopPropagation()}
@@ -96,5 +117,13 @@ export function ModalFrame({
         {children}
       </div>
     </div>
+  );
+}
+
+function shouldPreserveMobileVisualViewport() {
+  return Boolean(
+    window.visualViewport &&
+      window.matchMedia('(hover: none) and (pointer: coarse)').matches &&
+      window.matchMedia('(max-width: 767px)').matches
   );
 }

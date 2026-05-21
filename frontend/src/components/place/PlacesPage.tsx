@@ -420,6 +420,14 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
           onClose={() => setDetailTarget(null)}
           onOpenPhotos={openPhotoDialog}
           onOpenReservations={openReservations}
+          onEditPlace={(place) => {
+            if (!canEdit) {
+              onRequireAuth();
+              return;
+            }
+            setDetailTarget(null);
+            setEditTarget(place);
+          }}
           scheduleActionLabel={isDetailTargetInSelectedDay ? `${selectedScheduleDayLabel} 포함됨` : `${selectedScheduleDayLabel} 일정에 추가`}
           scheduleActionDisabled={isDetailTargetInSelectedDay}
           isScheduleActionLoading={addingSchedulePlaceId === detailTarget.id}

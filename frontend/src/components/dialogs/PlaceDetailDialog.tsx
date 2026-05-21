@@ -1,4 +1,4 @@
-import { CalendarPlus, ExternalLink, Loader2, MapPin, Navigation } from 'lucide-react';
+import { CalendarPlus, ExternalLink, Loader2, MapPin, Navigation, Pencil } from 'lucide-react';
 import { MarkdownText } from '@/components/common/MarkdownText';
 import { PlaceReservationBadge } from '@/components/reservation/PlaceReservationBadge';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +28,7 @@ type PlaceDetailDialogProps = {
   scheduleActionDisabled?: boolean;
   isScheduleActionLoading?: boolean;
   onScheduleAction?: (place: Place) => void;
+  onEditPlace?: (place: Place) => void;
 };
 
 export function PlaceDetailDialog({
@@ -41,7 +42,8 @@ export function PlaceDetailDialog({
   scheduleActionLabel,
   scheduleActionDisabled = false,
   isScheduleActionLoading = false,
-  onScheduleAction
+  onScheduleAction,
+  onEditPlace
 }: PlaceDetailDialogProps) {
   const category = getCategoryOption(categories, place.category);
   const visibleDescription = getVisiblePlaceDescription(place);
@@ -52,6 +54,8 @@ export function PlaceDetailDialog({
       title={place.name}
       maxWidth="max-w-3xl"
       scroll
+      overlayClassName="p-0 sm:p-4"
+      panelClassName="max-h-[100dvh] rounded-b-none rounded-t-2xl border-x-0 border-b-0 sm:max-h-[92dvh] sm:rounded-md sm:border"
       onClose={onClose}
       eyebrow={
         <div className="flex flex-wrap items-center gap-1.5">
@@ -111,6 +115,12 @@ export function PlaceDetailDialog({
         </div>
 
         <div className="grid gap-2 sm:flex sm:justify-end">
+          {onEditPlace ? (
+            <Button className="w-full sm:w-fit" variant="outline" onClick={() => onEditPlace(place)}>
+              <Pencil className="h-4 w-4" />
+              편집
+            </Button>
+          ) : null}
           {onScheduleAction && scheduleActionLabel ? (
             <Button
               className="w-full sm:w-fit"
