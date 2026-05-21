@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader2, MapPin } from 'lucide-react';
-import { recordApiUsage } from '@/api/usage';
 import { googleMapsApiKey } from '@/config/env';
-import { createHotelMarkerIcon, createPlaceMarkerIcon, getPlaceMapStyles, loadGoogleMaps } from '@/lib/google-maps';
+import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
+import { createHotelMarkerIcon, createPlaceMarkerIcon, getPlaceMapStyles } from '@/lib/google-maps';
 import { getEmbedMapUrl } from '@/lib/place-utils';
 import type { LoadStatus, Place } from '@/types/travel';
 
@@ -20,13 +20,14 @@ export function TravelMap({ places, selectedPlace, referencePlace, status, isDar
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const [mapReady, setMapReady] = useState(false);
-  const [mapLoadFailed, setMapLoadFailed] = useState(false);
-  const [mapError, setMapError] = useState('');
+  const [authError, setAuthError] = useState('');
+  const { maps, status: mapLoadStatus, error: mapLoadError } = useGoogleMapsLoader(status === 'ready', '지도를 불러오지 못해 기본 보기로 전환했습니다.');
+  const mapLoadFailed = Boolean(authError) || mapLoadStatus === 'error';
+  const mapError = authError || mapLoadError;
 
   useEffect(() => {
     window.gm_authFailure = () => {
-      setMapLoadFailed(true);
-      setMapError('지도 인증을 확인하지 못해 기본 보기로 전환했습니다.');
+      setAuthError('지도 인증을 확인하지 못해 기본 보기로 전환했습니다.');
     };
 
     return () => {
@@ -35,39 +36,20 @@ export function TravelMap({ places, selectedPlace, referencePlace, status, isDar
   }, []);
 
   useEffect(() => {
-    if (!mapRef.current || !googleMapsApiKey || status !== 'ready') return;
+    if (!mapRef.current || !maps || mapInstanceRef.current || status !== 'ready') return;
 
-    let cancelled = false;
-    setMapError('');
-
-    loadGoogleMaps(googleMapsApiKey)
-      .then((maps) => {
-        if (cancelled || mapInstanceRef.current || !mapRef.current) return;
-
-        mapInstanceRef.current = new maps.Map(mapRef.current, {
-          center: { lat: referencePlace.latitude, lng: referencePlace.longitude },
-          zoom: 14,
-          gestureHandling: 'greedy',
-          scrollwheel: true,
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: false,
-          styles: getPlaceMapStyles(isDarkMode)
-        });
-        void recordApiUsage('maps-js').catch(() => undefined);
-        setMapLoadFailed(false);
-        setMapReady(true);
-      })
-      .catch((loadError) => {
-        console.error('[Google Maps] 지도 초기화 실패', loadError);
-        setMapLoadFailed(true);
-        setMapError('지도를 불러오지 못해 기본 보기로 전환했습니다.');
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isDarkMode, referencePlace.latitude, referencePlace.longitude, status]);
+    mapInstanceRef.current = new maps.Map(mapRef.current, {
+      center: { lat: referencePlace.latitude, lng: referencePlace.longitude },
+      zoom: 14,
+      gestureHandling: 'greedy',
+      scrollwheel: true,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: false,
+      styles: getPlaceMapStyles(isDarkMode)
+    });
+    setMapReady(true);
+  }, [isDarkMode, maps, referencePlace.latitude, referencePlace.longitude, status]);
 
   useEffect(() => {
     if (!mapReady || !mapInstanceRef.current) return;
@@ -75,9 +57,7 @@ export function TravelMap({ places, selectedPlace, referencePlace, status, isDar
   }, [isDarkMode, mapReady]);
 
   useEffect(() => {
-    if (!mapReady || !window.google?.maps || !mapInstanceRef.current) return;
-
-    const maps = window.google.maps;
+    if (!mapReady || !maps || !mapInstanceRef.current) return;
     markersRef.current.forEach((marker) => marker.setMap(null));
     markersRef.current = [];
 
@@ -114,10 +94,10 @@ export function TravelMap({ places, selectedPlace, referencePlace, status, isDar
       mapInstanceRef.current.setCenter({ lat: referencePlace.latitude, lng: referencePlace.longitude });
       mapInstanceRef.current.setZoom(14);
     }
-  }, [mapReady, onSelectPlace, places, referencePlace, selectedPlace?.id]);
+  }, [mapReady, maps, onSelectPlace, places, referencePlace, selectedPlace?.id]);
 
   useEffect(() => {
-    if (!mapReady || !window.google?.maps || !mapInstanceRef.current || !selectedPlace) return;
+    if (!mapReady || !mapInstanceRef.current || !selectedPlace) return;
     mapInstanceRef.current.panTo({ lat: selectedPlace.latitude, lng: selectedPlace.longitude });
   }, [mapReady, selectedPlace]);
 

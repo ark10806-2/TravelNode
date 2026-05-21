@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Home, Loader2, MapPin, MapPinned, Route } from 'lucide-react';
-import { recordApiUsage } from '@/api/usage';
 import { MarkdownInline } from '@/components/common/MarkdownText';
 import { ModalFrame } from '@/components/dialogs/ModalFrame';
 import { Badge } from '@/components/ui/badge';
-import { googleMapsApiKey } from '@/config/env';
-import { createHotelMarkerIcon, createPlaceMarkerIcon, describeError, getPlaceMapStyles, loadGoogleMaps } from '@/lib/google-maps';
+import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
+import { createHotelMarkerIcon, createPlaceMarkerIcon, getPlaceMapStyles } from '@/lib/google-maps';
 import { cn } from '@/lib/utils';
 import type { Place } from '@/types/travel';
 
@@ -24,8 +23,7 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
   const pathRef = useRef<google.maps.Polyline | null>(null);
   const listScrollRef = useRef<HTMLElement | null>(null);
   const listItemRefs = useRef<Record<string, HTMLLIElement | null>>({});
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(googleMapsApiKey ? 'loading' : 'error');
-  const [error, setError] = useState(googleMapsApiKey ? '' : 'Google Maps API 키가 필요합니다.');
+  const { maps, status, error } = useGoogleMapsLoader(true, '동선 지도를 불러오지 못했습니다.');
   const orderedPlaces = useMemo(() => places.filter(Boolean), [places]);
   const anchorIsScheduled = useMemo(
     () => Boolean(anchorPlace && orderedPlaces.some((place) => place.id === anchorPlace.id)),
@@ -71,43 +69,23 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
   }, [markerPlaces, orderedPlaces, selectedPlaceId]);
 
   useEffect(() => {
-    if (!mapRef.current || !googleMapsApiKey) return;
+    if (status !== 'ready' || !mapRef.current || !maps || mapInstanceRef.current) return;
 
-    let cancelled = false;
-    setStatus('loading');
-    setError('');
-
-    loadGoogleMaps(googleMapsApiKey)
-      .then((maps) => {
-        if (cancelled || !mapRef.current) return;
-
-        mapInstanceRef.current = new maps.Map(mapRef.current, {
-          center: orderedPlaces[0]
-            ? { lat: orderedPlaces[0].latitude, lng: orderedPlaces[0].longitude }
-            : anchorPlace
-              ? { lat: anchorPlace.latitude, lng: anchorPlace.longitude }
-            : { lat: 35.668862, lng: 139.773098 },
-          zoom: 14,
-          gestureHandling: 'greedy',
-          scrollwheel: true,
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: false,
-          styles: getPlaceMapStyles(isDarkMode)
-        });
-        void recordApiUsage('maps-js').catch(() => undefined);
-        setStatus('ready');
-      })
-      .catch((loadError) => {
-        if (cancelled) return;
-        setStatus('error');
-        setError(`지도를 불러오지 못했습니다. 원인: ${describeError(loadError)}.`);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [anchorPlace, isDarkMode, orderedPlaces]);
+    mapInstanceRef.current = new maps.Map(mapRef.current, {
+      center: orderedPlaces[0]
+        ? { lat: orderedPlaces[0].latitude, lng: orderedPlaces[0].longitude }
+        : anchorPlace
+          ? { lat: anchorPlace.latitude, lng: anchorPlace.longitude }
+          : { lat: 35.668862, lng: 139.773098 },
+      zoom: 14,
+      gestureHandling: 'greedy',
+      scrollwheel: true,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: false,
+      styles: getPlaceMapStyles(isDarkMode)
+    });
+  }, [anchorPlace, isDarkMode, maps, orderedPlaces, status]);
 
   useEffect(() => {
     if (status !== 'ready' || !mapInstanceRef.current) return;
@@ -115,9 +93,7 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
   }, [isDarkMode, status]);
 
   useEffect(() => {
-    if (status !== 'ready' || !window.google?.maps || !mapInstanceRef.current) return;
-
-    const maps = window.google.maps;
+    if (status !== 'ready' || !maps || !mapInstanceRef.current) return;
     markersRef.current.forEach((marker) => marker.setMap(null));
     markersRef.current = [];
     pathRef.current?.setMap(null);
@@ -171,12 +147,10 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
       });
     }
 
-  }, [anchorIsScheduled, anchorPlace, isDarkMode, markerPlaces, orderedPlaces, pathPlaces, selectRoutePlace, selectedPlaceId, status]);
+  }, [anchorIsScheduled, anchorPlace, isDarkMode, maps, markerPlaces, orderedPlaces, pathPlaces, selectRoutePlace, selectedPlaceId, status]);
 
   useEffect(() => {
-    if (status !== 'ready' || !window.google?.maps || !mapInstanceRef.current) return;
-
-    const maps = window.google.maps;
+    if (status !== 'ready' || !maps || !mapInstanceRef.current) return;
     const bounds = new maps.LatLngBounds();
     const path = pathPlaces.map((place) => {
       const position = { lat: place.latitude, lng: place.longitude };
@@ -190,16 +164,15 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
       mapInstanceRef.current.setCenter(path[0]);
       mapInstanceRef.current.setZoom(selectedRouteZoom());
     }
-  }, [pathPlaces, status]);
+  }, [maps, pathPlaces, status]);
 
   useEffect(() => {
     if (selectionFocusVersion === 0) return;
 
     const selectedIndex = orderedPlaces.findIndex((place) => place.id === selectedPlaceId);
-    if (status === 'ready' && window.google?.maps && mapInstanceRef.current && selectedIndex >= 0) {
+    if (status === 'ready' && maps && mapInstanceRef.current && selectedIndex >= 0) {
       const focusPlaces = orderedPlaces.slice(Math.max(0, selectedIndex - 1), Math.min(orderedPlaces.length, selectedIndex + 2));
       if (focusPlaces.length > 1) {
-        const maps = window.google.maps;
         const bounds = new maps.LatLngBounds();
         focusPlaces.forEach((place) => bounds.extend({ lat: place.latitude, lng: place.longitude }));
         mapInstanceRef.current.fitBounds(bounds, focusedRouteBoundsPadding());
@@ -222,7 +195,7 @@ export function DayRouteMapDialog({ dayLabel, places, anchorPlace, isDarkMode, o
     const anchorRect = scrollAnchorElement.getBoundingClientRect();
     const nextScrollTop = listScrollElement.scrollTop + anchorRect.top - scrollRect.top;
     listScrollElement.scrollTo({ top: Math.max(0, nextScrollTop), behavior: 'smooth' });
-  }, [markerPlaces, orderedPlaces, selectedPlaceId, selectionFocusVersion, status]);
+  }, [maps, markerPlaces, orderedPlaces, selectedPlaceId, selectionFocusVersion, status]);
 
   return (
     <ModalFrame

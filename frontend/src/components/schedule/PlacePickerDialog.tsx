@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ExternalLink, Images, Loader2, MapPin, MapPinned, Plus, Route, Search, X } from 'lucide-react';
-import { recordApiUsage } from '@/api/usage';
 import { MarkdownInline } from '@/components/common/MarkdownText';
 import { Button } from '@/components/ui/button';
-import { googleMapsApiKey } from '@/config/env';
-import { createHotelMarkerIcon, createPlaceMarkerIcon, describeError, getPlaceMapStyles, loadGoogleMaps } from '@/lib/google-maps';
+import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
+import { createHotelMarkerIcon, createPlaceMarkerIcon, getPlaceMapStyles } from '@/lib/google-maps';
 import { getCategoryBadgeClass, getCategoryOption, getPlaceInfoUrl } from '@/lib/place-utils';
 import { cn } from '@/lib/utils';
 import type { CategoryId, CategoryOption, PhotoState, Place } from '@/types/travel';
@@ -314,8 +313,7 @@ function PlacePickerRoutePreview({
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const pathRef = useRef<google.maps.Polyline | null>(null);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(googleMapsApiKey ? 'loading' : 'error');
-  const [error, setError] = useState(googleMapsApiKey ? '' : 'Google Maps API 키가 필요합니다.');
+  const { maps, status, error } = useGoogleMapsLoader(true, '지도를 불러오지 못했습니다.');
   const routePlaces = useMemo(() => [...scheduledPlaces, ...selectedPlaces], [scheduledPlaces, selectedPlaces]);
   const markerPlaces = useMemo(() => uniquePlaces([anchorPlace, ...routePlaces]), [anchorPlace, routePlaces]);
   const pathPlaces = useMemo(() => {
@@ -325,39 +323,19 @@ function PlacePickerRoutePreview({
   const focusedPlace = markerPlaces.find((place) => place.id === focusedPlaceId) ?? routePlaces[0] ?? anchorPlace;
 
   useEffect(() => {
-    if (!mapRef.current || !googleMapsApiKey) return;
+    if (status !== 'ready' || !mapRef.current || !maps || mapInstanceRef.current) return;
 
-    let cancelled = false;
-    setStatus('loading');
-    setError('');
-
-    loadGoogleMaps(googleMapsApiKey)
-      .then((maps) => {
-        if (cancelled || !mapRef.current) return;
-
-        mapInstanceRef.current = new maps.Map(mapRef.current, {
-          center: { lat: anchorPlace.latitude, lng: anchorPlace.longitude },
-          zoom: 14,
-          gestureHandling: 'greedy',
-          scrollwheel: true,
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: false,
-          styles: getPlaceMapStyles(isDarkMode)
-        });
-        void recordApiUsage('maps-js').catch(() => undefined);
-        setStatus('ready');
-      })
-      .catch((loadError) => {
-        if (cancelled) return;
-        setStatus('error');
-        setError(`지도를 불러오지 못했습니다. 원인: ${describeError(loadError)}.`);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [anchorPlace.latitude, anchorPlace.longitude, isDarkMode]);
+    mapInstanceRef.current = new maps.Map(mapRef.current, {
+      center: { lat: anchorPlace.latitude, lng: anchorPlace.longitude },
+      zoom: 14,
+      gestureHandling: 'greedy',
+      scrollwheel: true,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: false,
+      styles: getPlaceMapStyles(isDarkMode)
+    });
+  }, [anchorPlace.latitude, anchorPlace.longitude, isDarkMode, maps, status]);
 
   useEffect(() => {
     if (status !== 'ready' || !mapInstanceRef.current) return;
@@ -365,9 +343,7 @@ function PlacePickerRoutePreview({
   }, [isDarkMode, status]);
 
   useEffect(() => {
-    if (status !== 'ready' || !window.google?.maps || !mapInstanceRef.current) return;
-
-    const maps = window.google.maps;
+    if (status !== 'ready' || !maps || !mapInstanceRef.current) return;
     markersRef.current.forEach((marker) => marker.setMap(null));
     markersRef.current = [];
     pathRef.current?.setMap(null);
@@ -418,12 +394,10 @@ function PlacePickerRoutePreview({
         ]
       });
     }
-  }, [anchorPlace, focusedPlace.id, isDarkMode, markerPlaces, onFocusPlace, pathPlaces, routePlaces, status]);
+  }, [anchorPlace, focusedPlace.id, isDarkMode, maps, markerPlaces, onFocusPlace, pathPlaces, routePlaces, status]);
 
   useEffect(() => {
-    if (status !== 'ready' || !window.google?.maps || !mapInstanceRef.current) return;
-
-    const maps = window.google.maps;
+    if (status !== 'ready' || !maps || !mapInstanceRef.current) return;
     const bounds = new maps.LatLngBounds();
     pathPlaces.forEach((place) => bounds.extend({ lat: place.latitude, lng: place.longitude }));
 
@@ -433,7 +407,7 @@ function PlacePickerRoutePreview({
       mapInstanceRef.current.setCenter({ lat: anchorPlace.latitude, lng: anchorPlace.longitude });
       mapInstanceRef.current.setZoom(15);
     }
-  }, [anchorPlace.latitude, anchorPlace.longitude, pathPlaces, status]);
+  }, [anchorPlace.latitude, anchorPlace.longitude, maps, pathPlaces, status]);
 
   return (
     <div className="grid gap-3">
