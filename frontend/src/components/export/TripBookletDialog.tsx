@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react';
-import { CalendarDays, CheckCircle2, Circle, ExternalLink, FileText, MapPin, Printer, TicketCheck } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { CalendarDays, CheckCircle2, Circle, Download, ExternalLink, FileText, Loader2, MapPin, TicketCheck } from 'lucide-react';
+import { downloadTripBookletPdf } from '@/api/booklet';
 import { MarkdownText } from '@/components/common/MarkdownText';
 import { ModalFrame } from '@/components/dialogs/ModalFrame';
 import { Badge } from '@/components/ui/badge';
@@ -50,29 +51,36 @@ const emptyTodos: TodoList = {
 };
 
 export function TripBookletDialog({ snapshot, photoCache, onClose }: TripBookletDialogProps) {
-  async function printBooklet() {
-    await waitForBookletImages(document.querySelector('.trip-booklet-print-root'));
-    window.print();
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  async function downloadBooklet() {
+    setIsDownloading(true);
+    try {
+      await downloadTripBookletPdf();
+    } catch (downloadError) {
+      window.alert(downloadError instanceof Error ? downloadError.message : 'PDF를 생성하지 못했습니다.');
+    } finally {
+      setIsDownloading(false);
+    }
   }
 
   return (
-    <>
       <ModalFrame
         title="여행 책자 PDF"
         maxWidth="max-w-6xl"
         scroll
         headerClassName="trip-booklet-controls"
         onClose={onClose}
-        eyebrow={<Badge variant="outline">Offline booklet</Badge>}
+        eyebrow={<Badge variant="outline">Server PDF</Badge>}
       >
         <div className="trip-booklet-controls flex flex-col gap-3 border-b bg-secondary/60 px-4 py-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div className="leading-6">
-            PDF 저장 창이 열리면 대상에서 <strong className="text-foreground">PDF로 저장</strong>을 선택하세요.
-            표지와 섹션이 A4 페이지 단위로 분리되며, 지도 대신 주소와 Google Maps 링크를 함께 담습니다.
+            아래 미리보기는 화면 확인용입니다. 실제 파일은 서버에서 <strong className="text-foreground">A4 고정 레이아웃 PDF</strong>로
+            생성되어 모바일에서도 같은 배치로 다운로드됩니다.
           </div>
-          <Button className="rounded-full" onClick={printBooklet}>
-            <Printer className="h-4 w-4" />
-            PDF로 저장
+          <Button className="rounded-full" onClick={downloadBooklet} disabled={isDownloading}>
+            {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            완성 PDF 다운로드
           </Button>
         </div>
 
@@ -84,38 +92,7 @@ export function TripBookletDialog({ snapshot, photoCache, onClose }: TripBooklet
           />
         </div>
       </ModalFrame>
-
-      <div className="trip-booklet-print-root" aria-hidden="true">
-        <BookletArticle snapshot={snapshot} photoCache={photoCache} />
-      </div>
-    </>
   );
-}
-
-async function waitForBookletImages(root: Element | null) {
-  if (!root) return;
-
-  const images = Array.from(root.querySelectorAll('img'));
-  if (!images.length) return;
-
-  await Promise.race([
-    Promise.all(images.map(waitForImage)),
-    new Promise((resolve) => window.setTimeout(resolve, 3500))
-  ]);
-}
-
-async function waitForImage(image: HTMLImageElement) {
-  if (!image.complete) {
-    await new Promise<void>((resolve) => {
-      const finish = () => resolve();
-      image.addEventListener('load', finish, { once: true });
-      image.addEventListener('error', finish, { once: true });
-    });
-  }
-
-  if (typeof image.decode === 'function') {
-    await image.decode().catch(() => undefined);
-  }
 }
 
 function BookletArticle({

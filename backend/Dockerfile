@@ -7,6 +7,8 @@ RUN gradle installDist --no-daemon
 
 FROM eclipse-temurin:21-jre-alpine
 
+RUN apk add --no-cache font-droid-nonlatin
+
 WORKDIR /app
 COPY --from=build /app/build/install/japan-trip-backend /app
 EXPOSE 4000

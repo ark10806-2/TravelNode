@@ -30,6 +30,7 @@ dependencies {
   implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.2")
   implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.18.2")
   implementation("com.zaxxer:HikariCP:6.2.1")
+  implementation("org.apache.pdfbox:pdfbox:3.0.3")
   implementation("org.postgresql:postgresql:42.7.4")
   testImplementation("io.ktor:ktor-server-test-host-jvm:$ktorVersion")
   testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")

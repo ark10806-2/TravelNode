@@ -11,6 +11,7 @@ data class AppServices(
   val apiUsageRepository: ApiUsageRepository,
   val categoryRepository: CategoryRepository,
   val authRepository: AuthRepository,
+  val tripBookletPdfService: TripBookletPdfService,
   val googleMapsPreviewService: GoogleMapsPreviewService,
   val googleMapsListSyncService: GoogleMapsListSyncService,
   val googleMapsPhotoService: GoogleMapsPhotoService
@@ -23,22 +24,38 @@ data class AppServices(
   companion object {
     fun fromEnv(): AppServices {
       val database = RestaurantDatabase.fromEnv()
+      val restaurantRepository = RestaurantRepository(database.dataSource)
+      val restaurantPhotoRepository = RestaurantPhotoRepository(database.dataSource)
+      val routeCacheRepository = RouteCacheRepository(database.dataSource)
+      val scheduleRepository = ScheduleRepository(database.dataSource)
+      val todoRepository = TodoRepository(database.dataSource)
+      val reservationRepository = ReservationRepository(database.dataSource)
       val apiUsageRepository = ApiUsageRepository(database.dataSource)
+      val categoryRepository = CategoryRepository(database.dataSource)
+      val authRepository = AuthRepository(database.dataSource)
 
       return AppServices(
         database = database,
-        restaurantRepository = RestaurantRepository(database.dataSource),
-        restaurantPhotoRepository = RestaurantPhotoRepository(database.dataSource),
-        routeCacheRepository = RouteCacheRepository(database.dataSource),
-        scheduleRepository = ScheduleRepository(database.dataSource),
-        todoRepository = TodoRepository(database.dataSource),
-        reservationRepository = ReservationRepository(database.dataSource),
+        restaurantRepository = restaurantRepository,
+        restaurantPhotoRepository = restaurantPhotoRepository,
+        routeCacheRepository = routeCacheRepository,
+        scheduleRepository = scheduleRepository,
+        todoRepository = todoRepository,
+        reservationRepository = reservationRepository,
         apiUsageRepository = apiUsageRepository,
-        categoryRepository = CategoryRepository(database.dataSource),
-        authRepository = AuthRepository(database.dataSource),
+        categoryRepository = categoryRepository,
+        authRepository = authRepository,
+        tripBookletPdfService = TripBookletPdfService(
+          categoryRepository = categoryRepository,
+          restaurantRepository = restaurantRepository,
+          restaurantPhotoRepository = restaurantPhotoRepository,
+          scheduleRepository = scheduleRepository,
+          reservationRepository = reservationRepository,
+          todoRepository = todoRepository
+        ),
         googleMapsPreviewService = GoogleMapsPreviewService(apiUsageRepository = apiUsageRepository),
         googleMapsListSyncService = GoogleMapsListSyncService(
-          restaurantRepository = RestaurantRepository(database.dataSource),
+          restaurantRepository = restaurantRepository,
           apiUsageRepository = apiUsageRepository
         ),
         googleMapsPhotoService = GoogleMapsPhotoService(apiUsageRepository = apiUsageRepository)

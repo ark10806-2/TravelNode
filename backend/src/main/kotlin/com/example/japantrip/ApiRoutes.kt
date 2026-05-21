@@ -16,6 +16,7 @@ fun Route.apiRoutes(services: AppServices, config: AppConfig, appLog: Logger) {
   scheduleRoutes(services.scheduleRepository, services.authRepository)
   todoRoutes(services.todoRepository, services.authRepository)
   reservationRoutes(services.reservationRepository, services.authRepository)
+  tripBookletRoutes(services.tripBookletPdfService, services.authRepository)
   routeCacheRoutes(services.routeCacheRepository, services.authRepository)
   googleMapsRoutes(services.googleMapsPreviewService, services.googleMapsListSyncService, services.authRepository)
   restaurantRoutes(
