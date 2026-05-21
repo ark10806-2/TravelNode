@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { KeyRound, Loader2, LockKeyhole } from 'lucide-react';
+import { KeyRound, Loader2 } from 'lucide-react';
 import { AppIcon } from '@/components/common/AppIcon';
 import { Button } from '@/components/ui/button';
 import { inputClass } from '@/constants/travel';
@@ -35,23 +35,10 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           <AppIcon className="h-12 w-12 shrink-0" />
           <div className="min-w-0">
             <h1 className="truncate text-xl font-black tracking-tight">Japan Trip Planner</h1>
-            <p className="mt-0.5 text-sm text-muted-foreground">여행 페이지에 로그인하세요.</p>
           </div>
         </div>
 
-        <div className="mt-5 rounded-2xl bg-muted p-4">
-          <div className="flex items-start gap-3">
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-background text-muted-foreground ring-1 ring-border">
-              <LockKeyhole className="h-4 w-4" />
-            </div>
-            <div className="min-w-0 text-sm">
-              <div className="font-bold">로그인이 필요합니다.</div>
-              <p className="mt-1 leading-5 text-muted-foreground">여행 정보를 안전하게 보관하고 있어요.</p>
-            </div>
-          </div>
-        </div>
-
-        <form className="mt-5 grid gap-4" onSubmit={submit}>
+        <form className="mt-6 grid gap-4" onSubmit={submit}>
           <label className="grid gap-2 text-sm font-semibold">
             ID
             <input
