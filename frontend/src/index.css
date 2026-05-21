@@ -164,10 +164,50 @@
     animation: pull-refresh-orb-spin 900ms linear infinite;
   }
 
+  .pull-refresh-geometry {
+    position: relative;
+    display: block;
+    height: 1rem;
+    width: 1rem;
+    transform: rotate(var(--pull-icon-rotate));
+  }
+
+  .pull-refresh-geometry-piece {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    height: 4px;
+    width: 4px;
+    border-radius: 1.5px;
+    background: var(--toss-refresh-icon);
+    opacity: 0.78;
+    animation: pull-refresh-piece-pulse 980ms ease-in-out infinite;
+  }
+
+  .pull-refresh-geometry-piece-top {
+    transform: translate(-50%, -50%) rotate(0deg) translateY(calc(var(--pull-piece-distance) * -1)) scale(var(--pull-piece-scale));
+  }
+
+  .pull-refresh-geometry-piece-right {
+    animation-delay: 90ms;
+    transform: translate(-50%, -50%) rotate(90deg) translateY(calc(var(--pull-piece-distance) * -1)) scale(var(--pull-piece-scale));
+  }
+
+  .pull-refresh-geometry-piece-bottom {
+    animation-delay: 180ms;
+    transform: translate(-50%, -50%) rotate(180deg) translateY(calc(var(--pull-piece-distance) * -1)) scale(var(--pull-piece-scale));
+  }
+
+  .pull-refresh-geometry-piece-left {
+    animation-delay: 270ms;
+    transform: translate(-50%, -50%) rotate(270deg) translateY(calc(var(--pull-piece-distance) * -1)) scale(var(--pull-piece-scale));
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .modal-overlay-enter,
     .modal-panel-enter,
-    .pull-refresh-card-refreshing .pull-refresh-orb {
+    .pull-refresh-card-refreshing .pull-refresh-orb,
+    .pull-refresh-geometry-piece {
       animation: none;
     }
   }
@@ -198,6 +238,19 @@
 @keyframes pull-refresh-orb-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes pull-refresh-piece-pulse {
+  0%,
+  100% {
+    opacity: 0.42;
+    border-radius: 999px;
+  }
+
+  50% {
+    opacity: 1;
+    border-radius: 1.5px;
   }
 }
 

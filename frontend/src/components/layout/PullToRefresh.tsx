@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { Check, Loader2, RefreshCw } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type PullStatus = 'idle' | 'pulling' | 'ready' | 'refreshing';
@@ -103,7 +103,6 @@ export function PullToRefresh({ onRefresh = () => window.location.reload() }: Pu
   }, []);
 
   const isVisible = status !== 'idle';
-  const Icon = status === 'refreshing' ? Loader2 : status === 'ready' ? Check : RefreshCw;
   const progress = Math.min(1, pullDistance / triggerDistance);
   const lift = Math.max(0, pullDistance - 54);
   const cardScale = 0.96 + progress * 0.04;
@@ -134,7 +133,7 @@ export function PullToRefresh({ onRefresh = () => window.location.reload() }: Pu
       >
         <div className="pull-refresh-orb" style={ringStyle}>
           <div className="grid h-7 w-7 place-items-center rounded-full bg-white dark:bg-secondary">
-            <Icon className={cn('h-3.5 w-3.5 text-[var(--toss-refresh-icon)]', status === 'refreshing' && 'animate-spin')} />
+            <PullRefreshIcon status={status} progress={progress} />
           </div>
         </div>
         <div className="min-w-0">
@@ -142,6 +141,34 @@ export function PullToRefresh({ onRefresh = () => window.location.reload() }: Pu
         </div>
       </div>
     </div>
+  );
+}
+
+function PullRefreshIcon({ status, progress }: { status: PullStatus; progress: number }) {
+  if (status === 'refreshing') {
+    return <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--toss-refresh-icon)]" />;
+  }
+
+  if (status === 'ready') {
+    return <Check className="h-3.5 w-3.5 text-[var(--toss-refresh-icon)]" />;
+  }
+
+  return (
+    <span
+      className="pull-refresh-geometry"
+      style={
+        {
+          '--pull-icon-rotate': `${progress * 160}deg`,
+          '--pull-piece-distance': `${4 + progress * 3}px`,
+          '--pull-piece-scale': `${0.72 + progress * 0.28}`
+        } as CSSProperties
+      }
+    >
+      <span className="pull-refresh-geometry-piece pull-refresh-geometry-piece-top" />
+      <span className="pull-refresh-geometry-piece pull-refresh-geometry-piece-right" />
+      <span className="pull-refresh-geometry-piece pull-refresh-geometry-piece-bottom" />
+      <span className="pull-refresh-geometry-piece pull-refresh-geometry-piece-left" />
+    </span>
   );
 }
 
