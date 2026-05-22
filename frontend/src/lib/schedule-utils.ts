@@ -150,8 +150,12 @@ function buildDirectionsQuery(place: Place) {
 
 function appendDirectionsPlace(params: URLSearchParams, key: 'origin' | 'destination', place: Place) {
   const placeId = getGooglePlaceId(place);
-  params.set(key, placeId ? place.name.trim() || buildDirectionsQuery(place) : buildDirectionsQuery(place));
+  params.set(key, buildCoordinateQuery(place));
   if (placeId) params.set(`${key}_place_id`, placeId);
+}
+
+function buildCoordinateQuery(place: Pick<Place, 'latitude' | 'longitude'>) {
+  return `${place.latitude},${place.longitude}`;
 }
 
 function getGooglePlaceId(place: Pick<Place, 'googlePlaceId' | 'googleMapsUrl'>) {

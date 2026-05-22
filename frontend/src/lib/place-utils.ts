@@ -44,9 +44,9 @@ export function getCategoryBadgeClass(category: CategoryId) {
   return 'border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/60 dark:bg-sky-950/35 dark:text-sky-200';
 }
 
-export function getPlaceInfoUrl(place: Pick<Place, 'name' | 'address' | 'googleMapsUrl' | 'googlePlaceId'>) {
+export function getPlaceInfoUrl(place: Pick<Place, 'name' | 'address' | 'googleMapsUrl' | 'googlePlaceId' | 'latitude' | 'longitude'>) {
   const placeId = getGooglePlaceId(place);
-  const query = encodeURIComponent((placeId ? place.name : `${place.name} ${place.address}`).trim());
+  const query = encodeURIComponent((placeId ? getCoordinateQuery(place) : `${place.name} ${place.address}`).trim());
   return `https://www.google.com/maps/search/?api=1&query=${query}${placeId ? `&query_place_id=${encodeURIComponent(placeId)}` : ''}`;
 }
 
@@ -143,6 +143,10 @@ export function createEmptyDraft(category: CategoryId): PlaceDraft {
 
 function getGooglePlaceId(place: Pick<Place, 'googleMapsUrl' | 'googlePlaceId'>) {
   return place.googlePlaceId?.trim() || extractGooglePlaceId(place.googleMapsUrl);
+}
+
+function getCoordinateQuery(place: Pick<Place, 'latitude' | 'longitude'>) {
+  return `${place.latitude},${place.longitude}`;
 }
 
 function extractGooglePlaceId(googleMapsUrl: string) {
