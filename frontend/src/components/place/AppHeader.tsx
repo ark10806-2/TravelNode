@@ -16,7 +16,7 @@ export function AppHeader({
         <p className="toss-eyebrow mb-2 sm:mb-3">Places</p>
         <h1 className="toss-page-title">일정 별 장소</h1>
         <p className="toss-page-description">
-          선택한 DAY 동선을 기준으로 가까운 후보를 비교하고 카테고리별 장소를 정리합니다.
+          선택한 DAY 동선을 기준으로 가까운 장소 후보를 비교합니다.
         </p>
       </div>
       <div className="grid gap-2 sm:flex sm:items-center">
