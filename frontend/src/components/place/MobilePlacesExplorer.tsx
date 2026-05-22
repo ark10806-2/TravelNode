@@ -1,4 +1,4 @@
-import { useEffect, useRef, type KeyboardEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, type KeyboardEvent } from 'react';
 import { CalendarDays, Images, Pencil, Trash2 } from 'lucide-react';
 import { MarkdownInline } from '@/components/common/MarkdownText';
 import { PlaceContextBadges } from '@/components/place/PlaceContextBadges';
@@ -16,8 +16,8 @@ const emptyPhotoState: PhotoState = {
   photos: []
 };
 const emptyMapPlaces: Place[] = [];
-const compactRouteMapHeight = 196;
-const expandedRouteMapHeight = Math.round(compactRouteMapHeight * 1.2);
+const compactRouteMapHeight = 188;
+const expandedRouteMapHeight = 256;
 const fallbackShrinkDistance = 220;
 
 type MobileScheduleDaySelectorProps = {
@@ -128,7 +128,6 @@ export function MobilePlacesExplorer({
   onDelete,
   onOpenReservations
 }: MobilePlacesExplorerProps) {
-  const mapSentinelRef = useRef<HTMLDivElement | null>(null);
   const mapShellRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -137,28 +136,34 @@ export function MobilePlacesExplorer({
     });
   }, [onLoadPhotos, places]);
 
-  useEffect(() => {
-    let expandedTop: number | null = null;
+  useLayoutEffect(() => {
+    let shrinkStartTop: number | null = null;
     let animationFrame = 0;
+    let stickyTop = 0;
+
+    function measureStickyTop() {
+      const shell = mapShellRef.current;
+      if (!shell) return;
+      stickyTop = Number.parseFloat(window.getComputedStyle(shell).top) || 0;
+    }
 
     function updateMapHeight() {
-      const sentinel = mapSentinelRef.current;
       const shell = mapShellRef.current;
-      if (!sentinel || !shell) return;
+      if (!shell) return;
 
-      const stickyTop = Number.parseFloat(window.getComputedStyle(shell).top) || 0;
-      const sentinelTop = sentinel.getBoundingClientRect().top;
+      const shellTop = shell.getBoundingClientRect().top;
+      const freeScrollTop = Math.max(shellTop, stickyTop);
 
-      if (sentinelTop > stickyTop + 1) {
-        expandedTop = Math.max(expandedTop ?? sentinelTop, sentinelTop);
+      if (shellTop > stickyTop + 1) {
+        shrinkStartTop = Math.max(shrinkStartTop ?? shellTop, shellTop);
       }
 
-      const startTop = expandedTop ?? stickyTop + fallbackShrinkDistance;
+      const startTop = shrinkStartTop ?? stickyTop + fallbackShrinkDistance;
       const shrinkDistance = Math.max(startTop - stickyTop, 1);
-      const progress = Math.min(Math.max((startTop - sentinelTop) / shrinkDistance, 0), 1);
+      const progress = Math.min(Math.max((startTop - freeScrollTop) / shrinkDistance, 0), 1);
       const nextHeight = expandedRouteMapHeight - (expandedRouteMapHeight - compactRouteMapHeight) * progress;
 
-      shell.style.setProperty('--mobile-route-map-height', `${Math.round(nextHeight)}px`);
+      shell.style.setProperty('--mobile-route-map-height', `${nextHeight.toFixed(2)}px`);
     }
 
     function requestUpdate() {
@@ -170,50 +175,52 @@ export function MobilePlacesExplorer({
     }
 
     function handleResize() {
-      expandedTop = null;
+      shrinkStartTop = null;
+      measureStickyTop();
       requestUpdate();
     }
 
+    measureStickyTop();
     updateMapHeight();
     window.addEventListener('scroll', requestUpdate, { passive: true });
     window.addEventListener('resize', handleResize);
+    window.visualViewport?.addEventListener('resize', handleResize);
 
     return () => {
       if (animationFrame) window.cancelAnimationFrame(animationFrame);
       window.removeEventListener('scroll', requestUpdate);
       window.removeEventListener('resize', handleResize);
+      window.visualViewport?.removeEventListener('resize', handleResize);
     };
   }, []);
 
   return (
     <div className="grid gap-3 md:hidden">
-      <div ref={mapSentinelRef} data-mobile-route-map-sentinel aria-hidden="true" className="h-0" />
       <div
-        data-mobile-route-map-slot
-        className="relative"
+        ref={mapShellRef}
+        data-mobile-route-map-shell
+        className="sticky top-0 z-50 -mx-1 self-start rounded-b-2xl bg-background/95 px-1 pb-2 shadow-sm shadow-black/5 backdrop-blur [--mobile-route-map-height:256px] [contain:layout_paint_style] [will-change:height]"
       >
-        <div
-          ref={mapShellRef}
-          data-mobile-route-map-shell
-          className="sticky top-[2.75rem] z-30 -mx-1 self-start rounded-b-2xl bg-background/95 px-1 pb-2 pt-1 shadow-sm shadow-black/5 backdrop-blur [--mobile-route-map-height:235px]"
-        >
-          <div className="mb-2 flex items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
-            <span className="font-semibold">선택 DAY 동선</span>
-            <span>{dayPlaces.length}곳 기준</span>
+        <div className="pointer-events-none absolute left-3 right-3 top-2 z-10 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+          <div className="rounded-full border border-border/75 bg-background/90 px-2.5 py-1 font-semibold shadow-sm backdrop-blur">
+            선택 DAY 동선
           </div>
-          <TravelMap
-            places={emptyMapPlaces}
-            selectedPlace={selectedPlace}
-            referencePlace={referencePlace}
-            contextPlaces={dayPlaces}
-            status={status}
-            isDarkMode={isDarkMode}
-            compact
-            minHeight="var(--mobile-route-map-height)"
-            className="rounded-2xl transition-[min-height] duration-100 ease-out"
-            onSelectPlace={onSelectPlace}
-          />
+          <div className="rounded-full border border-border/75 bg-background/90 px-2.5 py-1 font-semibold shadow-sm backdrop-blur">
+            {dayPlaces.length}곳 기준
+          </div>
         </div>
+        <TravelMap
+          places={emptyMapPlaces}
+          selectedPlace={selectedPlace}
+          referencePlace={referencePlace}
+          contextPlaces={dayPlaces}
+          status={status}
+          isDarkMode={isDarkMode}
+          compact
+          height="var(--mobile-route-map-height)"
+          className="rounded-b-2xl rounded-t-none"
+          onSelectPlace={onSelectPlace}
+        />
       </div>
 
       <div className="flex items-center justify-between gap-3 px-0.5">
