@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useRef, type KeyboardEvent } from 'react';
 import { CalendarDays, Images, Pencil, Trash2 } from 'lucide-react';
 import { MarkdownInline } from '@/components/common/MarkdownText';
 import { PlaceContextBadges } from '@/components/place/PlaceContextBadges';
@@ -27,6 +27,8 @@ type MobileScheduleDaySelectorProps = {
 };
 
 export function MobileScheduleDaySelector({ days, selectedDayId, onSelectDay }: MobileScheduleDaySelectorProps) {
+  const shouldScroll = days.length > 4;
+
   return (
     <section className="md:hidden">
       <div className="soft-panel rounded-xl p-2">
@@ -35,7 +37,15 @@ export function MobileScheduleDaySelector({ days, selectedDayId, onSelectDay }: 
           일정 기준
         </div>
         {days.length ? (
-          <div className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div
+            className={cn(
+              'gap-1.5 pb-1',
+              shouldScroll
+                ? 'flex snap-x overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+                : 'grid'
+            )}
+            style={shouldScroll ? undefined : { gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
+          >
             {days.map((day, index) => {
               const isSelected = day.id === selectedDayId;
               const dateLabel = formatTravelDate(day.travelDate);
@@ -45,15 +55,16 @@ export function MobileScheduleDaySelector({ days, selectedDayId, onSelectDay }: 
                   key={day.id}
                   type="button"
                   className={cn(
-                    'grid min-w-[5.4rem] shrink-0 gap-0.5 rounded-xl border px-3 py-2 text-left transition',
+                    'grid gap-0.5 rounded-xl border px-2 py-2 text-center transition',
+                    shouldScroll ? 'min-w-[calc((100%-1.125rem)/4)] shrink-0 snap-start' : 'min-w-0',
                     isSelected
                       ? 'border-primary/20 bg-accent text-primary shadow-[0_1px_2px_rgba(0,27,55,0.04)]'
                       : 'border-border bg-white text-foreground hover:border-primary/30 dark:bg-secondary/80'
                   )}
                   onClick={() => onSelectDay(day.id)}
                 >
-                  <span className="text-sm font-extrabold">DAY-{index + 1}</span>
-                  <span className={cn('truncate text-[10px] font-semibold', isSelected ? 'text-primary/70' : 'text-muted-foreground')}>
+                  <span className="truncate text-[13px] font-extrabold leading-tight">DAY-{index + 1}</span>
+                  <span className={cn('truncate text-[9px] font-semibold leading-tight', isSelected ? 'text-primary/70' : 'text-muted-foreground')}>
                     {dateLabel}
                   </span>
                 </button>
@@ -118,10 +129,7 @@ export function MobilePlacesExplorer({
   onOpenReservations
 }: MobilePlacesExplorerProps) {
   const mapSentinelRef = useRef<HTMLDivElement | null>(null);
-  const mapSlotRef = useRef<HTMLDivElement | null>(null);
   const mapShellRef = useRef<HTMLDivElement | null>(null);
-  const isMapPinnedRef = useRef(false);
-  const [isMapPinned, setIsMapPinned] = useState(false);
 
   useEffect(() => {
     places.forEach((place) => {
@@ -135,9 +143,8 @@ export function MobilePlacesExplorer({
 
     function updateMapHeight() {
       const sentinel = mapSentinelRef.current;
-      const slot = mapSlotRef.current;
       const shell = mapShellRef.current;
-      if (!sentinel || !slot || !shell) return;
+      if (!sentinel || !shell) return;
 
       const stickyTop = Number.parseFloat(window.getComputedStyle(shell).top) || 0;
       const sentinelTop = sentinel.getBoundingClientRect().top;
@@ -150,15 +157,8 @@ export function MobilePlacesExplorer({
       const shrinkDistance = Math.max(startTop - stickyTop, 1);
       const progress = Math.min(Math.max((startTop - sentinelTop) / shrinkDistance, 0), 1);
       const nextHeight = expandedRouteMapHeight - (expandedRouteMapHeight - compactRouteMapHeight) * progress;
-      const nextPinned = sentinelTop <= stickyTop;
 
-      shell.style.setProperty('--mobile-route-map-height', `${nextHeight.toFixed(1)}px`);
-      slot.style.setProperty('--mobile-route-map-slot-height', `${shell.getBoundingClientRect().height.toFixed(1)}px`);
-
-      if (isMapPinnedRef.current !== nextPinned) {
-        isMapPinnedRef.current = nextPinned;
-        setIsMapPinned(nextPinned);
-      }
+      shell.style.setProperty('--mobile-route-map-height', `${Math.round(nextHeight)}px`);
     }
 
     function requestUpdate() {
@@ -189,17 +189,13 @@ export function MobilePlacesExplorer({
     <div className="grid gap-3 md:hidden">
       <div ref={mapSentinelRef} data-mobile-route-map-sentinel aria-hidden="true" className="h-0" />
       <div
-        ref={mapSlotRef}
         data-mobile-route-map-slot
-        className={cn('relative [--mobile-route-map-slot-height:0px]', isMapPinned && 'min-h-[var(--mobile-route-map-slot-height)]')}
+        className="relative"
       >
         <div
           ref={mapShellRef}
           data-mobile-route-map-shell
-          className={cn(
-            'z-30 rounded-b-2xl bg-background/95 px-1 pb-2 pt-1 shadow-sm shadow-black/5 backdrop-blur [--mobile-route-map-height:235px]',
-            isMapPinned ? 'fixed left-3 right-3 top-[2.75rem]' : 'sticky top-[2.75rem] -mx-1 self-start'
-          )}
+          className="sticky top-[2.75rem] z-30 -mx-1 self-start rounded-b-2xl bg-background/95 px-1 pb-2 pt-1 shadow-sm shadow-black/5 backdrop-blur [--mobile-route-map-height:235px]"
         >
           <div className="mb-2 flex items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
             <span className="font-semibold">선택 DAY 동선</span>
