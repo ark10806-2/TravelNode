@@ -48,6 +48,7 @@ export function PlaceDetailDialog({
   const category = getCategoryOption(categories, place.category);
   const visibleDescription = getVisiblePlaceDescription(place);
   const visibleNote = getVisibleGoogleMapsNote(place);
+  const googlePlaceId = place.googlePlaceId?.trim();
 
   return (
     <ModalFrame
@@ -111,6 +112,12 @@ export function PlaceDetailDialog({
               <div className="font-semibold">Google Maps 메모</div>
               <MarkdownText className="mt-1" text={visibleNote} />
             </section>
+          ) : null}
+
+          {googlePlaceId ? (
+            <div className="sm:col-span-2 text-[10px] leading-4 text-muted-foreground/70">
+              Place ID <span className="font-mono break-all">{googlePlaceId}</span>
+            </div>
           ) : null}
         </div>
 
