@@ -26,3 +26,13 @@ export const googleMapsApiKey =
 export const mapsKeyLabel = googleMapsApiKey
   ? `${googleMapsApiKey.slice(0, 6)}...${googleMapsApiKey.slice(-4)}`
   : '미설정';
+
+const rawCommitSha = import.meta.env.VITE_APP_COMMIT_SHA?.trim() || '';
+const rawBuildTime = import.meta.env.VITE_APP_BUILD_TIME?.trim() || '';
+
+export const appBuildInfo = {
+  commitSha: rawCommitSha,
+  shortCommitSha: rawCommitSha ? rawCommitSha.slice(0, 7) : 'local',
+  buildTime: rawBuildTime,
+  actionsUrl: 'https://github.com/ark10806-2/TravelNode/actions'
+};

@@ -34,6 +34,9 @@ DOCKER=(docker --config "$DOCKER_CONFIG_DIR")
 
 cd "$ROOT_DIR"
 
+export VITE_APP_COMMIT_SHA="${GITHUB_SHA:-$(git rev-parse HEAD)}"
+export VITE_APP_BUILD_TIME="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
 "${DOCKER[@]}" compose \
   --env-file "$ENV_FILE" \
   -f docker-compose.prod.yml \

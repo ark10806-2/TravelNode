@@ -46,6 +46,8 @@ services:
       args:
         VITE_GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+        VITE_APP_COMMIT_SHA: ${VITE_APP_COMMIT_SHA:-}
+        VITE_APP_BUILD_TIME: ${VITE_APP_BUILD_TIME:-}
     container_name: travel-node-frontend
     restart: unless-stopped
     depends_on:

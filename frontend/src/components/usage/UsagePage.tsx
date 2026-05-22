@@ -4,6 +4,7 @@ import { fetchApiUsage, updateApiUsage, type ApiUsageChart, type ApiUsageItem, t
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { appBuildInfo } from '@/config/env';
 import { loadEnabledRouteModes, normalizeEnabledRouteModes, storeEnabledRouteModes } from '@/lib/route-preferences';
 import { cn } from '@/lib/utils';
 import type { RouteMode } from '@/types/schedule';
@@ -38,6 +39,7 @@ export function UsagePage({ isEditing }: UsagePageProps) {
   const [drafts, setDrafts] = useState<Record<string, DraftValue>>({});
   const [savingServiceId, setSavingServiceId] = useState<string | null>(null);
   const [enabledRouteModes, setEnabledRouteModes] = useState<RouteMode[]>(loadEnabledRouteModes);
+  const [now, setNow] = useState(() => Date.now());
 
   const totalStatus = useMemo(() => {
     if (!summary) return 'normal';
@@ -69,6 +71,11 @@ export function UsagePage({ isEditing }: UsagePageProps) {
     }, 30000);
     return () => window.clearInterval(timer);
   }, [isEditing]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   async function saveService(service: ApiUsageItem) {
     const draft = drafts[service.serviceId];
@@ -139,6 +146,28 @@ export function UsagePage({ isEditing }: UsagePageProps) {
           {error}
         </div>
       ) : null}
+
+      <div className="toss-card rounded-2xl p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-bold">배포 상태</div>
+            <div className="mt-1 text-sm text-muted-foreground">
+              {appBuildInfo.buildTime ? `${formatRelativeTime(appBuildInfo.buildTime, now)} 배포됨` : '로컬 빌드 또는 배포 정보 없음'}
+            </div>
+          </div>
+          <Button variant="outline" size="sm" asChild>
+            <a
+              href={appBuildInfo.actionsUrl}
+              target="_blank"
+              rel="noreferrer"
+              title={`${appBuildInfo.commitSha || 'local'} GitHub Actions 열기`}
+            >
+              <span className="font-mono">{appBuildInfo.shortCommitSha}</span>
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          </Button>
+        </div>
+      </div>
 
       <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
         <div className="toss-card rounded-2xl p-4">
@@ -515,6 +544,22 @@ function ProgressBar({
 
 function formatPercent(value: number) {
   return `${Math.round(value)}%`;
+}
+
+function formatRelativeTime(value: string, now: number) {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return '-';
+
+  const seconds = Math.max(0, Math.floor((now - timestamp) / 1000));
+  if (seconds < 60) return `${seconds}s ago`;
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+
+  return `${Math.floor(hours / 24)}d ago`;
 }
 
 type ChartPointPosition = {
