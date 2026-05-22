@@ -35,6 +35,8 @@ cp .env.production.example ~/.config/travel-node/.env.production
 APP_HTTP_PORT=8080
 APP_CORS_ORIGIN=https://your-domain.example
 APP_PUBLIC_BASE_URL=https://your-domain.example
+APP_BOOTSTRAP_USERS="user1=긴_랜덤_비밀번호;user2=긴_랜덤_비밀번호"
+APP_SESSION_DAYS=14
 
 POSTGRES_DB=travel_node
 POSTGRES_USER=travel_node
@@ -45,7 +47,9 @@ GOOGLE_API_MONTHLY_LIMITS=maps-js=10000,routes=10000,places-new=5000,places-phot
 VITE_API_BASE_URL=
 ```
 
-Face ID/패스키 로그인은 HTTPS 또는 localhost에서만 동작합니다. 원격 접속에서 Face ID를 쓰려면 `APP_CORS_ORIGIN`, `APP_PUBLIC_BASE_URL`을 실제 HTTPS 주소로 맞추고, 앞단 프록시도 같은 도메인으로 서비스하세요.
+`APP_BOOTSTRAP_USERS`는 비어 있는 DB에 최초 사용자를 만들 때만 사용됩니다. 같은 username이 이미 있으면 비밀번호를 덮어쓰지 않으므로, 운영 중 비밀번호 변경은 앱의 비밀번호 변경 기능을 사용하세요.
+
+Face ID/패스키 로그인은 HTTPS 또는 localhost에서만 동작합니다. 원격 접속에서 Face ID를 쓰려면 `APP_CORS_ORIGIN`, `APP_PUBLIC_BASE_URL`을 실제 HTTPS 주소로 맞추고, 앞단 프록시도 같은 도메인으로 서비스하세요. HTTP 원격 접속은 로그인 비밀번호와 Bearer 토큰이 평문으로 오갈 수 있으니, 외부망에 열어둘 때는 Cloudflare Tunnel, Caddy, Nginx Proxy Manager, 또는 공유기 포트포워딩 + Let's Encrypt 같은 방식으로 HTTPS를 먼저 붙이는 것을 권장합니다.
 
 Google API 키의 웹사이트 제한에는 실제 접속 주소를 추가해야 합니다.
 

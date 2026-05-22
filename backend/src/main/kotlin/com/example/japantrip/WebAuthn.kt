@@ -406,7 +406,7 @@ class WebAuthnRepository(
 
   private fun createSession(username: String): AuthSessionResponse {
     val token = generateChallenge()
-    val expiresAt = OffsetDateTime.now().plusDays(30)
+    val expiresAt = AuthSessionPolicy.expiresAt()
 
     dataSource.connection.use { connection ->
       connection.prepareStatement("DELETE FROM auth_sessions WHERE expires_at <= now()").use { statement ->

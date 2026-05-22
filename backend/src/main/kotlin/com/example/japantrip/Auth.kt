@@ -32,54 +32,60 @@ private data class InitialAuthUser(
   val passwordHash: String
 )
 
+object AuthSessionPolicy {
+  private const val DefaultSessionDays = 14L
+  private const val MaxSessionDays = 30L
+
+  fun expiresAt(): OffsetDateTime {
+    val configuredDays = System.getenv("APP_SESSION_DAYS")?.toLongOrNull()
+    val days = configuredDays?.coerceIn(1L, MaxSessionDays) ?: DefaultSessionDays
+    return OffsetDateTime.now().plusDays(days)
+  }
+}
+
 class AuthRepository(
   private val dataSource: DataSource
 ) {
   private val secureRandom = SecureRandom()
-  private val initialUsers = listOf(
-    InitialAuthUser(
-      username = "seungchan",
-      passwordHash = "120000:sWbYK9Jpj9Xg4lu3lSH5qA==:sqN0uLD8kRoosbP4Rnd+V6IHyNMgNNQoFwpY/iZzlBU="
-    ),
-    InitialAuthUser(
-      username = "boyoung",
-      passwordHash = "120000:GI38uNn/jPnAeQcsInLXFg==:tBS2keYk+xjgL0uvrlt9qO2lPwYq6dQdC8BOQkzkP2s="
-    )
-  )
+  private val initialUsers = loadInitialUsers(System.getenv("APP_BOOTSTRAP_USERS"))
 
   fun ensureInitialized() {
     dataSource.connection.use { connection ->
-      connection.prepareStatement(
-        """
-        INSERT INTO app_users (username, password_hash)
-        VALUES (?, ?)
-        ON CONFLICT (username) DO NOTHING
-        """.trimIndent()
-      ).use { statement ->
-        initialUsers.forEach { user ->
-          statement.setString(1, user.username)
-          statement.setString(2, user.passwordHash)
-          statement.addBatch()
+      if (initialUsers.isNotEmpty()) {
+        connection.prepareStatement(
+          """
+          INSERT INTO app_users (username, password_hash)
+          VALUES (?, ?)
+          ON CONFLICT (username) DO NOTHING
+          """.trimIndent()
+        ).use { statement ->
+          initialUsers.forEach { user ->
+            statement.setString(1, user.username)
+            statement.setString(2, user.passwordHash)
+            statement.addBatch()
+          }
+          statement.executeBatch()
         }
-        statement.executeBatch()
       }
       connection.prepareStatement("DELETE FROM auth_sessions WHERE username IS NULL").use { statement ->
         statement.executeUpdate()
       }
-      connection.prepareStatement(
-        """
-        UPDATE app_users
-        SET webauthn_user_handle = ?
-        WHERE username = ?
-          AND webauthn_user_handle IS NULL
-        """.trimIndent()
-      ).use { statement ->
-        initialUsers.forEach { user ->
-          statement.setString(1, generateToken())
-          statement.setString(2, user.username)
-          statement.addBatch()
+      if (initialUsers.isNotEmpty()) {
+        connection.prepareStatement(
+          """
+          UPDATE app_users
+          SET webauthn_user_handle = ?
+          WHERE username = ?
+            AND webauthn_user_handle IS NULL
+          """.trimIndent()
+        ).use { statement ->
+          initialUsers.forEach { user ->
+            statement.setString(1, generateToken())
+            statement.setString(2, user.username)
+            statement.addBatch()
+          }
+          statement.executeBatch()
         }
-        statement.executeBatch()
       }
     }
   }
@@ -89,7 +95,7 @@ class AuthRepository(
     if (!verifyPassword(normalizedUsername, password)) return null
 
     val token = generateToken()
-    val expiresAt = OffsetDateTime.now().plusDays(30)
+    val expiresAt = AuthSessionPolicy.expiresAt()
 
     cleanupExpiredSessions()
     dataSource.connection.use { connection ->
@@ -148,7 +154,7 @@ class AuthRepository(
         }
 
         val token = generateToken()
-        val expiresAt = OffsetDateTime.now().plusDays(30)
+        val expiresAt = AuthSessionPolicy.expiresAt()
         connection.prepareStatement("INSERT INTO auth_sessions (token, username, expires_at) VALUES (?, ?, ?)").use { statement ->
           statement.setString(1, token)
           statement.setString(2, username)
@@ -199,6 +205,25 @@ class AuthRepository(
       Base64.getEncoder().encodeToString(salt),
       Base64.getEncoder().encodeToString(hash)
     ).joinToString(":")
+  }
+
+  private fun loadInitialUsers(rawValue: String?): List<InitialAuthUser> {
+    return rawValue
+      ?.trim()
+      ?.removeSurrounding("\"")
+      ?.removeSurrounding("'")
+      ?.split(";")
+      ?.mapNotNull { entry ->
+        val separatorIndex = entry.indexOf('=')
+        if (separatorIndex <= 0) return@mapNotNull null
+
+        val username = normalizeUsername(entry.substring(0, separatorIndex))
+        val password = entry.substring(separatorIndex + 1)
+        if (username.isBlank() || password.isBlank() || password.startsWith("replace_")) return@mapNotNull null
+
+        InitialAuthUser(username = username, passwordHash = hashPassword(password))
+      }
+      .orEmpty()
   }
 
   private fun pbkdf2(password: String, salt: ByteArray, iterations: Int): ByteArray {

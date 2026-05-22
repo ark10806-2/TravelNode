@@ -10,6 +10,9 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 
 fun Route.authRoutes(authRepository: AuthRepository, webAuthnRepository: WebAuthnRepository, config: AppConfig) {
+  val passwordLoginLimiter = AuthRateLimiter()
+  val passkeyLoginLimiter = AuthRateLimiter(maxFailures = 10)
+
   route("/api/auth") {
     get("session") {
       val username = authRepository.usernameForToken(call.bearerToken())
@@ -35,12 +38,20 @@ fun Route.authRoutes(authRepository: AuthRepository, webAuthnRepository: WebAuth
         return@post
       }
 
+      val rateLimitKey = call.authRateLimitKey(username)
+      if (passwordLoginLimiter.isBlocked(rateLimitKey)) {
+        call.respondError(HttpStatusCode.TooManyRequests, "로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.")
+        return@post
+      }
+
       val session = authRepository.createSession(username, password)
       if (session == null) {
+        passwordLoginLimiter.recordFailure(rateLimitKey)
         call.respondError(HttpStatusCode.Unauthorized, "username or password is incorrect")
         return@post
       }
 
+      passwordLoginLimiter.recordSuccess(rateLimitKey)
       call.respond(DataResponse(session))
     }
 
@@ -52,6 +63,11 @@ fun Route.authRoutes(authRepository: AuthRepository, webAuthnRepository: WebAuth
       }
 
       val origin = call.webAuthnOrigin(config)
+      if (origin == null) {
+        call.respondError(HttpStatusCode.Forbidden, "허용되지 않은 로그인 출처입니다.")
+        return@post
+      }
+
       val options = webAuthnRepository.beginRegistration(username, origin)
       if (options == null) {
         call.respondError(HttpStatusCode.BadRequest, "Face ID 등록을 시작하지 못했습니다.")
@@ -78,7 +94,17 @@ fun Route.authRoutes(authRepository: AuthRepository, webAuthnRepository: WebAuth
     }
 
     post("passkey/login-options") {
+      if (passkeyLoginLimiter.isBlocked(call.authRateLimitKey("passkey"))) {
+        call.respondError(HttpStatusCode.TooManyRequests, "Face ID 로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.")
+        return@post
+      }
+
       val origin = call.webAuthnOrigin(config)
+      if (origin == null) {
+        call.respondError(HttpStatusCode.Forbidden, "허용되지 않은 로그인 출처입니다.")
+        return@post
+      }
+
       val options = webAuthnRepository.beginAuthentication(origin)
       if (options == null) {
         call.respondError(HttpStatusCode.BadRequest, "Face ID 로그인을 시작하지 못했습니다.")
@@ -89,13 +115,21 @@ fun Route.authRoutes(authRepository: AuthRepository, webAuthnRepository: WebAuth
     }
 
     post("passkey/login") {
+      val rateLimitKey = call.authRateLimitKey("passkey")
+      if (passkeyLoginLimiter.isBlocked(rateLimitKey)) {
+        call.respondError(HttpStatusCode.TooManyRequests, "Face ID 로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.")
+        return@post
+      }
+
       val request = call.receive<WebAuthnAuthenticationCredential>()
       val session = webAuthnRepository.finishAuthentication(request)
       if (session == null) {
+        passkeyLoginLimiter.recordFailure(rateLimitKey)
         call.respondError(HttpStatusCode.Unauthorized, "Face ID 인증에 실패했습니다.")
         return@post
       }
 
+      passkeyLoginLimiter.recordSuccess(rateLimitKey)
       call.respond(DataResponse(session))
     }
 
@@ -127,10 +161,12 @@ fun Route.authRoutes(authRepository: AuthRepository, webAuthnRepository: WebAuth
   }
 }
 
-private fun io.ktor.server.application.ApplicationCall.webAuthnOrigin(config: AppConfig): String {
+private fun io.ktor.server.application.ApplicationCall.webAuthnOrigin(config: AppConfig): String? {
   val requestOrigin = request.headers[HttpHeaders.Origin]?.trim()?.trimEnd('/')
-  if (!requestOrigin.isNullOrBlank()) return requestOrigin
-
-  val configuredOrigin = config.publicBaseUrl.ifBlank { config.corsOrigin.toString() }
-  return configuredOrigin.trim().trimEnd('/')
+  val configuredOrigin = config.publicBaseUrl.ifBlank { config.corsOrigin.toString() }.trim().trimEnd('/')
+  val allowedOrigins = listOf(configuredOrigin, config.corsOrigin.toString().trim().trimEnd('/'))
+    .filter(String::isNotBlank)
+    .toSet()
+  val origin = requestOrigin ?: configuredOrigin
+  return origin.takeIf { it in allowedOrigins }
 }

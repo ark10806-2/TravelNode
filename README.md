@@ -25,6 +25,12 @@ cp .env.example .env
 - 루트 `.env`의 `GOOGLE_MAPS_API_KEY`: 백엔드가 Google Maps 링크로 장소 초안 구성
 - 루트 `.env`의 `APP_CORS_ORIGIN`: 백엔드 Google Places 요청에 사용할 웹 referrer
   - Google API 키를 웹사이트로 제한했다면 이 값도 제한 목록에 포함되어야 합니다. 로컬 기본값은 `http://localhost:5173`입니다.
+- 루트 `.env`의 `APP_BOOTSTRAP_USERS`: 최초 사용자 생성용 계정 목록
+  - 예: `APP_BOOTSTRAP_USERS="user1=강한_비밀번호;user2=강한_비밀번호"`
+  - 이미 DB에 존재하는 사용자는 덮어쓰지 않습니다. 운영 비밀번호는 git에 넣지 말고 맥 미니의 `.env.production`에만 보관하세요.
+  - 예시 파일의 `replace_...` 값은 실제 사용자로 생성하지 않습니다.
+- 루트 `.env`의 `APP_SESSION_DAYS`: 로그인 토큰 유효 기간
+  - 기본값: `14`, 최대값: `30`
 - 루트 `.env`의 `GOOGLE_API_MONTHLY_LIMITS`: 관리 탭에서 사용할 자체 월간 한도
   - 기본값: `maps-js=10000,routes=10000,places-new=5000,places-photo=1000`
   - 예: `maps-js=10000,routes=10000,places-new=5000,places-photo=1000`
@@ -49,7 +55,7 @@ npm run dev
 - Backend: http://localhost:4000
 - Postgres: `localhost:5433`
 - API health check: http://localhost:4000/api/health
-- 최초 로그인은 사용자 ID와 비밀번호가 필요합니다. 로그인에 성공하면 지원 브라우저에서 Face ID/패스키 등록을 요청하고, 패스키가 등록된 계정은 이후 비밀번호 대신 Face ID로 로그인합니다. Face ID/패스키는 브라우저 보안 정책상 HTTPS 또는 localhost에서만 동작합니다.
+- 최초 로그인은 `APP_BOOTSTRAP_USERS`로 생성한 사용자 ID와 비밀번호가 필요합니다. 로그인에 성공하면 지원 브라우저에서 Face ID/패스키 등록을 요청하고, 패스키가 등록된 계정은 이후 비밀번호 대신 Face ID로 로그인합니다. Face ID/패스키는 브라우저 보안 정책상 HTTPS 또는 localhost에서만 동작합니다.
 
 핸드폰에서 확인할 때는 Mac과 같은 Wi-Fi에 연결한 뒤 `http://<Mac IP>:5173`로 접속합니다. 예를 들어 Mac IP가 `192.168.0.111`이면 `http://192.168.0.111:5173`입니다. 이때 `frontend/.env`의 `VITE_API_BASE_URL`이 `http://localhost:4000`이면 핸드폰이 자기 자신을 호출하므로 데이터가 `Load failed`로 깨집니다. `VITE_API_BASE_URL`은 비워두고, 값을 바꾼 뒤에는 프론트엔드 dev server를 재시작하세요.
 
@@ -121,6 +127,13 @@ DELETE /api/restaurants/:id
 ```
 
 `/api/health`, `/api/auth/login`, `/api/auth/passkey/*`, 정적 이미지 응답을 제외한 주요 API 요청은 로그인 후 받은 `Authorization: Bearer <token>` 헤더가 필요합니다. 프론트엔드는 세션 확인이 끝나기 전이나 로그인 전에는 앱 화면과 데이터 요청을 렌더링하지 않습니다.
+
+## 보안 메모
+
+- 원격 운영에서는 HTTPS를 사용하세요. HTTP에서는 로그인 비밀번호와 Bearer 토큰이 네트워크에서 노출될 수 있고, Face ID/패스키도 localhost가 아닌 원격 주소에서는 정상 동작하지 않습니다.
+- Google Maps JavaScript API 키는 브라우저에 노출되는 공개 키입니다. Google Cloud Console에서 HTTP referrer 제한과 API 제한을 반드시 걸어두세요.
+- 프론트엔드 Nginx는 숨김 파일 접근을 404로 차단하고, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Content-Security-Policy` 같은 기본 보안 헤더를 내려줍니다.
+- 로그인 실패는 짧은 시간 안에 반복되면 일시적으로 제한됩니다.
 
 장소 삭제는 실제 행 삭제가 아니라 `restaurants.place_status = 'deleted'`로 처리합니다. Google Maps 즐겨찾기는 먼저 `POST /api/google-maps/list-preview`로 후보 목록과 썸네일을 조회한 뒤, 체크된 `selectedSyncKeys`만 `POST /api/google-maps/sync-list`로 가져옵니다. 동기화는 `google_sync_key`가 같은 기존 장소를 덮어쓰지 않고, `deleted` 상태인 장소는 다시 가져오지 않습니다.
 
