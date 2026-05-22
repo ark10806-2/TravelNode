@@ -67,6 +67,15 @@ export function PlaceFormFields({
         주소
         <input className={inputClass} value={draft.address} onChange={(event) => onChange('address', event.target.value)} />
       </label>
+      <label className="grid gap-2 text-sm font-semibold sm:col-span-2">
+        Google Place ID
+        <input
+          className={inputClass}
+          value={draft.googlePlaceId ?? ''}
+          placeholder="Google Maps에서 가져오면 자동으로 채워집니다."
+          onChange={(event) => onChange('googlePlaceId', event.target.value)}
+        />
+      </label>
       <label className="grid gap-2 text-sm font-semibold">
         위도
         <input

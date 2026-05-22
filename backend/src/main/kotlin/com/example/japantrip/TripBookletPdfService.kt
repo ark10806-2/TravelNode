@@ -768,6 +768,7 @@ private class BookletPdfRenderer(
     menu = "숙소",
     description = "여행 시작과 종료 기준이 되는 숙소입니다.",
     googleMapsNote = null,
+    googlePlaceId = null,
     address = "Ginza Capital Hotel Moegi",
     googleMapsUrl = "",
     latitude = 35.668862,

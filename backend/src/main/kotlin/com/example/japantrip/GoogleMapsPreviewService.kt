@@ -58,8 +58,9 @@ class GoogleMapsPreviewService(
         menu = cuisine,
         description = "${name}의 Google Maps 링크에서 가져온 초안입니다. 대표 항목과 설명은 저장 전에 확인해주세요.",
         googleMapsNote = null,
+        googlePlaceId = place?.placeId ?: linkInfo.placeId,
         address = place?.address ?: linkInfo.query ?: "주소 확인 필요",
-        googleMapsUrl = place?.googleMapsUrl ?: buildPlaceSearchUrl(name, place?.address ?: linkInfo.query),
+        googleMapsUrl = place?.googleMapsUrl ?: buildPlaceSearchUrl(name, place?.address ?: linkInfo.query, place?.placeId ?: linkInfo.placeId),
         latitude = location.latitude,
         longitude = location.longitude,
         travelMode = travelMode,
@@ -120,7 +121,7 @@ class GoogleMapsPreviewService(
     return try {
       when {
         linkInfo.placeId != null -> fetchPlaceDetails(linkInfo.placeId)
-        linkInfo.query != null -> searchPlace(linkInfo.query)
+        linkInfo.query != null -> searchPlace(linkInfo.query, linkInfo.location)
         else -> null
       }
     } catch (_: Exception) {
@@ -146,9 +147,24 @@ class GoogleMapsPreviewService(
     return mapper.readTree(response.body()).toPlaceInfo()
   }
 
-  private fun searchPlace(query: String): PlaceInfo? {
+  private fun searchPlace(query: String, locationBias: Coordinate?): PlaceInfo? {
     val key = apiKey ?: error("GOOGLE_MAPS_API_KEY is required")
-    val body = mapper.writeValueAsString(mapOf("textQuery" to query, "languageCode" to "ko"))
+    val requestBody = mutableMapOf<String, Any>(
+      "textQuery" to query,
+      "languageCode" to "ko"
+    )
+    if (locationBias != null) {
+      requestBody["locationBias"] = mapOf(
+        "circle" to mapOf(
+          "center" to mapOf(
+            "latitude" to locationBias.latitude,
+            "longitude" to locationBias.longitude
+          ),
+          "radius" to 500.0
+        )
+      )
+    }
+    val body = mapper.writeValueAsString(requestBody)
     val request = HttpRequest.newBuilder(URI("https://places.googleapis.com/v1/places:searchText"))
       .timeout(Duration.ofSeconds(10))
       .header("Content-Type", "application/json")
@@ -169,10 +185,15 @@ class GoogleMapsPreviewService(
       ?.let { Coordinate(it.path("latitude").asDouble(), it.path("longitude").asDouble()) }
 
     return PlaceInfo(
+      placeId = path("id").asText(null),
       name = path("displayName").path("text").asText(null),
       address = path("formattedAddress").asText(null),
       primaryType = path("primaryTypeDisplayName").path("text").asText(null),
-      googleMapsUrl = path("googleMapsUri").asText(null),
+      googleMapsUrl = buildPlaceSearchUrl(
+        path("displayName").path("text").asText(null).orEmpty(),
+        path("formattedAddress").asText(null),
+        path("id").asText(null)
+      ).takeIf { path("id").asText(null) != null } ?: path("googleMapsUri").asText(null),
       location = location
     ).takeIf { it.name != null || it.address != null || it.location != null }
   }
@@ -208,12 +229,20 @@ class GoogleMapsPreviewService(
 
   private fun decode(value: String) = URLDecoder.decode(value, StandardCharsets.UTF_8)
 
-  private fun buildPlaceSearchUrl(name: String, address: String?): String {
+  private fun buildPlaceSearchUrl(name: String, address: String?, placeId: String? = null): String {
     val query = listOf(name, address)
       .mapNotNull { it?.takeIf(String::isNotBlank) }
       .joinToString(" ")
     val encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8)
-    return "https://www.google.com/maps/search/?api=1&query=$encodedQuery"
+    val encodedPlaceId = placeId?.takeIf { it.isNotBlank() }?.let { URLEncoder.encode(it, StandardCharsets.UTF_8) }
+    return buildString {
+      append("https://www.google.com/maps/search/?api=1&query=")
+      append(encodedQuery)
+      if (encodedPlaceId != null) {
+        append("&query_place_id=")
+        append(encodedPlaceId)
+      }
+    }
   }
 
   private fun String.defaultCuisine() = when (this) {
@@ -231,6 +260,7 @@ class GoogleMapsPreviewService(
   )
 
   private data class PlaceInfo(
+    val placeId: String?,
     val name: String?,
     val address: String?,
     val primaryType: String?,

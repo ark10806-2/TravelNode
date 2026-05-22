@@ -27,6 +27,7 @@ function toPlaceDraft(place: Place, category: CategoryId): PlaceDraft {
     menu: place.menu,
     description: place.description,
     googleMapsNote: place.googleMapsNote,
+    googlePlaceId: place.googlePlaceId,
     address: place.address,
     googleMapsUrl: place.googleMapsUrl,
     latitude: place.latitude,

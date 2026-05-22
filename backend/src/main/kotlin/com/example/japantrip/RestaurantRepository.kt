@@ -63,6 +63,7 @@ class RestaurantRepository(
         menu,
         description,
         google_maps_note,
+        google_place_id,
         address,
         google_maps_url,
         latitude,
@@ -71,7 +72,7 @@ class RestaurantRepository(
         travel_minutes,
         distance_label
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING *
     """.trimIndent()
 
@@ -99,15 +100,25 @@ class RestaurantRepository(
         menu,
         description,
         google_maps_note,
-        address
+        google_place_id,
+        address,
+        google_maps_url
       FROM restaurants
-      WHERE google_sync_key = ?
+      WHERE (
+          google_place_id = ?
+          AND ? IS NOT NULL
+        )
+        OR google_sync_key = ?
         OR (
           lower(name) = lower(?)
           AND abs(latitude - ?) < 0.00001
           AND abs(longitude - ?) < 0.00001
         )
-      ORDER BY CASE WHEN google_sync_key = ? THEN 0 ELSE 1 END
+      ORDER BY CASE
+        WHEN google_place_id = ? AND ? IS NOT NULL THEN 0
+        WHEN google_sync_key = ? THEN 1
+        ELSE 2
+      END
       LIMIT 1
     """.trimIndent()
     val insertSql = """
@@ -118,6 +129,7 @@ class RestaurantRepository(
         menu,
         description,
         google_maps_note,
+        google_place_id,
         address,
         google_maps_url,
         latitude,
@@ -130,7 +142,7 @@ class RestaurantRepository(
         google_sync_source_url,
         google_synced_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, now())
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, now())
       RETURNING *
     """.trimIndent()
     val updateSyncedDetailsSql = """
@@ -140,7 +152,9 @@ class RestaurantRepository(
         menu = ?,
         description = ?,
         google_maps_note = ?,
+        google_place_id = ?,
         address = ?,
+        google_maps_url = ?,
         google_sync_key = COALESCE(google_sync_key, ?),
         google_sync_source_url = ?,
         google_synced_at = now(),
@@ -181,10 +195,12 @@ class RestaurantRepository(
                     updateSyncedDetailsStatement.setString(2, merge.menu)
                     updateSyncedDetailsStatement.setString(3, merge.description)
                     updateSyncedDetailsStatement.setString(4, merge.googleMapsNote)
-                    updateSyncedDetailsStatement.setString(5, merge.address)
-                    updateSyncedDetailsStatement.setString(6, synced.syncKey)
-                    updateSyncedDetailsStatement.setString(7, synced.sourceUrl)
-                    updateSyncedDetailsStatement.setObject(8, existing.id)
+                    updateSyncedDetailsStatement.setString(5, merge.googlePlaceId)
+                    updateSyncedDetailsStatement.setString(6, merge.address)
+                    updateSyncedDetailsStatement.setString(7, merge.googleMapsUrl)
+                    updateSyncedDetailsStatement.setString(8, synced.syncKey)
+                    updateSyncedDetailsStatement.setString(9, synced.sourceUrl)
+                    updateSyncedDetailsStatement.setObject(10, existing.id)
                     updateSyncedDetailsStatement.addBatch()
 
                     val detailStatus = when {
@@ -215,8 +231,8 @@ class RestaurantRepository(
                   }
                   else -> {
                     insertStatement.bindValues(synced.restaurant)
-                    insertStatement.setString(14, synced.syncKey)
-                    insertStatement.setString(15, synced.sourceUrl)
+                    insertStatement.setString(15, synced.syncKey)
+                    insertStatement.setString(16, synced.sourceUrl)
                     insertStatement.executeQuery().use { rows ->
                       rows.next()
                       created += rows.toRestaurant()
@@ -262,6 +278,7 @@ class RestaurantRepository(
         menu = ?,
         description = ?,
         google_maps_note = ?,
+        google_place_id = ?,
         address = ?,
         google_maps_url = ?,
         latitude = ?,
@@ -278,7 +295,7 @@ class RestaurantRepository(
     dataSource.connection.use { connection ->
       connection.prepareStatement(sql).use { statement ->
         statement.bindValues(values)
-        statement.setObject(14, UUID.fromString(id))
+        statement.setObject(15, UUID.fromString(id))
         statement.executeQuery().use { rows ->
           return if (rows.next()) rows.toRestaurant() else null
         }
@@ -327,11 +344,15 @@ class RestaurantRepository(
   }
 
   private fun PreparedStatement.findStatus(values: GoogleMapsSyncedRestaurantValues): ExistingRestaurantStatus? {
-    setString(1, values.syncKey)
-    setString(2, values.restaurant.name)
-    setDouble(3, values.restaurant.latitude)
-    setDouble(4, values.restaurant.longitude)
-    setString(5, values.syncKey)
+    setString(1, values.restaurant.googlePlaceId)
+    setString(2, values.restaurant.googlePlaceId)
+    setString(3, values.syncKey)
+    setString(4, values.restaurant.name)
+    setDouble(5, values.restaurant.latitude)
+    setDouble(6, values.restaurant.longitude)
+    setString(7, values.restaurant.googlePlaceId)
+    setString(8, values.restaurant.googlePlaceId)
+    setString(9, values.syncKey)
     executeQuery().use { rows ->
       return if (rows.next()) {
         ExistingRestaurantStatus(
@@ -343,7 +364,9 @@ class RestaurantRepository(
           menu = rows.getString("menu"),
           description = rows.getString("description"),
           googleMapsNote = rows.getString("google_maps_note"),
-          address = rows.getString("address")
+          googlePlaceId = rows.getString("google_place_id"),
+          address = rows.getString("address"),
+          googleMapsUrl = rows.getString("google_maps_url")
         )
       } else {
         null
@@ -358,13 +381,14 @@ class RestaurantRepository(
     setString(4, values.menu)
     setString(5, values.description)
     setString(6, values.googleMapsNote)
-    setString(7, values.address)
-    setString(8, values.googleMapsUrl)
-    setDouble(9, values.latitude)
-    setDouble(10, values.longitude)
-    setString(11, values.travelMode)
-    setInt(12, values.travelMinutes)
-    setString(13, values.distanceLabel)
+    setString(7, values.googlePlaceId)
+    setString(8, values.address)
+    setString(9, values.googleMapsUrl)
+    setDouble(10, values.latitude)
+    setDouble(11, values.longitude)
+    setString(12, values.travelMode)
+    setInt(13, values.travelMinutes)
+    setString(14, values.distanceLabel)
   }
 
   private fun ExistingRestaurantStatus.mergeSyncedDetails(values: RestaurantValues): SyncedDetailMerge {
@@ -374,7 +398,9 @@ class RestaurantRepository(
     var nextMenu = menu
     var nextDescription = description
     var nextGoogleMapsNote = googleMapsNote
+    var nextGooglePlaceId = googlePlaceId
     var nextAddress = address
+    var nextGoogleMapsUrl = googleMapsUrl
 
     fun mergeField(
       label: String,
@@ -422,11 +448,25 @@ class RestaurantRepository(
       update = { nextGoogleMapsNote = it }
     )
     mergeField(
+      label = "Google Place ID",
+      currentValue = googlePlaceId,
+      incomingValue = values.googlePlaceId,
+      isDefault = googlePlaceId.isNullOrBlank(),
+      update = { nextGooglePlaceId = it }
+    )
+    mergeField(
       label = "주소",
       currentValue = address,
       incomingValue = values.address,
       isDefault = isDefaultAddress(),
       update = { nextAddress = it.orEmpty() }
+    )
+    mergeField(
+      label = "Google Maps 링크",
+      currentValue = googleMapsUrl,
+      incomingValue = values.googleMapsUrl,
+      isDefault = googlePlaceId.isNullOrBlank() && !googleMapsUrl.contains("query_place_id="),
+      update = { nextGoogleMapsUrl = it.orEmpty() }
     )
 
     return SyncedDetailMerge(
@@ -434,7 +474,9 @@ class RestaurantRepository(
       menu = nextMenu,
       description = nextDescription,
       googleMapsNote = nextGoogleMapsNote,
+      googlePlaceId = nextGooglePlaceId,
       address = nextAddress,
+      googleMapsUrl = nextGoogleMapsUrl,
       updatedFields = updatedFields.distinct(),
       preservedFields = preservedFields.distinct()
     )
@@ -475,6 +517,7 @@ class RestaurantRepository(
     menu = getString("menu"),
     description = getString("description"),
     googleMapsNote = getString("google_maps_note"),
+    googlePlaceId = getString("google_place_id"),
     address = getString("address"),
     googleMapsUrl = getString("google_maps_url"),
     latitude = getDouble("latitude"),
@@ -495,7 +538,9 @@ class RestaurantRepository(
     val menu: String,
     val description: String,
     val googleMapsNote: String?,
-    val address: String
+    val googlePlaceId: String?,
+    val address: String,
+    val googleMapsUrl: String
   )
 
   private data class SyncedDetailMerge(
@@ -503,7 +548,9 @@ class RestaurantRepository(
     val menu: String,
     val description: String,
     val googleMapsNote: String?,
+    val googlePlaceId: String?,
     val address: String,
+    val googleMapsUrl: String,
     val updatedFields: List<String>,
     val preservedFields: List<String>
   )

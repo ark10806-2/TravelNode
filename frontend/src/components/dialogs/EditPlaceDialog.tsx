@@ -34,6 +34,7 @@ function placeToDraft(place: Place): PlaceDraft {
     menu: place.menu,
     description: place.description,
     googleMapsNote: place.googleMapsNote,
+    googlePlaceId: place.googlePlaceId,
     address: place.address,
     googleMapsUrl: place.googleMapsUrl,
     latitude: place.latitude,

@@ -67,11 +67,7 @@ class GoogleMapsListSyncService(
       parsed.restaurants.filter { it.syncKey in keys }
     } ?: parsed.restaurants
     val enrichedImportTargets = importTargets.mapWithLimitedParallelism(ListSyncMetadataParallelism) { synced ->
-      if (isPlaceTypeCandidate(synced.restaurant.description, emptySet())) {
-        synced
-      } else {
-        synced.withPlacesMetadata(loadPlaceMetadata(synced, includeThumbnail = false))
-      }
+      synced.withPlacesMetadata(loadPlaceMetadata(synced, includeThumbnail = false))
     }
     val importResult = restaurantRepository.importSynced(enrichedImportTargets)
 
@@ -274,6 +270,7 @@ class GoogleMapsListSyncService(
         menu = menu,
         description = placeTypeNote ?: GoogleMapsPlaceInference.description(name, inferenceText, listTitle),
         googleMapsNote = googleMapsNote,
+        googlePlaceId = null,
         address = address.ifBlank { "주소 확인 필요" },
         googleMapsUrl = buildPlaceSearchUrl(name, address),
         latitude = latitude,
@@ -395,12 +392,20 @@ class GoogleMapsListSyncService(
     return radiusKm * 2 * atan2(sqrt(value), sqrt(1 - value))
   }
 
-  private fun buildPlaceSearchUrl(name: String, address: String): String {
+  private fun buildPlaceSearchUrl(name: String, address: String, placeId: String? = null): String {
     val query = listOf(name, address)
       .filter { it.isNotBlank() }
       .joinToString(" ")
     val encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8)
-    return "https://www.google.com/maps/search/?api=1&query=$encodedQuery"
+    val encodedPlaceId = placeId?.takeIf { it.isNotBlank() }?.let { URLEncoder.encode(it, StandardCharsets.UTF_8) }
+    return buildString {
+      append("https://www.google.com/maps/search/?api=1&query=")
+      append(encodedQuery)
+      if (encodedPlaceId != null) {
+        append("&query_place_id=")
+        append(encodedPlaceId)
+      }
+    }
   }
 
   private fun loadPlaceMetadata(values: GoogleMapsSyncedRestaurantValues, includeThumbnail: Boolean): GoogleMapsPlaceMetadata? {
@@ -453,7 +458,7 @@ class GoogleMapsListSyncService(
         .header("X-Goog-Api-Key", key)
         .header(
           "X-Goog-FieldMask",
-          if (includeThumbnail) "places.primaryTypeDisplayName,places.photos" else "places.primaryTypeDisplayName"
+          if (includeThumbnail) "places.id,places.primaryTypeDisplayName,places.photos" else "places.id,places.primaryTypeDisplayName"
         )
         .POST(HttpRequest.BodyPublishers.ofString(body))
         .build()
@@ -472,6 +477,7 @@ class GoogleMapsListSyncService(
       .path("primaryTypeDisplayName")
       .path("text")
       .asTrimmedText()
+    val placeId = firstPlace.path("id").asTrimmedText()
 
     val photoName = if (includeThumbnail) {
       firstPlace
@@ -505,11 +511,12 @@ class GoogleMapsListSyncService(
       }
     }
 
-    return GoogleMapsPlaceMetadata(primaryType = primaryType, thumbnailUrl = thumbnailUrl)
+    return GoogleMapsPlaceMetadata(primaryType = primaryType, placeId = placeId, thumbnailUrl = thumbnailUrl)
   }
 
   private fun GoogleMapsPlaceMetadata.mergeWith(fallback: GoogleMapsPlaceMetadata?) = GoogleMapsPlaceMetadata(
     primaryType = primaryType ?: fallback?.primaryType,
+    placeId = placeId ?: fallback?.placeId,
     thumbnailUrl = thumbnailUrl ?: fallback?.thumbnailUrl
   )
 
@@ -532,10 +539,18 @@ class GoogleMapsListSyncService(
   }
 
   private fun GoogleMapsSyncedRestaurantValues.withPlacesMetadata(metadata: GoogleMapsPlaceMetadata?): GoogleMapsSyncedRestaurantValues {
-    val primaryType = metadata?.primaryType?.trim()?.takeIf { it.isNotBlank() } ?: return this
+    metadata ?: return this
+    val primaryType = metadata.primaryType?.trim()?.takeIf { it.isNotBlank() }
+    val placeId = metadata.placeId?.trim()?.takeIf { it.isNotBlank() }
     return copy(
       restaurant = restaurant.copy(
-        description = primaryType
+        description = primaryType ?: restaurant.description,
+        googlePlaceId = placeId ?: restaurant.googlePlaceId,
+        googleMapsUrl = if (placeId != null) {
+          buildPlaceSearchUrl(restaurant.name, restaurant.address, placeId)
+        } else {
+          restaurant.googleMapsUrl
+        }
       )
     )
   }
@@ -548,6 +563,7 @@ class GoogleMapsListSyncService(
     menu = restaurant.menu,
     description = restaurant.description,
     googleMapsNote = restaurant.googleMapsNote,
+    googlePlaceId = restaurant.googlePlaceId,
     address = restaurant.address,
     googleMapsUrl = restaurant.googleMapsUrl,
     latitude = restaurant.latitude,
@@ -586,6 +602,7 @@ class GoogleMapsListSyncService(
 
   private data class GoogleMapsPlaceMetadata(
     val primaryType: String?,
+    val placeId: String?,
     val thumbnailUrl: String?
   )
 

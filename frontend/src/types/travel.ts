@@ -18,6 +18,7 @@ export type Place = {
   menu: string;
   description: string;
   googleMapsNote: string | null;
+  googlePlaceId: string | null;
   address: string;
   googleMapsUrl: string;
   latitude: number;

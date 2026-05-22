@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS restaurants (
   menu text NOT NULL,
   description text NOT NULL,
   google_maps_note text,
+  google_place_id text,
   address text NOT NULL,
   google_maps_url text NOT NULL,
   latitude double precision NOT NULL,
@@ -49,6 +50,7 @@ ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS google_sync_key text;
 ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS google_sync_source_url text;
 ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS google_synced_at timestamptz;
 ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS google_maps_note text;
+ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS google_place_id text;
 ALTER TABLE restaurants DROP COLUMN IF EXISTS no_seafood;
 
 UPDATE restaurants

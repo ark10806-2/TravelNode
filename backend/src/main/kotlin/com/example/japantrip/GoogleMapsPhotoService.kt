@@ -41,6 +41,11 @@ class GoogleMapsPhotoService(
   }
 
   private fun searchPhotoRefs(restaurant: RestaurantResponse, key: String): List<PlacePhotoRef> {
+    val googlePlaceId = restaurant.googlePlaceId?.takeIf { it.isNotBlank() }
+    if (googlePlaceId != null) {
+      return fetchPhotoRefsByPlaceId(googlePlaceId, key)
+    }
+
     val body = mapper.writeValueAsString(
       mapOf(
         "textQuery" to listOf(restaurant.name, restaurant.address).joinToString(" "),
@@ -75,6 +80,25 @@ class GoogleMapsPhotoService(
       ?.path("photos")
       ?.mapNotNull { it.toPlacePhotoRef() }
       .orEmpty()
+  }
+
+  private fun fetchPhotoRefsByPlaceId(placeId: String, key: String): List<PlacePhotoRef> {
+    val encodedPlaceId = URLEncoder.encode(placeId, StandardCharsets.UTF_8)
+    val request = HttpRequest.newBuilder(URI("https://places.googleapis.com/v1/places/$encodedPlaceId"))
+      .timeout(Duration.ofSeconds(10))
+      .header("Referer", referer)
+      .header("X-Goog-Api-Key", key)
+      .header("X-Goog-FieldMask", "photos")
+      .GET()
+      .build()
+
+    val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+    if (response.statusCode() !in 200..299) error("Places photo lookup failed: ${response.statusCode()}")
+    apiUsageRepository?.increment(ApiUsageServiceIds.PlacesNew)
+
+    return mapper.readTree(response.body())
+      .path("photos")
+      .mapNotNull { it.toPlacePhotoRef() }
   }
 
   private fun fetchPhotoUri(photoName: String, key: String): String? {

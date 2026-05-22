@@ -44,9 +44,10 @@ export function getCategoryBadgeClass(category: CategoryId) {
   return 'border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/60 dark:bg-sky-950/35 dark:text-sky-200';
 }
 
-export function getPlaceInfoUrl(place: Pick<Place, 'name' | 'address'>) {
-  const query = encodeURIComponent(`${place.name} ${place.address}`.trim());
-  return `https://www.google.com/maps/search/?api=1&query=${query}`;
+export function getPlaceInfoUrl(place: Pick<Place, 'name' | 'address' | 'googleMapsUrl' | 'googlePlaceId'>) {
+  const placeId = getGooglePlaceId(place);
+  const query = encodeURIComponent((placeId ? place.name : `${place.name} ${place.address}`).trim());
+  return `https://www.google.com/maps/search/?api=1&query=${query}${placeId ? `&query_place_id=${encodeURIComponent(placeId)}` : ''}`;
 }
 
 export function getGoogleMapsNoteLabel(place: Pick<Place, 'googleMapsNote'>) {
@@ -129,6 +130,7 @@ export function createEmptyDraft(category: CategoryId): PlaceDraft {
     menu: '',
     description: '',
     googleMapsNote: null,
+    googlePlaceId: null,
     address: '',
     googleMapsUrl: '',
     latitude: hotel.latitude,
@@ -137,6 +139,19 @@ export function createEmptyDraft(category: CategoryId): PlaceDraft {
     travelMinutes: 1,
     distanceLabel: '확인 필요'
   };
+}
+
+function getGooglePlaceId(place: Pick<Place, 'googleMapsUrl' | 'googlePlaceId'>) {
+  return place.googlePlaceId?.trim() || extractGooglePlaceId(place.googleMapsUrl);
+}
+
+function extractGooglePlaceId(googleMapsUrl: string) {
+  try {
+    const url = new URL(googleMapsUrl);
+    return url.searchParams.get('query_place_id')?.trim() || url.searchParams.get('place_id')?.trim() || null;
+  } catch (_error) {
+    return null;
+  }
 }
 
 export function normalizeCategories(categories: CategoryOption[]) {

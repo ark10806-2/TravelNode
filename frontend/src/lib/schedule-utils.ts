@@ -18,6 +18,7 @@ export const hotelSchedulePlace: Place = {
   menu: '숙소',
   description: '여행 시작과 종료 기준이 되는 숙소입니다.',
   googleMapsNote: null,
+  googlePlaceId: null,
   address: hotel.name,
   googleMapsUrl: '',
   latitude: hotel.latitude,
@@ -28,9 +29,14 @@ export const hotelSchedulePlace: Place = {
 };
 
 export function buildPlaceDirectionsUrl(from: Place, to: Place, mode: RouteMode = 'transit') {
-  const origin = encodeURIComponent(buildDirectionsQuery(from));
-  const destination = encodeURIComponent(buildDirectionsQuery(to));
-  return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=${mode}&hl=ko`;
+  const params = new URLSearchParams({
+    api: '1',
+    travelmode: mode,
+    hl: 'ko'
+  });
+  appendDirectionsPlace(params, 'origin', from);
+  appendDirectionsPlace(params, 'destination', to);
+  return `https://www.google.com/maps/dir/?${params.toString()}`;
 }
 
 export function routeLegKey(from: Place, to: Place, departureTimeMinutes?: number | null, travelDate?: string | null) {
@@ -140,4 +146,23 @@ function buildDirectionsQuery(place: Place) {
 
   if (hasUsefulAddress) return `${name} ${address}`;
   return name || `${place.latitude},${place.longitude}`;
+}
+
+function appendDirectionsPlace(params: URLSearchParams, key: 'origin' | 'destination', place: Place) {
+  const placeId = getGooglePlaceId(place);
+  params.set(key, placeId ? place.name.trim() || buildDirectionsQuery(place) : buildDirectionsQuery(place));
+  if (placeId) params.set(`${key}_place_id`, placeId);
+}
+
+function getGooglePlaceId(place: Pick<Place, 'googlePlaceId' | 'googleMapsUrl'>) {
+  return place.googlePlaceId?.trim() || extractGooglePlaceId(place.googleMapsUrl);
+}
+
+function extractGooglePlaceId(googleMapsUrl: string) {
+  try {
+    const url = new URL(googleMapsUrl);
+    return url.searchParams.get('query_place_id')?.trim() || url.searchParams.get('place_id')?.trim() || null;
+  } catch (_error) {
+    return null;
+  }
 }
