@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, type KeyboardEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import { CalendarDays, Images, Pencil, Trash2 } from 'lucide-react';
 import { MarkdownInline } from '@/components/common/MarkdownText';
 import { PlaceContextBadges } from '@/components/place/PlaceContextBadges';
@@ -87,6 +87,7 @@ type MobilePlacesExplorerProps = {
   status: 'loading' | 'ready' | 'error';
   isDarkMode: boolean;
   categoryLabel: string;
+  categoryFilter: ReactNode;
   photoCache: Record<string, PhotoState>;
   reservationsByPlaceId: Record<string, Reservation[]>;
   scheduleLabelsByPlaceId: Record<string, string[]>;
@@ -112,6 +113,7 @@ export function MobilePlacesExplorer({
   status,
   isDarkMode,
   categoryLabel,
+  categoryFilter,
   photoCache,
   reservationsByPlaceId,
   scheduleLabelsByPlaceId,
@@ -222,6 +224,8 @@ export function MobilePlacesExplorer({
           onSelectPlace={onSelectPlace}
         />
       </div>
+
+      {categoryFilter}
 
       <div className="flex items-center justify-between gap-3 px-0.5">
         <div>

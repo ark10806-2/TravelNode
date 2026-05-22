@@ -301,14 +301,16 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
         </section>
 
         <section className="grid gap-3 border-t pt-4 sm:gap-4 sm:pt-6">
-          <CategoryFilterBar
-            categories={categories}
-            selectedCategoryId={selectedCategoryId}
-            isEditing={canModify}
-            onSelectCategory={setSelectedCategoryId}
-            onAddCategory={() => (canEdit ? setIsCategoryDialogOpen(true) : onRequireAuth())}
-            onDeleteCategory={(category) => (canEdit ? void deleteCategory(category) : onRequireAuth())}
-          />
+          <div className="hidden md:block">
+            <CategoryFilterBar
+              categories={categories}
+              selectedCategoryId={selectedCategoryId}
+              isEditing={canModify}
+              onSelectCategory={setSelectedCategoryId}
+              onAddCategory={() => (canEdit ? setIsCategoryDialogOpen(true) : onRequireAuth())}
+              onDeleteCategory={(category) => (canEdit ? void deleteCategory(category) : onRequireAuth())}
+            />
+          </div>
 
           <MobilePlacesExplorer
             places={mobileScheduleNearbyPlaces}
@@ -318,6 +320,16 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
             status={status}
             isDarkMode={isDarkMode}
             categoryLabel={`${selectedCategory.emoji} ${selectedCategory.label}`}
+            categoryFilter={
+              <CategoryFilterBar
+                categories={categories}
+                selectedCategoryId={selectedCategoryId}
+                isEditing={canModify}
+                onSelectCategory={setSelectedCategoryId}
+                onAddCategory={() => (canEdit ? setIsCategoryDialogOpen(true) : onRequireAuth())}
+                onDeleteCategory={(category) => (canEdit ? void deleteCategory(category) : onRequireAuth())}
+              />
+            }
             photoCache={photoCache}
             reservationsByPlaceId={reservationsByPlaceId}
             scheduleLabelsByPlaceId={scheduleLabelsByPlaceId}
