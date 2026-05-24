@@ -21,7 +21,7 @@ sudo pmset -a sleep 0
 
 ## 2. 운영 환경 변수 생성
 
-운영 비밀값은 git에 넣지 않고 맥 미니 로컬에만 둡니다.
+운영 비밀값은 git에 넣지 않습니다. 앱/DB 설정은 맥 미니 로컬 env 파일에 두고, Google Maps API 키는 GitHub Actions repository secret으로 관리합니다.
 
 ```bash
 mkdir -p ~/.config/travel-node
@@ -42,10 +42,20 @@ POSTGRES_DB=travel_node
 POSTGRES_USER=travel_node
 POSTGRES_PASSWORD=긴_랜덤_비밀번호
 
-GOOGLE_MAPS_API_KEY=Google_API_키
 GOOGLE_API_MONTHLY_LIMITS=maps-js=10000,routes=10000,places-new=5000,places-photo=1000
 VITE_API_BASE_URL=
 ```
+
+GitHub 저장소에는 아래 repository secret을 추가합니다.
+
+```text
+Settings -> Secrets and variables -> Actions -> New repository secret
+```
+
+- Name: `GOOGLE_MAPS_API_KEY`
+- Value: Google Maps API 키
+
+CD에서는 이 secret이 `docker-compose.prod.yml`의 `GOOGLE_MAPS_API_KEY`와 프론트 빌드 인자 `VITE_GOOGLE_MAPS_API_KEY`로 함께 주입됩니다.
 
 `APP_BOOTSTRAP_USERS`는 비어 있는 DB에 최초 사용자를 만들 때만 사용됩니다. 같은 username이 이미 있으면 비밀번호를 덮어쓰지 않으므로, 운영 중 비밀번호 변경은 앱의 비밀번호 변경 기능을 사용하세요.
 
@@ -103,7 +113,7 @@ docker --config "$HOME/.config/travel-node/docker" compose --env-file ~/.config/
 
 GitHub 저장소에서 `Settings -> Actions -> Runners -> New self-hosted runner`로 들어가 macOS runner를 추가합니다. GitHub가 보여주는 다운로드/설정 명령을 맥 미니에서 그대로 실행합니다.
 
-Docker Desktop은 macOS 서비스 세션에서 public image를 pull할 때도 login keychain 접근을 요구할 수 있습니다. GitHub 저장소에 아래 repository secret을 추가하세요.
+Docker Desktop은 macOS 서비스 세션에서 public image를 pull할 때도 login keychain 접근을 요구할 수 있습니다. GitHub 저장소에 아래 repository secret도 추가하세요.
 
 ```text
 Settings -> Secrets and variables -> Actions -> New repository secret
