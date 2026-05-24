@@ -21,7 +21,7 @@ sudo pmset -a sleep 0
 
 ## 2. 운영 환경 변수 생성
 
-운영 비밀값은 git에 넣지 않습니다. 앱/DB 설정은 맥 미니 로컬 env 파일에 두고, Google Maps API 키는 GitHub Actions repository secret으로 관리합니다.
+운영 비밀값은 git에 넣지 않습니다. 앱/DB 설정은 맥 미니 로컬 env 파일에 두고, Google Maps API 키는 GitHub Actions `production` environment secret으로 관리합니다.
 
 ```bash
 mkdir -p ~/.config/travel-node
@@ -46,10 +46,10 @@ GOOGLE_API_MONTHLY_LIMITS=maps-js=10000,routes=10000,places-new=5000,places-phot
 VITE_API_BASE_URL=
 ```
 
-GitHub 저장소에는 아래 repository secret을 추가합니다.
+GitHub 저장소에는 아래 environment secret을 추가합니다. workflow가 `environment: production`으로 실행되므로 environment 이름은 `production`이어야 합니다.
 
 ```text
-Settings -> Secrets and variables -> Actions -> New repository secret
+Settings -> Environments -> production -> Environment secrets -> Add secret
 ```
 
 - Name: `GOOGLE_MAPS_API_KEY`
