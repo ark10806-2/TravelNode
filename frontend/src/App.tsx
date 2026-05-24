@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Check, Loader2, Pencil, RefreshCw } from 'lucide-react';
 import { downloadTripBookletPdf } from '@/api/booklet';
 import { LoginPage } from '@/components/auth/LoginPage';
 import { AuthDialog } from '@/components/dialogs/AuthDialog';
@@ -126,6 +126,7 @@ function AuthenticatedApp({ auth }: { auth: ReturnType<typeof useAuth> }) {
           created by eigen.vector
         </footer>
       </div>
+      <FloatingEditToggle isEditing={isEditing} onToggle={toggleEditMode} />
       {authDialogMode ? (
         <AuthDialog
           mode={authDialogMode}
@@ -135,6 +136,28 @@ function AuthenticatedApp({ auth }: { auth: ReturnType<typeof useAuth> }) {
         />
       ) : null}
     </main>
+  );
+}
+
+function FloatingEditToggle({ isEditing, onToggle }: { isEditing: boolean; onToggle: () => void }) {
+  const Icon = isEditing ? Check : Pencil;
+
+  return (
+    <Button
+      type="button"
+      variant={isEditing ? 'default' : 'outline'}
+      aria-label={isEditing ? '편집 완료' : '편집 모드 켜기'}
+      aria-pressed={isEditing}
+      className={`fixed bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] right-3 z-40 h-11 rounded-full px-4 backdrop-blur transition-all duration-200 sm:right-5 ${
+        isEditing
+          ? 'shadow-[0_12px_24px_rgba(49,130,246,0.24)]'
+          : 'border border-border/70 bg-background/95 shadow-[0_12px_24px_rgba(15,23,42,0.16)] hover:bg-background dark:bg-card/95 dark:hover:bg-card'
+      }`}
+      onClick={onToggle}
+    >
+      <Icon className="h-4 w-4" />
+      {isEditing ? '완료' : '편집'}
+    </Button>
   );
 }
 
