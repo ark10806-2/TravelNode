@@ -1,4 +1,4 @@
-import { CalendarPlus, ExternalLink, Loader2, MapPin, Navigation, Pencil } from 'lucide-react';
+import { CalendarMinus, CalendarPlus, ExternalLink, Loader2, MapPin, Navigation, Pencil } from 'lucide-react';
 import { MarkdownText } from '@/components/common/MarkdownText';
 import { PlaceReservationBadge } from '@/components/reservation/PlaceReservationBadge';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +25,7 @@ type PlaceDetailDialogProps = {
   onOpenPhotos: (place: Place) => void;
   onOpenReservations?: (place: Place, reservations: Reservation[]) => void;
   scheduleActionLabel?: string;
+  scheduleActionKind?: 'add' | 'remove';
   scheduleActionDisabled?: boolean;
   isScheduleActionLoading?: boolean;
   onScheduleAction?: (place: Place) => void;
@@ -40,6 +41,7 @@ export function PlaceDetailDialog({
   onOpenPhotos,
   onOpenReservations,
   scheduleActionLabel,
+  scheduleActionKind = 'add',
   scheduleActionDisabled = false,
   isScheduleActionLoading = false,
   onScheduleAction,
@@ -49,6 +51,12 @@ export function PlaceDetailDialog({
   const visibleDescription = getVisiblePlaceDescription(place);
   const visibleNote = getVisibleGoogleMapsNote(place);
   const googlePlaceId = place.googlePlaceId?.trim();
+  const ScheduleActionIcon = scheduleActionKind === 'remove' ? CalendarMinus : CalendarPlus;
+
+  function openPhotosAndCloseDetail(targetPlace: Place) {
+    onClose();
+    onOpenPhotos(targetPlace);
+  }
 
   return (
     <ModalFrame
@@ -74,7 +82,7 @@ export function PlaceDetailDialog({
       }
     >
       <div className="grid gap-4 p-4 sm:p-5">
-        <PhotoBundlePreview place={place} photoState={photoState} onOpen={onOpenPhotos} />
+        <PhotoBundlePreview place={place} photoState={photoState} onOpen={openPhotosAndCloseDetail} />
 
         <div className="grid gap-4 text-sm sm:grid-cols-2">
           <section className="rounded-2xl border border-border/80 bg-muted/20 p-3">
@@ -131,10 +139,11 @@ export function PlaceDetailDialog({
           {onScheduleAction && scheduleActionLabel ? (
             <Button
               className="w-full sm:w-fit"
+              variant={scheduleActionKind === 'remove' ? 'outline' : 'default'}
               disabled={scheduleActionDisabled || isScheduleActionLoading}
               onClick={() => onScheduleAction(place)}
             >
-              {isScheduleActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarPlus className="h-4 w-4" />}
+              {isScheduleActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScheduleActionIcon className="h-4 w-4" />}
               {scheduleActionLabel}
             </Button>
           ) : null}

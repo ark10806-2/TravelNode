@@ -66,7 +66,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
   const [reservationTarget, setReservationTarget] = useState<{ place: Place; reservations: Reservation[] } | null>(null);
   const [scheduleDays, setScheduleDays] = useState<ScheduleDay[]>([]);
   const [selectedScheduleDayId, setSelectedScheduleDayId] = useState<string | null>(null);
-  const [addingSchedulePlaceId, setAddingSchedulePlaceId] = useState<string | null>(null);
+  const [scheduleActionPlaceId, setScheduleActionPlaceId] = useState<string | null>(null);
   const [scheduleActionMessage, setScheduleActionMessage] = useState('');
   const { reservations } = useReservations(false);
   const canModify = isEditing && canEdit;
@@ -145,7 +145,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
 
   const addSelectedPlaceToSchedule = useCallback(
     async (place: Place) => {
-      if (addingSchedulePlaceId) return;
+      if (scheduleActionPlaceId) return;
 
       if (!canEdit) {
         onRequireAuth();
@@ -189,7 +189,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
           : day
       );
 
-      setAddingSchedulePlaceId(place.id);
+      setScheduleActionPlaceId(place.id);
       setScheduleActionMessage(`${targetDayLabel} 마지막에 추가 중...`);
       setScheduleDays(nextDays);
       storeDays(nextDays);
@@ -204,10 +204,59 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
         storeDays(previousDays);
         setScheduleActionMessage(saveError instanceof Error ? saveError.message : '일정에 장소를 추가하지 못했습니다.');
       } finally {
-        setAddingSchedulePlaceId(null);
+        setScheduleActionPlaceId(null);
       }
     },
-    [addingSchedulePlaceId, canEdit, onRequireAuth, scheduleDays, selectedScheduleDay]
+    [canEdit, onRequireAuth, scheduleActionPlaceId, scheduleDays, selectedScheduleDay]
+  );
+
+  const removeSelectedPlaceFromSchedule = useCallback(
+    async (place: Place) => {
+      if (scheduleActionPlaceId) return;
+
+      if (!canEdit) {
+        onRequireAuth();
+        return;
+      }
+
+      if (!selectedScheduleDay) {
+        setScheduleActionMessage('선택된 DAY가 없습니다.');
+        return;
+      }
+
+      const targetDayIndex = scheduleDays.findIndex((day) => day.id === selectedScheduleDay.id);
+      const targetDayLabel = targetDayIndex >= 0 ? `DAY-${targetDayIndex + 1}` : 'DAY';
+      const targetStop = selectedScheduleDay.stops.find((stop) => stop.placeId === place.id);
+
+      if (!targetStop) {
+        setScheduleActionMessage(`${targetDayLabel}에 포함되지 않은 장소입니다.`);
+        return;
+      }
+
+      const previousDays = scheduleDays;
+      const nextDays = scheduleDays.map((day) =>
+        day.id === selectedScheduleDay.id ? removeStopFromDay(day, targetStop.id) : day
+      );
+
+      setScheduleActionPlaceId(place.id);
+      setScheduleActionMessage(`${targetDayLabel}에서 제거 중...`);
+      setScheduleDays(nextDays);
+      storeDays(nextDays);
+
+      try {
+        const savedDays = await saveSchedule(nextDays);
+        setScheduleDays(savedDays);
+        storeDays(savedDays);
+        setScheduleActionMessage(`${targetDayLabel}에서 제거했습니다.`);
+      } catch (saveError) {
+        setScheduleDays(previousDays);
+        storeDays(previousDays);
+        setScheduleActionMessage(saveError instanceof Error ? saveError.message : '일정에서 장소를 제거하지 못했습니다.');
+      } finally {
+        setScheduleActionPlaceId(null);
+      }
+    },
+    [canEdit, onRequireAuth, scheduleActionPlaceId, scheduleDays, selectedScheduleDay]
   );
 
   useEffect(() => {
@@ -336,7 +385,7 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
             duplicatePlaceIds={duplicatePlaceIds}
             isEditing={canModify}
             deletingId={deletingId}
-            addingSchedulePlaceId={addingSchedulePlaceId}
+            addingSchedulePlaceId={scheduleActionPlaceId}
             selectedDayLabel={selectedScheduleDayLabel}
             scheduleActionMessage={scheduleActionMessage}
             onLoadPhotos={loadPhotos}
@@ -417,10 +466,12 @@ export function PlacesPage({ travelPlaces, canEdit, isEditing, isDarkMode, onReq
             setDetailTarget(null);
             setEditTarget(place);
           }}
-          scheduleActionLabel={isDetailTargetInSelectedDay ? `${selectedScheduleDayLabel} 포함됨` : `${selectedScheduleDayLabel} 일정에 추가`}
-          scheduleActionDisabled={isDetailTargetInSelectedDay}
-          isScheduleActionLoading={addingSchedulePlaceId === detailTarget.id}
-          onScheduleAction={(place) => void addSelectedPlaceToSchedule(place)}
+          scheduleActionLabel={isDetailTargetInSelectedDay ? `${selectedScheduleDayLabel} 일정에서 제거` : `${selectedScheduleDayLabel} 일정에 추가`}
+          scheduleActionKind={isDetailTargetInSelectedDay ? 'remove' : 'add'}
+          isScheduleActionLoading={scheduleActionPlaceId === detailTarget.id}
+          onScheduleAction={(place) =>
+            void (isDetailTargetInSelectedDay ? removeSelectedPlaceFromSchedule(place) : addSelectedPlaceToSchedule(place))
+          }
         />
       ) : null}
       {reservationTarget ? (
@@ -447,6 +498,29 @@ function createEmptyScheduleDay(): ScheduleDay {
     departureTimeMinutes: null,
     travelDate: null,
     lockedReturnRoute: false
+  };
+}
+
+function removeStopFromDay(day: ScheduleDay, stopId: string): ScheduleDay {
+  const removedIndex = day.stops.findIndex((stop) => stop.id === stopId);
+  if (removedIndex < 0) return day;
+
+  const nextStops = day.stops
+    .filter((stop) => stop.id !== stopId)
+    .map((stop, index) =>
+      index === removedIndex
+        ? {
+            ...stop,
+            lockedFromPrevious: false
+          }
+        : stop
+    );
+
+  return {
+    ...day,
+    selectedReturnRouteMode: null,
+    lockedReturnRoute: false,
+    stops: clearSelectedRouteModes(nextStops)
   };
 }
 
