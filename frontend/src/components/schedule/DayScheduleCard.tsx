@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, Building2, CalendarDays, Gauge, MapPinPlus, MapPinned, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
 import { AccommodationSelectorDialog } from '@/components/dialogs/AccommodationSelectorDialog';
 import { MarkdownInline } from '@/components/common/MarkdownText';
@@ -92,6 +92,8 @@ export function DayScheduleCard({
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [isHotelPickerOpen, setIsHotelPickerOpen] = useState(false);
   const [isRouteMapOpen, setIsRouteMapOpen] = useState(false);
+  const stopItemRefs = useRef(new Map<string, HTMLDivElement>());
+  const pendingMoveAnchorRef = useRef<{ stopId: string; top: number } | null>(null);
   const scheduledPlaceIds = useMemo(() => new Set(day.stops.map((stop) => stop.placeId)), [day.stops]);
   const scheduledPlaces = useMemo(
     () => day.stops.map((stop) => placesById.get(stop.placeId)).filter((place): place is Place => Boolean(place)),
@@ -139,6 +141,39 @@ export function DayScheduleCard({
     );
     setIsPickerOpen(false);
   }
+
+  function setStopItemRef(stopId: string, node: HTMLDivElement | null) {
+    if (node) {
+      stopItemRefs.current.set(stopId, node);
+      return;
+    }
+
+    stopItemRefs.current.delete(stopId);
+  }
+
+  function moveStopKeepingViewportPosition(stopId: string, direction: -1 | 1) {
+    const item = stopItemRefs.current.get(stopId);
+    pendingMoveAnchorRef.current = item
+      ? {
+          stopId,
+          top: item.getBoundingClientRect().top
+        }
+      : null;
+    onMoveStop(day.id, stopId, direction);
+  }
+
+  useLayoutEffect(() => {
+    const pendingAnchor = pendingMoveAnchorRef.current;
+    if (!pendingAnchor) return;
+
+    pendingMoveAnchorRef.current = null;
+    const movedItem = stopItemRefs.current.get(pendingAnchor.stopId);
+    if (!movedItem) return;
+
+    const nextTop = movedItem.getBoundingClientRect().top;
+    const delta = nextTop - pendingAnchor.top;
+    if (Math.abs(delta) > 0.5) window.scrollBy(0, delta);
+  }, [day.stops]);
 
   return (
     <section className="soft-panel overflow-hidden rounded-xl sm:rounded-lg">
@@ -321,7 +356,10 @@ export function DayScheduleCard({
                         onToggleLock={() => onToggleStopEdgeLock(day.id, stop.id)}
                       />
                     ) : null}
-                    <div className="grid grid-cols-[1.75rem_minmax(0,1fr)] items-start gap-2 rounded-lg px-1.5 py-3 transition hover:bg-muted/25 sm:grid-cols-[2.25rem_minmax(0,1fr)] sm:items-center sm:gap-3 sm:px-3">
+                    <div
+                      ref={(node) => setStopItemRef(stop.id, node)}
+                      className="grid grid-cols-[1.75rem_minmax(0,1fr)] items-start gap-2 rounded-lg px-1.5 py-3 transition hover:bg-muted/25 sm:grid-cols-[2.25rem_minmax(0,1fr)] sm:items-center sm:gap-3 sm:px-3"
+                    >
                       <div className="mt-0.5 grid h-7 w-7 place-items-center rounded-full bg-foreground text-sm font-bold text-background sm:mt-0 sm:h-8 sm:w-8">
                         {index + 1}
                       </div>
@@ -376,7 +414,7 @@ export function DayScheduleCard({
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8 rounded-full sm:h-9 sm:w-9"
-                                  onClick={() => onMoveStop(day.id, stop.id, -1)}
+                                  onClick={() => moveStopKeepingViewportPosition(stop.id, -1)}
                                   disabled={index === 0}
                                   aria-label={`${place.name} 앞으로 이동`}
                                 >
@@ -386,7 +424,7 @@ export function DayScheduleCard({
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8 rounded-full sm:h-9 sm:w-9"
-                                  onClick={() => onMoveStop(day.id, stop.id, 1)}
+                                  onClick={() => moveStopKeepingViewportPosition(stop.id, 1)}
                                   disabled={index === day.stops.length - 1}
                                   aria-label={`${place.name} 뒤로 이동`}
                                 >
